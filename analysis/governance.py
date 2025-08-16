@@ -5,6 +5,7 @@ from typing import Any, Iterator, List, Tuple
 
 from pathlib import Path
 from config import load_diagram_rules, load_json_with_comments
+from .requirement_rule_generator import generate_patterns_from_config
 
 import networkx as nx
 import re
@@ -39,6 +40,10 @@ try:
     _PATTERN_DEFS = load_json_with_comments(_PATTERN_PATH)
 except FileNotFoundError:  # pragma: no cover - optional file
     _PATTERN_DEFS = []
+
+# Automatically derive requirement patterns from the diagram rules so that any
+# configuration updates are reflected without manual pattern maintenance.
+_PATTERN_DEFS.extend(generate_patterns_from_config(_CONFIG))
 
 _TRIGGER_RE = re.compile(r"[^:]+:\s*(.*?)\s*--\[(.*?)\]-->\s*(.*)")
 _PATTERN_MAP: dict[tuple[str, str, str], list[dict[str, str]]] = {}
@@ -114,6 +119,9 @@ def reload_config() -> None:
         _PATTERN_DEFS = load_json_with_comments(_PATTERN_PATH)
     except FileNotFoundError:  # pragma: no cover - optional file
         _PATTERN_DEFS = []
+
+    # Regenerate patterns derived from the current diagram rule configuration
+    _PATTERN_DEFS.extend(generate_patterns_from_config(_CONFIG))
     _PATTERN_MAP = {}
     for pat in _PATTERN_DEFS:
         trig = pat.get("Trigger", "")
