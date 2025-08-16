@@ -304,9 +304,16 @@ def test_right_click_node_shows_menu(monkeypatch):
     monkeypatch.setattr(tk, "Menu", MenuStub)
     win._edit_node = lambda n: None
     win._delete_node = lambda n: None
+    win._move_node_forward = lambda n: None
+    win._move_node_back = lambda n: None
     event = type("Evt", (), {"x": 0, "y": 0, "x_root": 0, "y_root": 0})
     GSNDiagramWindow._on_right_click(win, event)
-    assert captured["menu"].items == ["Edit", "Delete"]
+    assert captured["menu"].items == [
+        "Edit",
+        "Delete",
+        "Move Forward",
+        "Move Back",
+    ]
 
 
 def test_right_click_connection_shows_menu(monkeypatch):
@@ -349,6 +356,42 @@ def test_right_click_connection_shows_menu(monkeypatch):
     event = type("Evt", (), {"x": 0, "y": 0, "x_root": 0, "y_root": 0})
     GSNDiagramWindow._on_right_click(win, event)
     assert captured["menu"].items == ["Edit", "Delete"]
+
+
+def test_move_node_forward_and_back_adjusts_layers():
+    """Moving nodes should reorder them without disturbing connectors."""
+    win = GSNDiagramWindow.__new__(GSNDiagramWindow)
+    parent = GSNNode("p", "Goal")
+    child = GSNNode("c", "Goal")
+    rel_id = win._rel_id(parent, child)
+    win.id_to_relation = {rel_id: (parent, child)}
+
+    class CanvasStub:
+        def __init__(self):
+            self.raised = []
+            self.lowered = []
+
+        def tag_raise(self, tag):
+            self.raised.append(tag)
+
+        def tag_lower(self, tag):
+            self.lowered.append(tag)
+
+    win.canvas = CanvasStub()
+    node = GSNNode("n", "Goal")
+
+    win._move_node_forward(node)
+    assert node.unique_id in win.canvas.raised
+    assert rel_id in win.canvas.lowered
+    assert f"{rel_id}-arrow" in win.canvas.raised
+
+    win.canvas.raised.clear()
+    win.canvas.lowered.clear()
+
+    win._move_node_back(node)
+    assert node.unique_id in win.canvas.lowered
+    assert rel_id in win.canvas.lowered
+    assert f"{rel_id}-arrow" in win.canvas.raised
 
 
 def test_refresh_sets_app_for_spi_lookup():

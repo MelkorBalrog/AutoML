@@ -529,6 +529,14 @@ class GSNDiagramWindow(tk.Frame):
             menu.add_command(
                 label="Delete", command=lambda n=node: self._delete_node(n)
             )
+            menu.add_command(
+                label="Move Forward",
+                command=lambda n=node: self._move_node_forward(n),
+            )
+            menu.add_command(
+                label="Move Back",
+                command=lambda n=node: self._move_node_back(n),
+            )
         elif conn:
             parent, child = conn
             menu.add_command(
@@ -595,6 +603,22 @@ class GSNDiagramWindow(tk.Frame):
         if child in parent.context_children:
             parent.context_children.remove(child)
         self.refresh()
+
+    def _move_node_forward(self, node: GSNNode) -> None:  # pragma: no cover - requires tkinter
+        """Raise *node* above other shapes while keeping connectors ordered."""
+        self.canvas.tag_raise(node.unique_id)
+        self._update_layers()
+
+    def _move_node_back(self, node: GSNNode) -> None:  # pragma: no cover - requires tkinter
+        """Lower *node* below other shapes while keeping connectors ordered."""
+        self.canvas.tag_lower(node.unique_id)
+        self._update_layers()
+
+    def _update_layers(self) -> None:  # pragma: no cover - requires tkinter
+        """Ensure connectors stay behind nodes and arrowheads remain on top."""
+        for rel_id in getattr(self, "id_to_relation", {}):
+            self.canvas.tag_lower(rel_id)
+            self.canvas.tag_raise(f"{rel_id}-arrow")
 
     def _node_at(self, x: float, y: float) -> Optional[GSNNode]:
         items = self.canvas.find_overlapping(x - 5, y - 5, x + 5, y + 5)
