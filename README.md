@@ -1,4 +1,4 @@
-version: 0.2.63
+version: 0.2.62
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,7 +1644,6 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.63 - Ensure governance diagram copy, cut and paste respect the selected tab.
 - 0.2.62 - Move PMHF calculation to FTA menu, move PAL calculation to PAA menu and remove Process menu.
 - 0.2.61 - Fix parent-node resolution and enable FTA/CTA node creation when PAA mode is active.
 - 0.2.60 - Allow adding FTA and CTA nodes regardless of active work product mode.
