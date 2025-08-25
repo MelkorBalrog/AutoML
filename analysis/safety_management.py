@@ -471,6 +471,33 @@ class SafetyManagementToolbox:
         return False
 
     # ------------------------------------------------------------------
+    def _work_products_in_diagrams(self, names: set[str]) -> set[str]:
+        """Return work product names declared within ``names`` diagrams.
+
+        The lookup inspects diagram objects directly so copied work product
+        elements from other lifecycle phases still govern tools in the active
+        phase. Only objects with ``obj_type`` set to ``"Work Product"`` and a
+        non-empty ``name`` property contribute to the result.
+        """
+
+        repo = SysMLRepository.get_instance()
+        result: set[str] = set()
+        for diag_name in names:
+            diag_id = self.diagrams.get(diag_name)
+            if not diag_id:
+                continue
+            diag = repo.diagrams.get(diag_id)
+            if not diag:
+                continue
+            for obj in getattr(diag, "objects", []):
+                odict = obj if isinstance(obj, dict) else obj.__dict__
+                if odict.get("obj_type") == "Work Product":
+                    wp_name = odict.get("properties", {}).get("name", "")
+                    if wp_name:
+                        result.add(wp_name)
+        return result
+
+    # ------------------------------------------------------------------
     def enabled_products(self) -> set[str]:
         """Return analysis names declared in the active lifecycle phase."""
 
@@ -488,7 +515,7 @@ class SafetyManagementToolbox:
         reused_wps = reuse.get("work_products", set())
         reused_phases = reuse.get("phases", set())
 
-        enabled: set[str] = set()
+        enabled: set[str] = self._work_products_in_diagrams(names)
         for wp in self.work_products:
             if wp.diagram in names:
                 enabled.add(wp.analysis)

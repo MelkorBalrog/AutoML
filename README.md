@@ -1,4 +1,4 @@
-version: 0.2.65
+version: 0.2.66
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.66 - Recognize copied work products in active phase governance diagrams.
 - 0.2.65 - Always paste to the focused governance diagram and show focused tab details in the status bar.
 - 0.2.64 - Fix paste so governance diagrams honor the currently focused tab.
 - 0.2.63 - Ensure governance diagram clipboard uses focused tab for copy, cut and paste.
