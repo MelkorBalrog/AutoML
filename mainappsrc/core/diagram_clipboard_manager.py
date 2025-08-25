@@ -50,6 +50,12 @@ class DiagramClipboardManager:
         self.diagram_clipboard_type: str | None = None
         self.diagram_clipboard_parent_name: str | None = None
 
+    def _clear_diagram_clipboard(self) -> None:
+        """Reset stored diagram clipboard information."""
+        self.diagram_clipboard = None
+        self.diagram_clipboard_type = None
+        self.diagram_clipboard_parent_name = None
+
     # ------------------------------------------------------------------
     # Strategies for delegating to focused diagram windows
     def _diagram_copy_strategy1(self) -> bool:
@@ -58,6 +64,7 @@ class DiagramClipboardManager:
             self.app.selected_node = None
             self.clipboard_node = None
             self.cut_mode = False
+            self._clear_diagram_clipboard()
             win.copy_selected()
             return True
         return False
@@ -68,6 +75,7 @@ class DiagramClipboardManager:
             self.app.selected_node = None
             self.clipboard_node = None
             self.cut_mode = False
+            self._clear_diagram_clipboard()
             win.copy_selected()
             return True
         return False
@@ -78,6 +86,7 @@ class DiagramClipboardManager:
             self.app.selected_node = None
             self.clipboard_node = None
             self.cut_mode = False
+            self._clear_diagram_clipboard()
             win.copy_selected()
             return True
         return False
@@ -89,6 +98,7 @@ class DiagramClipboardManager:
                 self.app.selected_node = None
                 self.clipboard_node = None
                 self.cut_mode = False
+                self._clear_diagram_clipboard()
                 win.copy_selected()
                 return True
         return False
@@ -99,6 +109,7 @@ class DiagramClipboardManager:
             self.app.selected_node = None
             self.clipboard_node = None
             self.cut_mode = False
+            self._clear_diagram_clipboard()
             win.cut_selected()
             return True
         return False
@@ -109,6 +120,7 @@ class DiagramClipboardManager:
             self.app.selected_node = None
             self.clipboard_node = None
             self.cut_mode = False
+            self._clear_diagram_clipboard()
             win.cut_selected()
             return True
         return False
@@ -119,6 +131,7 @@ class DiagramClipboardManager:
             self.app.selected_node = None
             self.clipboard_node = None
             self.cut_mode = False
+            self._clear_diagram_clipboard()
             win.cut_selected()
             return True
         return False
@@ -130,6 +143,7 @@ class DiagramClipboardManager:
                 self.app.selected_node = None
                 self.clipboard_node = None
                 self.cut_mode = False
+                self._clear_diagram_clipboard()
                 win.cut_selected()
                 return True
         return False
