@@ -92,6 +92,10 @@ class Reporting_Export:
         """
         return self.app.get_all_nodes(node)
 
+    def get_all_basic_events(self):
+        """Return all basic events currently defined in the model."""
+        return self.app.get_all_basic_events()
+
     @property
     def root_node(self):
         """Return the current root node of the application model."""
@@ -164,7 +168,7 @@ class Reporting_Export:
             return
 
         doc = SimpleDocTemplate(
-            path,
+            str(path),
             pagesize=landscape(letter),
             leftMargin=0.8 * inch,
             rightMargin=0.8 * inch,
