@@ -16,8 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Lowercase wrapper for the :mod:`AutoML` launcher module."""
 
-VERSION = "0.2.65"
+from AutoML import *  # noqa: F401,F403
 
-__all__ = ["VERSION"]
+__all__ = [name for name in globals() if not name.startswith("_")]
+

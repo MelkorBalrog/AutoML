@@ -16,8 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Backward-compatible proxy for :mod:`core.automl_core`."""
 
-VERSION = "0.2.65"
+from mainappsrc.core.automl_core import *  # noqa: F401,F403
 
-__all__ = ["VERSION"]
+__all__ = [name for name in globals() if not name.startswith("_")]
+

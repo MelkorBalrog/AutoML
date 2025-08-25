@@ -16,8 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Backward-compatible proxy for :mod:`core.page_diagram`."""
 
-VERSION = "0.2.65"
+from mainappsrc.core.page_diagram import *  # noqa: F401,F403
+from gui.utils.drawing_helper import fta_drawing_helper
 
-__all__ = ["VERSION"]
+__all__ = [name for name in globals() if not name.startswith("_")]
+

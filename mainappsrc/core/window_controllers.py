@@ -254,6 +254,17 @@ class WindowControllers:
         return None
 
     def _focused_arch_window(self, clip_type: Optional[str] = None):
+        nb = getattr(self.app, "doc_nb", None)
+        if nb:
+            try:
+                sel = nb.select()
+                if sel:
+                    tab = nb.nametowidget(sel)
+                    win = getattr(tab, "arch_window", None)
+                    if win and (not clip_type or self.app._get_diag_type(win) == clip_type):
+                        return win
+            except Exception:
+                pass
         for strat in (
             self._arch_window_strategy1,
             self._arch_window_strategy2,
