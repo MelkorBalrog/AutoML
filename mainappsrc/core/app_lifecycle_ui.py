@@ -130,7 +130,6 @@ class AppLifecycleUI:
                         if n not in existing:
                             lb.insert(tk.END, n)
                 return
-
         frame = ttk.Frame(self.tools_nb)
         display = cat
         if len(display) > self.MAX_TOOL_TAB_TEXT_LENGTH:

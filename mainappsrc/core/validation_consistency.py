@@ -91,11 +91,22 @@ class Validation_Consistency:
             self.update_validation_criteria(rid)
 
     # ------------------------------------------------------------------
-    def enable_process_area(self, area: str) -> None:
+    def enable_process_area(self, area: str) -> str:
         app = self.app
+        area = " ".join(area.split())
         if area not in app.tool_listboxes:
             app.tool_categories[area] = []
             app.lifecycle_ui._add_tool_category(area, [])
+        return area
+
+    def _update_tool_mapping(self, mapping, tool_name, name) -> None:
+        existing = mapping.get(tool_name)
+        if isinstance(existing, set):
+            existing.add(name)
+        elif existing:
+            mapping[tool_name] = {existing, name}
+        else:
+            mapping.setdefault(tool_name, set()).add(name)
 
     def enable_work_product(self, name: str, *, refresh: bool = True) -> None:
         app = self.app
@@ -103,22 +114,16 @@ class Validation_Consistency:
         area = tool_name = method_name = None
         if info:
             area, tool_name, method_name = info
-            self.enable_process_area(area)
+            area = self.enable_process_area(area)
             if tool_name not in app.tool_actions:
                 action = getattr(app, method_name, None)
                 if action:
                     app.tool_actions[tool_name] = action
                     lb = app.tool_listboxes.get(area)
-                    if lb:
+                    if lb and tool_name not in lb.get(0, tk.END):
                         lb.insert(tk.END, tool_name)
             mapping = getattr(app, "tool_to_work_product", {})
-            existing = mapping.get(tool_name)
-            if isinstance(existing, set):
-                existing.add(name)
-            elif existing:
-                mapping[tool_name] = {existing, name}
-            else:
-                mapping.setdefault(tool_name, set()).add(name)
+            self._update_tool_mapping(mapping, tool_name, name)
         for menu, idx in app.work_product_menus.get(name, []):
             try:
                 menu.entryconfig(idx, state=tk.NORMAL)
