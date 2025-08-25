@@ -12304,14 +12304,20 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             for frame in frames:
                 if frame and hasattr(frame, "pack_forget"):
                     frame.pack_forget()
-        frames = self._toolbox_frames.get(choice, [])
+        frames = self._toolbox_frames.setdefault(choice, [])
         key = f"toolbox:{choice}"
-        if choice in getattr(self, "_frame_loaders", {}):
-            loader = self._frame_loaders.pop(choice)
+        loader = getattr(self, "_frame_loaders", {}).get(choice)
+        if loader:
             frame = memory_manager.lazy_load(key, loader)
-            frames.append(frame)
+            if frame not in frames:
+                frames.append(frame)
         else:
             memory_manager.mark_active(key)
+        frames[:] = [
+            f
+            for f in frames
+            if not hasattr(f, "winfo_exists") or f.winfo_exists()
+        ]
         for frame in frames:
             if frame and hasattr(frame, "pack"):
                 frame.pack(fill=tk.X, padx=2, pady=2)

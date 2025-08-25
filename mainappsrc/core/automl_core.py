@@ -23,6 +23,8 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 import tkinter as tk
 import os, sys
+import threading
+import time
 base = os.path.dirname(__file__)
 if base not in sys.path:
     sys.path.append(base)
@@ -158,6 +160,8 @@ from .undo_manager import UndoRedoManager
 from analysis.fmeda_utils import compute_fmeda_metrics
 from analysis.scenario_description import template_phrases
 from mainappsrc.core.app_lifecycle_ui import AppLifecycleUI
+from tools.crash_report_logger import install_best, watchdog_best
+from tools.thread_manager import manager as thread_manager
 from mainappsrc.core.editing_labels_styling import Editing_Labels_Styling
 import copy
 import tkinter.font as tkFont
@@ -3054,13 +3058,10 @@ def load_user_data() -> tuple[dict, tuple[str, str]]:
         return users_future.result(), config_future.result()
 
 
-def main():
+def _launch_app() -> None:
     root = tk.Tk()
-    # Prevent the main window from being resized so small that
-    # widgets and toolbars become unusable.
     root.minsize(1200, 700)
     enable_listbox_hover_highlight(root)
-    # Hide the main window while prompting for user info
     root.withdraw()
     users, (last_name, last_email) = load_user_data()
     if users:
@@ -3081,11 +3082,8 @@ def main():
             name, email = dlg.result
             save_user_config(name, email)
     set_current_user(name, email)
-    # Create a fresh helper each session:
     global AutoML_Helper
     AutoML_Helper = config_utils.AutoML_Helper = AutoMLHelper()
-
-    # Show and maximize the main window after login
     root.deiconify()
     try:
         root.state("zoomed")
@@ -3094,9 +3092,29 @@ def main():
             root.attributes("-zoomed", True)
         except tk.TclError:
             pass
-
     app = AutoMLApp(root)
     root.mainloop()
+
+
+def _watchdog_feeder(wd, stop_event, interval: float = 1.0) -> None:
+    while not stop_event.is_set():
+        time.sleep(interval)
+        try:
+            wd.feed()
+        except Exception:
+            break
+
+
+def main() -> None:
+    install_best()
+    wd = watchdog_best(10.0)
+    stop_event = threading.Event()
+    thread_manager.register("watchdog", _watchdog_feeder, args=(wd, stop_event))
+    try:
+        _launch_app()
+    finally:
+        stop_event.set()
+        thread_manager.stop_all()
 
 if __name__ == "__main__":
     main()
