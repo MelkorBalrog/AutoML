@@ -1644,7 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.78 - Log PDF report results in the sliding log pane instead of pop-up dialogs.
+- 0.2.78 - Open Requirements Matrix in workspace tab and enforce fixed-size dialogs.
 - 0.2.77 - Coerce PDF export path to string to support Windows paths.
 - 0.2.76 - Delegate basic events access through reporting helpers for PDF report generation.
 - 0.2.75 - Delegate root node access through reporting helpers for traceability PDF generation.

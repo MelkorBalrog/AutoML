@@ -249,8 +249,11 @@ class Editors:
         reqs = list(global_requirements.values())
         reqs.sort(key=lambda r: r.get("req_type", ""))
 
-        win = tk.Toplevel(app.root)
-        win.title("Requirements Matrix")
+        if hasattr(app, "_new_tab"):
+            win = app._new_tab("Requirements Matrix")
+        else:
+            win = tk.Toplevel(app.root)
+            win.title("Requirements Matrix")
 
         columns = [
             "Req ID",
