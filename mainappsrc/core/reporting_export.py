@@ -28,7 +28,9 @@ from dataclasses import asdict
 from pathlib import Path
 from io import BytesIO
 
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
+
+from gui.utils import logger
 
 try:  # pragma: no cover - pillow optional
     from PIL import Image
@@ -84,9 +86,19 @@ class Reporting_Export:
             debug_path = Path(pdf_path).with_suffix(".json")
             with open(debug_path, "w", encoding="utf-8") as dbg:
                 json.dump(template, dbg)
-            messagebox.showinfo("Report", "PDF report generated.")
+
+            from reportlab.platypus import SimpleDocTemplate, Paragraph
+            from reportlab.lib.styles import getSampleStyleSheet
+
+            styles = getSampleStyleSheet()
+            title = self.app.project_properties.get(
+                "pdf_report_name", "AutoML-Analyzer PDF Report"
+            )
+            doc = SimpleDocTemplate(pdf_path)
+            doc.build([Paragraph(title, styles["Title"])])
+            logger.log_message(f"PDF report generated at {pdf_path}")
         except Exception as exc:  # pragma: no cover - best effort error path
-            messagebox.showerror("Report", f"Failed to generate PDF report: {exc}")
+            logger.log_message(f"Failed to generate PDF report: {exc}", "ERROR")
 
     def generate_pdf_report(self) -> None:
         """Public wrapper for :meth:`_generate_pdf_report`."""
@@ -100,7 +112,7 @@ class Reporting_Export:
             html_content = self.build_html_report()
             with open(path, "w", encoding="utf-8") as f:
                 f.write(html_content)
-            messagebox.showinfo("Report", "HTML report generated.")
+            logger.log_message(f"HTML report generated at {path}")
 
     def build_html_report(self) -> str:
         def node_to_html(n):
@@ -301,7 +313,7 @@ class Reporting_Export:
                             req.get("text", ""),
                         ]
                     )
-        messagebox.showinfo("Export", "Product goal requirements exported.")
+        logger.log_message(f"Product goal requirements exported to {path}")
 
     def export_cybersecurity_goal_requirements(self) -> None:
         self.app.cyber_manager.export_goal_requirements()
