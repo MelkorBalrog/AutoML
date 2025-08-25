@@ -3633,6 +3633,8 @@ class SysMLDiagramWindow(tk.Frame):
         icon_size: int = 16,
     ):
         super().__init__(master)
+        if not isinstance(master, tk.Toplevel):
+            setattr(master, "arch_window", self)
         self.app = app
         self.diagram_history: list[str] = list(history) if history else []
         self.master.title(title) if isinstance(self.master, tk.Toplevel) else None
