@@ -119,6 +119,26 @@ class AppLifecycleUI:
                         self.status_meta_vars[k].set(v)
 
     def _add_tool_category(self, cat: str, names: list[str]) -> None:
+        """Create a notebook tab for tool *cat* without duplicating existing tabs."""
+
+        for tid, title in self._tool_tab_titles.items():
+            if title == cat:
+                lb = self.tool_listboxes.get(cat)
+                if lb is None:
+                    frame = self.tools_nb.nametowidget(tid)
+                    lb = tk.Listbox(frame, height=10)
+                    vsb = ttk.Scrollbar(frame, orient="vertical", command=lb.yview)
+                    lb.configure(yscrollcommand=vsb.set)
+                    lb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                    vsb.pack(side=tk.RIGHT, fill=tk.Y)
+                    lb.bind("<Double-1>", self.on_tool_list_double_click)
+                    self.tool_listboxes[cat] = lb
+                existing = set(lb.get(0, tk.END))
+                for n in names:
+                    if n not in existing:
+                        lb.insert(tk.END, n)
+                return
+
         frame = ttk.Frame(self.tools_nb)
         display = cat
         if len(display) > self.MAX_TOOL_TAB_TEXT_LENGTH:
@@ -142,14 +162,13 @@ class AppLifecycleUI:
     def _remove_tool_category(self, cat: str) -> None:
         """Remove toolbox category *cat* along with its tab and widgets."""
         lb = self.tool_listboxes.pop(cat, None)
-        if lb is None:
-            return
         tab_id = None
         for tid, title in self._tool_tab_titles.items():
             if title == cat:
                 tab_id = tid
                 break
         if tab_id:
+            parent = lb.master if lb is not None else self.tools_nb.nametowidget(tab_id)
             try:
                 self.tools_nb.forget(tab_id)
             except tk.TclError:
@@ -157,13 +176,12 @@ class AppLifecycleUI:
             self._tool_tab_titles.pop(tab_id, None)
             if tab_id in self._tool_all_tabs:
                 self._tool_all_tabs.remove(tab_id)
-            self._tool_tab_offset = max(0, len(self._tool_all_tabs) - self.MAX_VISIBLE_TABS)
-            self._update_tool_tab_visibility()
-        parent = lb.master
-        try:
-            parent.destroy()
-        except Exception:
-            pass
+                self._tool_tab_offset = max(0, len(self._tool_all_tabs) - self.MAX_VISIBLE_TABS)
+                self._update_tool_tab_visibility()
+            try:
+                parent.destroy()
+            except Exception:
+                pass
 
     def _on_tool_tab_motion(self, event):
         """Show tooltip for notebook tabs when hovering over them."""
