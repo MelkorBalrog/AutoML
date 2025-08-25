@@ -1,4 +1,4 @@
-version: 0.2.74
+version: 0.2.75
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.75 - Delegate root node access through reporting helpers for traceability PDF generation.
 - 0.2.74 - Delegate node traversal helper through reporting export for traceability PDF elements.
 - 0.2.73 - Delegate top events access through reporting helpers for PDF exports.
 - 0.2.72 - Delegate cause-effect data builder to fix PDF report generation.

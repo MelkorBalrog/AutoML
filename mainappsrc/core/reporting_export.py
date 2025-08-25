@@ -93,6 +93,11 @@ class Reporting_Export:
         return self.app.get_all_nodes(node)
 
     @property
+    def root_node(self):
+        """Return the current root node of the application model."""
+        return getattr(self.app, "root_node", None)
+
+    @property
     def top_events(self):
         """Return top events currently defined in the application.
 
