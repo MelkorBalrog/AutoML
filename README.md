@@ -1644,7 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.62 - Reset diagram clipboard between operations so governance copy, cut, and paste work repeatedly.
+- 0.2.62 - Reset diagram clipboard after paste so governance copy/cut can be repeated between diagrams.
 - 0.2.61 - Fix parent-node resolution and enable FTA/CTA node creation when PAA mode is active.
 - 0.2.60 - Allow adding FTA and CTA nodes regardless of active work product mode.
 - 0.2.59 - Reactivate lifecycle phase when focusing governance diagrams to allow editing after opening other analyses.
