@@ -15,9 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Lowercase wrapper for :mod:`AutoML` launcher.
 
-"""Project version information."""
+This module simply re-exports all names from :mod:`AutoML` so tests and
+scripts can ``import automl`` regardless of filename casing.
+"""
 
-VERSION = "0.2.68"
-
-__all__ = ["VERSION"]
+from AutoML import *  # noqa: F401,F403
