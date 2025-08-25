@@ -73,7 +73,7 @@ class DiagramClipboardManager:
         return False
 
     def _diagram_copy_strategy3(self) -> bool:
-        win = self.app.window_controllers._focused_arch_window()
+        win = getattr(self.app, "active_arch_window", None)
         if win and getattr(win, "selected_obj", None) and getattr(win, "copy_selected", None):
             self.app.selected_node = None
             self.clipboard_node = None
@@ -83,13 +83,14 @@ class DiagramClipboardManager:
         return False
 
     def _diagram_copy_strategy4(self) -> bool:
-        win = getattr(self.app, "active_arch_window", None)
-        if win and getattr(win, "selected_obj", None) and getattr(win, "copy_selected", None):
-            self.app.selected_node = None
-            self.clipboard_node = None
-            self.cut_mode = False
-            win.copy_selected()
-            return True
+        for ref in list(ARCH_WINDOWS):
+            win = ref()
+            if win and getattr(win, "selected_obj", None) and getattr(win, "copy_selected", None):
+                self.app.selected_node = None
+                self.clipboard_node = None
+                self.cut_mode = False
+                win.copy_selected()
+                return True
         return False
 
     def _diagram_cut_strategy1(self) -> bool:
@@ -113,7 +114,7 @@ class DiagramClipboardManager:
         return False
 
     def _diagram_cut_strategy3(self) -> bool:
-        win = self.app.window_controllers._focused_arch_window()
+        win = getattr(self.app, "active_arch_window", None)
         if win and getattr(win, "selected_obj", None) and getattr(win, "cut_selected", None):
             self.app.selected_node = None
             self.clipboard_node = None
@@ -123,13 +124,14 @@ class DiagramClipboardManager:
         return False
 
     def _diagram_cut_strategy4(self) -> bool:
-        win = getattr(self.app, "active_arch_window", None)
-        if win and getattr(win, "selected_obj", None) and getattr(win, "cut_selected", None):
-            self.app.selected_node = None
-            self.clipboard_node = None
-            self.cut_mode = False
-            win.cut_selected()
-            return True
+        for ref in list(ARCH_WINDOWS):
+            win = ref()
+            if win and getattr(win, "selected_obj", None) and getattr(win, "cut_selected", None):
+                self.app.selected_node = None
+                self.clipboard_node = None
+                self.cut_mode = False
+                win.cut_selected()
+                return True
         return False
 
     # ------------------------------------------------------------------
