@@ -91,11 +91,13 @@ class Validation_Consistency:
             self.update_validation_criteria(rid)
 
     # ------------------------------------------------------------------
-    def enable_process_area(self, area: str) -> None:
+    def enable_process_area(self, area: str) -> str:
         app = self.app
+        area = " ".join(area.split())
         if area not in app.tool_listboxes:
             app.tool_categories[area] = []
             app.lifecycle_ui._add_tool_category(area, [])
+        return area
 
     def _update_tool_mapping(self, mapping, tool_name, name) -> None:
         existing = mapping.get(tool_name)
@@ -112,7 +114,7 @@ class Validation_Consistency:
         area = tool_name = method_name = None
         if info:
             area, tool_name, method_name = info
-            self.enable_process_area(area)
+            area = self.enable_process_area(area)
             if tool_name not in app.tool_actions:
                 action = getattr(app, method_name, None)
                 if action:
