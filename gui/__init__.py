@@ -28,6 +28,9 @@ from tkinter import ttk, simpledialog
 from .utils import DIALOG_BG_COLOR, logger, drawing_helper
 from pathlib import Path
 
+# Fixed dimensions applied to all prompt dialogs to ensure consistent sizing
+DEFAULT_DIALOG_GEOMETRY = "600x400"
+
 # Allow importing modules from subpackages via ``gui.<module>``
 for _sub in ("windows", "toolboxes", "explorers", "utils", "styles", "dialogs"):
     __path__.append(str(Path(__file__).resolve().parent / _sub))
@@ -43,10 +46,12 @@ _orig_dialog_init = simpledialog.Dialog.__init__
 
 
 def _dialog_init_with_color(self, parent, title=None):
-    """Apply light blue background to every dialog window."""
+    """Apply light blue background and fixed geometry to dialog windows."""
     _orig_dialog_init(self, parent, title)
     try:
         self.configure(bg=DIALOG_BG_COLOR)
+        self.resizable(False, False)
+        self.geometry(DEFAULT_DIALOG_GEOMETRY)
         for child in self.winfo_children():
             try:
                 child.configure(bg=DIALOG_BG_COLOR)

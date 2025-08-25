@@ -16,8 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Compatibility wrapper for relocated :mod:`page_diagram` module."""
 
-VERSION = "0.2.78"
+try:
+    from .core.page_diagram import PageDiagram, fta_drawing_helper
+except Exception:  # pragma: no cover - allow direct execution
+    from mainappsrc.core.page_diagram import PageDiagram, fta_drawing_helper
 
-__all__ = ["VERSION"]
+__all__ = ["PageDiagram", "fta_drawing_helper"]
+

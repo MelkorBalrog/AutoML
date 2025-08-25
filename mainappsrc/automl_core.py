@@ -16,8 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Compatibility wrapper for relocated :mod:`automl_core` module."""
 
-VERSION = "0.2.78"
+try:
+    from .core.automl_core import *  # type: ignore[F401,F403]
+except Exception:  # pragma: no cover - allow direct execution
+    from mainappsrc.core.automl_core import *  # type: ignore[F401,F403]
 
-__all__ = ["VERSION"]
