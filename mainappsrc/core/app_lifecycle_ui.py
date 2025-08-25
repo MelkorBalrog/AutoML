@@ -119,6 +119,18 @@ class AppLifecycleUI:
                         self.status_meta_vars[k].set(v)
 
     def _add_tool_category(self, cat: str, names: list[str]) -> None:
+        """Create a notebook tab for tool *cat* without duplicating existing tabs."""
+
+        for tid, title in self._tool_tab_titles.items():
+            if title == cat:
+                lb = self.tool_listboxes.get(cat)
+                if lb is not None:
+                    existing = set(lb.get(0, tk.END))
+                    for n in names:
+                        if n not in existing:
+                            lb.insert(tk.END, n)
+                return
+
         frame = ttk.Frame(self.tools_nb)
         display = cat
         if len(display) > self.MAX_TOOL_TAB_TEXT_LENGTH:

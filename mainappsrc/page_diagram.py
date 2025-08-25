@@ -16,8 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Compatibility wrapper for ``core.page_diagram``."""
 
-VERSION = "0.2.68"
+from mainappsrc.core.page_diagram import PageDiagram
+from gui.utils.drawing_helper import fta_drawing_helper
 
-__all__ = ["VERSION"]
+__all__ = ["PageDiagram", "fta_drawing_helper"]
+
