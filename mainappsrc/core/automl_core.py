@@ -833,6 +833,9 @@ class AutoMLApp(
             "Name": tk.StringVar(value=""),
             "Type": tk.StringVar(value=""),
             "Author": tk.StringVar(value=""),
+            "Tab": tk.StringVar(value=""),
+            "WorkProduct": tk.StringVar(value=""),
+            "Class": tk.StringVar(value=""),
         }
         for key, var in self.status_meta_vars.items():
             ttk.Label(self.status_frame, text=f"{key}:").pack(

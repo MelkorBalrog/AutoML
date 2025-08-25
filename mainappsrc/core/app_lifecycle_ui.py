@@ -361,6 +361,29 @@ class AppLifecycleUI:
             if hasattr(event.widget, "nametowidget")
             else tab_id
         )
+        try:
+            tab_name = event.widget.tab(tab_id, "text")
+        except Exception:
+            tab_name = str(tab_id)
+        win = getattr(tab, "arch_window", None)
+        wp = ""
+        if win:
+            self.active_arch_window = win
+            wp = self._get_diag_type(win)
+        else:
+            gsn_win = getattr(tab, "gsn_window", None)
+            if gsn_win:
+                self.active_gsn_window = gsn_win
+                win = gsn_win
+                wp = "GSN"
+        cls_name = win.__class__.__name__ if win else ""
+        if hasattr(self, "status_meta_vars"):
+            if "Tab" in self.status_meta_vars:
+                self.status_meta_vars["Tab"].set(tab_name)
+            if "WorkProduct" in self.status_meta_vars:
+                self.status_meta_vars["WorkProduct"].set(wp)
+            if "Class" in self.status_meta_vars:
+                self.status_meta_vars["Class"].set(cls_name)
         canvas = None
         widgets = [tab, *getattr(tab, "winfo_children", lambda: [])()]
         for child in widgets:
