@@ -68,11 +68,14 @@ class Reporting_Export:
     # Reporting helpers
     def _generate_pdf_report(self) -> None:
         """Export a PDF report using a JSON template."""
-        pdf_path = filedialog.asksaveasfilename(
+        pdf_path_str = filedialog.asksaveasfilename(
             defaultextension=".pdf", filetypes=[("PDF", "*.pdf")]
         )
-        if not pdf_path:
+        if not pdf_path_str:
             return
+        pdf_path = Path(pdf_path_str)
+        if pdf_path.suffix.lower() != ".pdf":
+            pdf_path = pdf_path.with_suffix(".pdf")
 
         template_path = filedialog.askopenfilename(
             defaultextension=".json", filetypes=[("JSON", "*.json")]
@@ -83,7 +86,7 @@ class Reporting_Export:
         try:
             with open(template_path, "r", encoding="utf-8") as tpl:
                 template = json.load(tpl)
-            debug_path = Path(pdf_path).with_suffix(".json")
+            debug_path = pdf_path.with_suffix(".json")
             with open(debug_path, "w", encoding="utf-8") as dbg:
                 json.dump(template, dbg)
 
@@ -94,7 +97,7 @@ class Reporting_Export:
             title = self.app.project_properties.get(
                 "pdf_report_name", "AutoML-Analyzer PDF Report"
             )
-            doc = SimpleDocTemplate(pdf_path)
+            doc = SimpleDocTemplate(str(pdf_path))
             doc.build([Paragraph(title, styles["Title"])])
             logger.log_message(f"PDF report generated at {pdf_path}")
         except Exception as exc:  # pragma: no cover - best effort error path
