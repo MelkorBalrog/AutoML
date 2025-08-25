@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Lowercase wrapper for :mod:`AutoML` to support case-sensitive imports."""
 
-VERSION = "0.2.62"
-
-__all__ = ["VERSION"]
+from AutoML import *  # noqa: F401,F403
