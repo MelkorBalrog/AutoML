@@ -137,3 +137,23 @@ def test_generate_pdf_report_handles_extended_placeholders(tmp_path, monkeypatch
     app._generate_pdf_report()
     assert pdf_path.exists()
     assert pdf_path.with_suffix(".json").exists()
+
+
+def test_generate_pdf_report_enforces_pdf_extension(tmp_path, monkeypatch):
+    """Ensure PDFs are saved with the selected PDF extension."""
+    pdf_path = tmp_path / "out.txt"
+    template_path = tmp_path / "template.json"
+    template_path.write_text(json.dumps({"elements": {}, "sections": []}))
+
+    monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **k: str(pdf_path))
+    monkeypatch.setattr(filedialog, "askopenfilename", lambda **k: str(template_path))
+
+    app = type(
+        "A",
+        (),
+        {"project_properties": {}, "_generate_pdf_report": AutoMLApp._generate_pdf_report},
+    )()
+    app._generate_pdf_report()
+
+    assert pdf_path.with_suffix(".pdf").exists()
+    assert pdf_path.with_suffix(".pdf").with_suffix(".json").exists()
