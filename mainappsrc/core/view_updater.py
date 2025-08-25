@@ -36,6 +36,38 @@ class ViewUpdater:
     def __init__(self, app: AutoMLApp) -> None:
         self.app = app
 
+    def _insert_module(self, tree, mod, parent, index_map):
+        """Insert a module into the analysis tree if the parent exists.
+
+        The GUI can trigger refreshes while elements are being modified. If a
+        parent item was removed between refreshes, attempting to insert under
+        that missing parent would raise ``TclError``. Guard against this by
+        verifying the parent still exists before inserting.
+        """
+
+        if not tree.exists(parent):
+            return
+
+        node = tree.insert(
+            parent,
+            "end",
+            text=mod.name,
+            open=True,
+            image=getattr(self.app, "pkg_icon", None),
+        )
+        for sub in sorted(mod.modules, key=lambda m: m.name):
+            self._insert_module(tree, sub, node, index_map)
+        for name in sorted(mod.diagrams):
+            idx = index_map.get(name)
+            if idx is not None:
+                tree.insert(
+                    node,
+                    "end",
+                    text=name,
+                    tags=("gov", str(idx)),
+                    image=getattr(self.app, "gsn_diagram_icon", None),
+                )
+
     def update_views(self) -> None:
         """Refresh project views based on current model state."""
 
@@ -94,29 +126,8 @@ class ViewUpdater:
                         return True
                 return False
 
-            def _add_module(mod, parent):
-                node = tree.insert(
-                    parent,
-                    "end",
-                    text=mod.name,
-                    open=True,
-                    image=getattr(app, "pkg_icon", None),
-                )
-                for sub in sorted(mod.modules, key=lambda m: m.name):
-                    _add_module(sub, node)
-                for name in sorted(mod.diagrams):
-                    idx = index_map.get(name)
-                    if idx is not None:
-                        tree.insert(
-                            node,
-                            "end",
-                            text=name,
-                            tags=("gov", str(idx)),
-                            image=getattr(app, "gsn_diagram_icon", None),
-                        )
-
             for mod in sorted(toolbox.modules, key=lambda m: m.name):
-                _add_module(mod, gov_root)
+                self._insert_module(tree, mod, gov_root, index_map)
 
             for name in sorted(toolbox.diagrams.keys()):
                 if not _in_any_module(name, toolbox.modules):
