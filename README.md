@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.79 - Ensure tools package is available for bundled executable by injecting project root into ``sys.path``.
 - 0.2.78 - Open Requirements Matrix in workspace tab and enforce fixed-size dialogs.
 - 0.2.77 - Coerce PDF export path to string to support Windows paths.
 - 0.2.76 - Delegate basic events access through reporting helpers for PDF report generation.

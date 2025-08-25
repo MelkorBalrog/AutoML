@@ -32,6 +32,14 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+# Ensure bundled executables can import sibling packages
+if getattr(sys, "frozen", False):
+    _ROOT = Path(sys._MEIPASS)
+else:
+    _ROOT = Path(__file__).resolve().parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 from tools.crash_report_logger import install_best
 from tools.memory_manager import manager as memory_manager
 from tools.splash_launcher import SplashLauncher
