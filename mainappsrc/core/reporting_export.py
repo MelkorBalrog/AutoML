@@ -168,7 +168,7 @@ class Reporting_Export:
             return
 
         doc = SimpleDocTemplate(
-            path,
+            str(path),
             pagesize=landscape(letter),
             leftMargin=0.8 * inch,
             rightMargin=0.8 * inch,
