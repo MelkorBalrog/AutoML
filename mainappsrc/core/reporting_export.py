@@ -83,6 +83,15 @@ class Reporting_Export:
         """Return all nodes currently present in the model."""
         return self.app.get_all_nodes_in_model()
 
+    def get_all_nodes(self, node=None):
+        """Return all nodes starting at ``node``.
+
+        This delegates to :meth:`AutoMLApp.get_all_nodes` so reporting code can
+        traverse the diagram hierarchy without directly depending on the
+        :class:`AutoMLApp` instance.
+        """
+        return self.app.get_all_nodes(node)
+
     @property
     def top_events(self):
         """Return top events currently defined in the application.
