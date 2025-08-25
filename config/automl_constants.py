@@ -532,12 +532,8 @@ WORK_PRODUCT_INFO = {
     ),
 }
 WORK_PRODUCT_PARENTS = {
-    "HAZOP": "Risk Assessment",
     "Risk Assessment": None,
-    "STPA": "Risk Assessment",
     "Threat Analysis": "Qualitative Analysis",
-    "FI2TC": "Risk Assessment",
-    "TC2FI": "Risk Assessment",
     "FMEA": "Qualitative Analysis",
     "Prototype Assurance Analysis": "Qualitative Analysis",
     "CTA": "Qualitative Analysis",

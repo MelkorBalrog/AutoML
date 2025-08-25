@@ -16,6 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Compatibility wrapper for legacy imports."""
+"""Ensure hazard analysis work products do not activate risk assessment tools."""
 
-from mainappsrc.core.automl_core import *  # noqa: F401,F403
+from mainappsrc.core.automl_core import AutoMLApp
+from mainappsrc.core.validation_consistency import Validation_Consistency
+
+
+def test_hazop_does_not_enable_risk_assessment():
+    app = AutoMLApp.__new__(AutoMLApp)
+    app.WORK_PRODUCT_INFO = AutoMLApp.WORK_PRODUCT_INFO
+    app.WORK_PRODUCT_PARENTS = AutoMLApp.WORK_PRODUCT_PARENTS
+    app.work_product_menus = {}
+    app.tool_listboxes = {}
+    app.tool_actions = {}
+    app.enabled_work_products = set()
+    app.update_views = lambda: None
+    app.validation_consistency = Validation_Consistency(app)
+
+    app.enable_work_product("HAZOP")
+
+    assert "HAZOP" in app.enabled_work_products
+    assert "Risk Assessment" not in app.enabled_work_products

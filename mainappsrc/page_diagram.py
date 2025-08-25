@@ -16,8 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Compatibility wrapper for :mod:`mainappsrc.core.page_diagram`."""
+"""Compatibility wrapper for legacy imports."""
 
-from mainappsrc.core.page_diagram import PageDiagram, fta_drawing_helper
+from mainappsrc.core.page_diagram import PageDiagram
+from gui.utils.drawing_helper import fta_drawing_helper
 
 __all__ = ["PageDiagram", "fta_drawing_helper"]
