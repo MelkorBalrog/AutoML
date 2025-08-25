@@ -398,17 +398,29 @@ class DiagramClipboardManager:
             if not clip_type or clip_type == "Causal Bayesian Network":
                 if getattr(win, "paste_selected", None):
                     win.paste_selected()
+                    self.diagram_clipboard = None
+                    self.diagram_clipboard_type = None
+                    self.diagram_clipboard_parent_name = None
+                    self.cut_mode = False
                     return
         win = self.app.window_controllers._focused_gsn_window()
         if win and getattr(self, "diagram_clipboard", None):
             if not clip_type or clip_type == "GSN":
                 if getattr(win, "paste_selected", None):
                     win.paste_selected()
+                    self.diagram_clipboard = None
+                    self.diagram_clipboard_type = None
+                    self.diagram_clipboard_parent_name = None
+                    self.cut_mode = False
                     return
         win = self.app.window_controllers._focused_arch_window(clip_type)
         if win and getattr(self, "diagram_clipboard", None):
             if getattr(win, "paste_selected", None):
                 win.paste_selected()
+                self.diagram_clipboard = None
+                self.diagram_clipboard_type = None
+                self.diagram_clipboard_parent_name = None
+                self.cut_mode = False
                 return
         messagebox.showwarning("Paste", "Clipboard is empty.")
 
