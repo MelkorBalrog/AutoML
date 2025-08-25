@@ -62,7 +62,7 @@ pyinstaller --noconfirm --onefile --windowed --name AutoML ^
     --hidden-import=tkinter.scrolledtext ^
     --hidden-import=tkinter.ttk ^
     --add-data "config/styles;config/styles" ^
-    --add-data "main\automl_core.py;main" ^
+    --add-data "mainappsrc\automl_core.py;mainappsrc" ^
     --icon "%BIN_DIR%AutoML.ico" automl.py
 if errorlevel 1 (
     echo Failed to build executable.
