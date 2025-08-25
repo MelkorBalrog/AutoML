@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Compatibility wrapper for core.page_diagram."""
 
-"""Project version information."""
+from mainappsrc.core.page_diagram import PageDiagram, fta_drawing_helper  # noqa: F401
 
-VERSION = "0.2.62"
-
-__all__ = ["VERSION"]
+__all__ = ["PageDiagram", "fta_drawing_helper"]
