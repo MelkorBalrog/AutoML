@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Compatibility wrapper for ``core.automl_core``."""
+"""Compatibility wrapper exposing :mod:`mainappsrc.core.automl_core`."""
 
 from mainappsrc.core.automl_core import *  # noqa: F401,F403
-

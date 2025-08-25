@@ -16,10 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Compatibility wrapper for ``core.page_diagram``."""
+"""Compatibility wrapper exposing :mod:`mainappsrc.core.page_diagram`.
 
-from mainappsrc.core.page_diagram import PageDiagram
-from gui.utils.drawing_helper import fta_drawing_helper
+This module re-exports the public API so legacy imports from
+``mainappsrc.page_diagram`` continue to function.
+"""
 
-__all__ = ["PageDiagram", "fta_drawing_helper"]
+from mainappsrc.core.page_diagram import (
+    PageDiagram,
+    fta_drawing_helper,
+    GATE_NODE_TYPES,
+)
 
+__all__ = ["PageDiagram", "fta_drawing_helper", "GATE_NODE_TYPES"]
