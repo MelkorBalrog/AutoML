@@ -1644,8 +1644,8 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.68 - Generate actual PDF files and log results instead of using pop-up dialogs.
-- 0.2.67 - Prevent crash when switching governance diagram toolboxes and ensure crash, watchdog and thread monitors run.
+- 0.2.68 - Prevent tool tab duplication when switching lifecycle phases.
+- 0.2.67 - Activate risk assessment tools only when risk assessment work products exist.
 - 0.2.66 - Recognize copied work products in active phase governance diagrams.
 - 0.2.65 - Always paste to the focused governance diagram and show focused tab details in the status bar.
 - 0.2.64 - Fix paste so governance diagrams honor the currently focused tab.

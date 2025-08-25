@@ -119,6 +119,13 @@ class AppLifecycleUI:
                         self.status_meta_vars[k].set(v)
 
     def _add_tool_category(self, cat: str, names: list[str]) -> None:
+        existing = self.tool_listboxes.get(cat)
+        if existing is not None:
+            current = set(existing.get(0, tk.END))
+            for n in names:
+                if n not in current:
+                    existing.insert(tk.END, n)
+            return
         frame = ttk.Frame(self.tools_nb)
         display = cat
         if len(display) > self.MAX_TOOL_TAB_TEXT_LENGTH:

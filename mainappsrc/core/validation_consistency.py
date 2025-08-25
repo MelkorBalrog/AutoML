@@ -97,6 +97,15 @@ class Validation_Consistency:
             app.tool_categories[area] = []
             app.lifecycle_ui._add_tool_category(area, [])
 
+    def _update_tool_mapping(self, mapping, tool_name, name) -> None:
+        existing = mapping.get(tool_name)
+        if isinstance(existing, set):
+            existing.add(name)
+        elif existing:
+            mapping[tool_name] = {existing, name}
+        else:
+            mapping.setdefault(tool_name, set()).add(name)
+
     def enable_work_product(self, name: str, *, refresh: bool = True) -> None:
         app = self.app
         info = app.WORK_PRODUCT_INFO.get(name)
@@ -109,16 +118,10 @@ class Validation_Consistency:
                 if action:
                     app.tool_actions[tool_name] = action
                     lb = app.tool_listboxes.get(area)
-                    if lb:
+                    if lb and tool_name not in lb.get(0, tk.END):
                         lb.insert(tk.END, tool_name)
             mapping = getattr(app, "tool_to_work_product", {})
-            existing = mapping.get(tool_name)
-            if isinstance(existing, set):
-                existing.add(name)
-            elif existing:
-                mapping[tool_name] = {existing, name}
-            else:
-                mapping.setdefault(tool_name, set()).add(name)
+            self._update_tool_mapping(mapping, tool_name, name)
         for menu, idx in app.work_product_menus.get(name, []):
             try:
                 menu.entryconfig(idx, state=tk.NORMAL)
