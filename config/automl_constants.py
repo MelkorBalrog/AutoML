@@ -495,11 +495,6 @@ WORK_PRODUCT_INFO = {
         "CTA Diagrams",
         "create_cta_diagram",
     ),
-    "Process": (
-        "Process",
-        "Calc Prototype Assurance Level (PAL)",
-        "calculate_overall",
-    ),
     "Qualitative Analysis": (
         "Hazard & Threat Analysis",
         "Hazard Explorer",

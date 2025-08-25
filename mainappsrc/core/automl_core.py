@@ -441,9 +441,6 @@ class AutoMLApp(
         search_menu.add_command(
             label="Find...", command=self.open_search_toolbox, accelerator="Ctrl+F"
         )
-        process_menu = tk.Menu(menubar, tearoff=0)
-        process_menu.add_command(label="Calc Prototype Assurance Level (PAL)", command=self.calculate_overall, accelerator="Ctrl+R")
-        process_menu.add_command(label="Calc PMHF", command=self.calculate_pmfh, accelerator="Ctrl+M")
         view_menu = tk.Menu(menubar, tearoff=0)
         view_menu.add_command(label="Zoom In", command=self.zoom_in, accelerator="Ctrl++")
         view_menu.add_command(label="Zoom Out", command=self.zoom_out, accelerator="Ctrl+-")
@@ -637,6 +634,12 @@ class AutoMLApp(
             accelerator="Ctrl+Shift+G",
         )
         self._paa_menu_indices["add_gate"] = paa_menu.index("end")
+        paa_menu.add_separator()
+        paa_menu.add_command(
+            label="Calc Prototype Assurance Level (PAL)",
+            command=self.calculate_overall,
+            accelerator="Ctrl+R",
+        )
         qualitative_menu.add_cascade(
             label="Prototype Assurance Analysis",
             menu=paa_menu,
@@ -716,6 +719,12 @@ class AutoMLApp(
         )
         fta_menu.add_command(label="Common Cause Toolbox", command=self.show_common_cause_view)
         fta_menu.add_command(label="Cause & Effect Chain", command=self.show_cause_effect_chain)
+        fta_menu.add_separator()
+        fta_menu.add_command(
+            label="Calc PMHF",
+            command=self.calculate_pmfh,
+            accelerator="Ctrl+M",
+        )
         self.fta_menu = fta_menu
         quantitative_menu.add_cascade(label="FTA", menu=fta_menu, state=tk.DISABLED)
         self.work_product_menus.setdefault("FTA", []).append(
@@ -785,10 +794,6 @@ class AutoMLApp(
         menubar.add_cascade(label="GSN", menu=gsn_menu)
         idx = menubar.index("end")
         self.work_product_menus.setdefault("GSN", []).append((menubar, idx))
-        menubar.entryconfig(idx, state=tk.DISABLED)
-        menubar.add_cascade(label="Process", menu=process_menu)
-        idx = menubar.index("end")
-        self.work_product_menus.setdefault("Process", []).append((menubar, idx))
         menubar.entryconfig(idx, state=tk.DISABLED)
         menubar.add_cascade(label="Review", menu=review_menu)
         help_menu = tk.Menu(menubar, tearoff=0)
