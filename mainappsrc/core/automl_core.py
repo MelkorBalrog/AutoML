@@ -1624,7 +1624,7 @@ class AutoMLApp(
         gm.on_lifecycle_selected(phase)
 
 
-    def enable_process_area(self, area: str) -> None:  # pragma: no cover - delegation
+    def enable_process_area(self, area: str) -> str:  # pragma: no cover - delegation
         return self.validation_consistency.enable_process_area(area)
 
     def enable_work_product(self, name: str, *, refresh: bool = True) -> None:  # pragma: no cover - delegation
