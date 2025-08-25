@@ -64,8 +64,34 @@ class Reporting_Export:
     def build_base_events_table_html(self):  # pragma: no cover - passthrough
         return self.app.fta_app.build_base_events_table_html(self.app)
 
+    def build_cause_effect_data(self):
+        """Return cause-effect table rows for PDF rendering."""
+        return self.app.build_cause_effect_data()
+
     def build_requirement_diff_html(self, review):
         return self.app.requirements_manager.build_requirement_diff_html(review)
+
+    def generate_recommendations_for_top_event(self, node):
+        """Return recommendations for a given top event node."""
+        return self.app.generate_recommendations_for_top_event(node)
+
+    def get_extra_recommendations_list(self, description, level):
+        """Return extra recommendations for description at a given level."""
+        return self.app.get_extra_recommendations_list(description, level)
+
+    def get_all_nodes_in_model(self):
+        """Return all nodes currently present in the model."""
+        return self.app.get_all_nodes_in_model()
+
+    @property
+    def top_events(self):
+        """Return top events currently defined in the application.
+
+        This delegates to the underlying :class:`AutoMLApp` to expose its
+        ``top_events`` list so callers can iterate over safety goals without
+        reaching into the app object directly.
+        """
+        return getattr(self.app, "top_events", [])
 
     # ------------------------------------------------------------------
     # Reporting helpers
