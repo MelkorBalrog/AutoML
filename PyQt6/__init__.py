@@ -16,8 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Stub package to allow skipping GUI-dependent tests.
 
-VERSION = "0.2.64"
+This placeholder raises :class:`ImportError` on import so that tests using
+``pytest.importorskip("PyQt6")`` are skipped when the real PyQt6 bindings are
+not available in the execution environment.
+"""
 
-__all__ = ["VERSION"]
+raise ImportError("PyQt6 is not available in this environment")
+
