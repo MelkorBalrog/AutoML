@@ -28,7 +28,7 @@ from dataclasses import asdict
 from pathlib import Path
 from io import BytesIO
 
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 
 from gui.utils import logger
 
@@ -91,6 +91,10 @@ class Reporting_Export:
         :class:`AutoMLApp` instance.
         """
         return self.app.get_all_nodes(node)
+
+    def get_all_basic_events(self):
+        """Return all basic events currently defined in the model."""
+        return self.app.get_all_basic_events()
 
     @property
     def root_node(self):
@@ -164,7 +168,7 @@ class Reporting_Export:
             return
 
         doc = SimpleDocTemplate(
-            path,
+            str(path),
             pagesize=landscape(letter),
             leftMargin=0.8 * inch,
             rightMargin=0.8 * inch,
@@ -1214,9 +1218,17 @@ class Reporting_Export:
             doc.build(story)
             json_path = Path(path).with_suffix(".json")
             json_path.write_text(json.dumps(template, indent=2))
-            messagebox.showinfo("PDF Report", "PDF report generated!")
+            lines = logger.log_message(
+                f"PDF report generated at {path}",
+                level="INFO",
+            )
+            logger.show_temporarily(lines=lines)
         except Exception as exc:
-            messagebox.showerror("Report", f"Failed to generate PDF: {exc}")
+            lines = logger.log_message(
+                f"Failed to generate PDF: {exc}",
+                level="ERROR",
+            )
+            logger.show_temporarily(lines=lines)
 
     def generate_pdf_report(self) -> None:
         """Public wrapper for :meth:`_generate_pdf_report`."""
