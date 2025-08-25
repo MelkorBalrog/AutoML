@@ -83,6 +83,16 @@ class Reporting_Export:
         """Return all nodes currently present in the model."""
         return self.app.get_all_nodes_in_model()
 
+    @property
+    def top_events(self):
+        """Return top events currently defined in the application.
+
+        This delegates to the underlying :class:`AutoMLApp` to expose its
+        ``top_events`` list so callers can iterate over safety goals without
+        reaching into the app object directly.
+        """
+        return getattr(self.app, "top_events", [])
+
     # ------------------------------------------------------------------
     # Reporting helpers
     def _generate_pdf_report(self) -> None:
