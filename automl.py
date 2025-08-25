@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Entry point wrapper for legacy module imports."""
 
-VERSION = "0.2.67"
-
-__all__ = ["VERSION"]
+from AutoML import *  # noqa: F401,F403
