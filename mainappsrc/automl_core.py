@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Compatibility wrapper importing the core AutoML module."""
 
-VERSION = "0.2.72"
+from mainappsrc.core.automl_core import AutoMLApp, FaultTreeNode, PageDiagram
 
-__all__ = ["VERSION"]
+__all__ = ["AutoMLApp", "FaultTreeNode", "PageDiagram"]
