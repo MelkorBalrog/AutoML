@@ -35,8 +35,8 @@ class CauseEffectPDFTests(unittest.TestCase):
     def setUp(self):
         self.app = AutoMLApp.__new__(AutoMLApp)
         # Attach a renderer instance; __init__ is bypassed in tests.
-        from mainappsrc.diagram_renderer import DiagramRenderer
-        self.app.diagram_renderer = DiagramRenderer(self.app)
+        from mainappsrc.services.diagram import DiagramRendererService
+        self.app.diagram_service = DiagramRendererService(self.app)
 
     def test_render_cause_effect_diagram_size(self):
         row = {
@@ -49,7 +49,7 @@ class CauseEffectPDFTests(unittest.TestCase):
             "attack_paths": set(),
             "threats": {},
         }
-        img = self.app.diagram_renderer.render_cause_effect_diagram(row)
+        img = self.app.diagram_service.render_cause_effect_diagram(row)
         self.assertIsNotNone(img)
         w, h = img.size
         self.assertGreaterEqual(w, 120)

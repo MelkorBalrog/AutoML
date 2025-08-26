@@ -60,8 +60,6 @@ from pathlib import Path
 from .event_handlers import EventHandlersMixin
 from .persistence_wrappers import PersistenceWrappersMixin
 from .service_init_mixin import ServiceInitMixin
-from .page_diagram import PageDiagram
-from .node_utils import resolve_original as resolve_node_original
 from mainappsrc.services.app_init import AppInitializationService
 from mainappsrc.services.ui import UISetupService
 from analysis.mechanisms import (
@@ -163,7 +161,7 @@ import builtins
 from mainappsrc.managers.user_manager import UserManager
 from mainappsrc.managers.project_manager import ProjectManager
 from mainappsrc.managers.product_goal_manager import ProductGoalManager
-from mainappsrc.ui.project_properties_dialog import ProjectPropertiesDialog
+from gui.dialogs.project_properties_dialog import ProjectPropertiesDialog
 from mainappsrc.managers.sotif_manager import SOTIFManager
 from mainappsrc.managers.cyber_manager import CyberSecurityManager
 from mainappsrc.managers.cta_manager import ControlTreeManager
@@ -261,8 +259,8 @@ from gui.toolboxes import (
 from pathlib import Path
 from gui.dialogs.user_info_dialog import UserInfoDialog
 
-from . import config_utils
-from .config_utils import _reload_local_config
+import gui.utils.config_utils as config_utils
+from gui.utils.config_utils import _reload_local_config
 
 # Expose configuration helpers and global state
 _CONFIG_PATH = config_utils._CONFIG_PATH
@@ -1562,43 +1560,43 @@ class AutoMLApp(
         ProjectPropertiesDialog(self).show()
 
     def create_diagram_image(self):  # pragma: no cover - delegation
-        return self.diagram_renderer.create_diagram_image()
+        return self.diagram_service.create_diagram_image()
 
     def get_page_nodes(self, node):
         return self.data_access_queries.get_page_nodes(node)
 
     def capture_page_diagram(self, page_node):  # pragma: no cover - delegation
-        return self.diagram_renderer.capture_page_diagram(page_node)
+        return self.diagram_service.capture_page_diagram(page_node)
 
     def capture_event_diagram(self, *args, **kwargs):  # pragma: no cover - delegation
-        return self.diagram_renderer.capture_event_diagram(*args, **kwargs)
+        return self.diagram_service.capture_event_diagram(*args, **kwargs)
 
     def capture_gsn_diagram(self, diagram):
-        return self.diagram_renderer.capture_gsn_diagram(diagram)
+        return self.diagram_service.capture_gsn_diagram(diagram)
 
     def capture_sysml_diagram(self, diagram):
-        return self.diagram_renderer.capture_sysml_diagram(diagram)
+        return self.diagram_service.capture_sysml_diagram(diagram)
 
     def capture_cbn_diagram(self, doc):
-        return self.diagram_renderer.capture_cbn_diagram(doc)
+        return self.diagram_service.capture_cbn_diagram(doc)
     
     def draw_subtree_with_filter(self, canvas, root_event, visible_nodes):
-        return self.diagram_renderer.draw_subtree_with_filter(canvas, root_event, visible_nodes)
+        return self.diagram_service.draw_subtree_with_filter(canvas, root_event, visible_nodes)
 
     def draw_subtree(self, canvas, root_event):
-        return self.diagram_renderer.draw_subtree(canvas, root_event)
+        return self.diagram_service.draw_subtree(canvas, root_event)
 
     def draw_connections_subtree(self, canvas, node, drawn_ids):
-        return self.diagram_renderer.draw_connections_subtree(canvas, node, drawn_ids)
+        return self.diagram_service.draw_connections_subtree(canvas, node, drawn_ids)
 
     def draw_node_on_canvas_pdf(self, canvas, node):
-        return self.diagram_renderer.draw_node_on_canvas_pdf(canvas, node)
+        return self.diagram_service.draw_node_on_canvas_pdf(canvas, node)
 
     def rename_selected_tree_item(self):
         self.tree_app.rename_selected_tree_item(self)
 
     def save_diagram_png(self):  # pragma: no cover - delegation
-        return self.diagram_renderer.save_diagram_png()
+        return self.diagram_service.save_diagram_png()
 
     def on_treeview_click(self, event):
         return self.nav_input.on_treeview_click(event)
@@ -1771,10 +1769,10 @@ class AutoMLApp(
         return self.structure_tree_operations.move_subtree(node, dx, dy)
 
     def zoom_in(self):  # pragma: no cover - delegation
-        return self.diagram_renderer.zoom_in()
+        return self.diagram_service.zoom_in()
 
     def zoom_out(self):  # pragma: no cover - delegation
-        return self.diagram_renderer.zoom_out()
+        return self.diagram_service.zoom_out()
 
 
     # ------------------------------------------------------------------
@@ -1956,16 +1954,16 @@ class AutoMLApp(
         return self.structure_tree_operations.insert_node_in_tree(parent_item, node)
 
     def redraw_canvas(self):
-        return self.diagram_renderer.redraw_canvas()
+        return self.diagram_service.redraw_canvas()
 
     def create_diagram_image_without_grid(self):
-        return self.diagram_renderer.create_diagram_image_without_grid()
+        return self.diagram_service.create_diagram_image_without_grid()
 
     def draw_connections(self, node, drawn_ids=set()):
-        return self.diagram_renderer.draw_connections(node, drawn_ids)
+        return self.diagram_service.draw_connections(node, drawn_ids)
 
     def draw_node(self, node):
-        return self.diagram_renderer.draw_node(node)
+        return self.diagram_service.draw_node(node)
 
     def find_node_by_id(self, node, unique_id, visited=None):
         return self.structure_tree_operations.find_node_by_id(node, unique_id, visited)
@@ -2888,31 +2886,31 @@ class AutoMLApp(
     def build_html_report(self):
         return self.reporting_export.build_html_report()
     def resolve_original(self, node):
-        return resolve_node_original(node)
+        return self.diagram_service.resolve_original(node)
 
     def go_back(self):
         return self.nav_input.go_back()
 
     def draw_page_subtree(self, page_root):
-        return self.diagram_renderer.draw_page_subtree(page_root)
+        return self.diagram_service.draw_page_subtree(page_root)
 
     def draw_page_grid(self):
-        return self.diagram_renderer.draw_page_grid()
+        return self.diagram_service.draw_page_grid()
 
     def draw_page_connections_subtree(self, node, visited_ids):
-        return self.diagram_renderer.draw_page_connections_subtree(node, visited_ids)
+        return self.diagram_service.draw_page_connections_subtree(node, visited_ids)
 
     def draw_page_nodes_subtree(self, node):
-        return self.diagram_renderer.draw_page_nodes_subtree(node)
+        return self.diagram_service.draw_page_nodes_subtree(node)
 
     def draw_node_on_page_canvas(self, *args, **kwargs):
-        return self.diagram_renderer.draw_node_on_page_canvas(*args, **kwargs)
+        return self.diagram_service.draw_node_on_page_canvas(*args, **kwargs)
 
     def on_ctrl_mousewheel_page(self, event):
         return self.nav_input.on_ctrl_mousewheel_page(event)
 
     def close_page_diagram(self):
-        return self.diagram_renderer.close_page_diagram()
+        return self.diagram_service.close_page_diagram()
 
     # --- Review Toolbox Methods ---
     def start_peer_review(self):
@@ -2937,7 +2935,7 @@ class AutoMLApp(
         return self.versioning_review.review_is_closed_for(review)
 
     def capture_diff_diagram(self, top_event):  # pragma: no cover - delegation
-        return self.diagram_renderer.capture_diff_diagram(top_event)
+        return self.diagram_service.capture_diff_diagram(top_event)
 
     # --- End Review Toolbox Methods ---
 
