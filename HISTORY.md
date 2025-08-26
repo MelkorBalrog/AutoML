@@ -1,4 +1,6 @@
 # Version History
+- 0.2.120 - Integrate all services into central registry and unify core imports.
+- 0.2.119 - Replace module imports with service classes and add service orchestration tests.
 - 0.2.118 - Wrap structure tree operations in service and delegate from core.
 - 0.2.117 - Wrap safety UI helpers in service and delegate from core.
 - 0.2.116 - Centralize window helpers into WindowControllersService and refactor core initialization.
