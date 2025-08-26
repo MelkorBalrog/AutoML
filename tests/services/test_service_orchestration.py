@@ -58,3 +58,10 @@ class TestUserConfigService:
         user_config_service.set_current_user(name, email)
         assert user_config_service.current_user_name == name
         assert user_config_service.current_user_email == email
+
+class TestServiceRegistry:
+    def test_all_service_classes_resolvable(self):
+        """Every service listed in the registry is accessible."""
+
+        for name in services.SERVICE_CLASSES:
+            assert hasattr(services, name)
