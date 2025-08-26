@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Versioning related services."""
 
-"""Project version information."""
+from .versioning_review_service import VersioningReviewService
 
-VERSION = "0.2.114"
-
-__all__ = ["VERSION"]
+__all__ = ["VersioningReviewService"]
