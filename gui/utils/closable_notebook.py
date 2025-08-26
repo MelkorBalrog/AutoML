@@ -27,6 +27,8 @@ notebook re-attaches it to that notebook.
 """
 
 
+import inspect
+import typing as t
 import tkinter as tk
 from tkinter import ttk
 
@@ -360,7 +362,18 @@ class ClosableNotebook(ttk.Notebook):
         """
 
         cls = widget.__class__
-        clone = cls(parent)
+        kwargs: dict[str, t.Any] = {}
+        try:
+            sig = inspect.signature(cls.__init__)
+            for name, param in list(sig.parameters.items())[1:]:
+                if param.default is inspect._empty and name in widget.keys():
+                    try:
+                        kwargs[name] = widget.cget(name)
+                    except tk.TclError:
+                        continue
+        except Exception:
+            pass
+        clone = cls(parent, **kwargs)
         try:
             for opt in widget.configure():
                 try:

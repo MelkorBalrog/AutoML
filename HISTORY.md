@@ -1,4 +1,5 @@
 # Version History
+- 0.2.136 - Copy required widget options when cloning tabs so custom controls detach without errors.
 - 0.2.135 - Move tab widgets instead of cloning to prevent empty detached windows and ensure only one floating window per drag.
 - 0.2.134 - Clone tab contents into brand-new windows so dragged tabs stay
             detached without relying on platform reparenting.
