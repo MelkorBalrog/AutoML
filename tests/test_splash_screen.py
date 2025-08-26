@@ -21,6 +21,7 @@ import tkinter as tk
 from PIL import ImageFont
 
 from gui.splash_screen import SplashScreen
+from gui.utils import DIALOG_BG_COLOR
 
 
 class SplashScreenTests(unittest.TestCase):
@@ -103,7 +104,6 @@ class SplashScreenTests(unittest.TestCase):
             self.splash._fade_out()
         self.assertAlmostEqual(float(self.splash.attributes("-alpha")), 0.0)
         self.assertTrue(self._closed)
-
 
 
 if __name__ == "__main__":
