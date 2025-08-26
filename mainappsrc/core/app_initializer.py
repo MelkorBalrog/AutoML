@@ -39,7 +39,6 @@ from mainappsrc.managers.governance_manager import GovernanceManager
 from mainappsrc.managers.product_goal_manager import ProductGoalManager
 from mainappsrc.managers.gsn_manager import GSNManager
 from mainappsrc.core.structure_tree_operations import Structure_Tree_Operations
-from mainappsrc.core.probability_reliability import Probability_Reliability
 from gui.utils.drawing_helper import fta_drawing_helper
 from .project_properties_manager import ProjectPropertiesManager
 from .diagram_clipboard_manager import DiagramClipboardManager
@@ -149,7 +148,8 @@ class AppInitializer:
         app.governance_manager = GovernanceManager(app)
         app.safety_mgmt_toolbox = SafetyManagementToolbox()
         app.governance_manager.attach_toolbox(app.safety_mgmt_toolbox)
-        app.probability_reliability = Probability_Reliability(app)
+        if not hasattr(app, "probability_reliability"):
+            app.probability_reliability = None
         app.current_user = ""
         app.comment_target = None
         app._undo_stack = []

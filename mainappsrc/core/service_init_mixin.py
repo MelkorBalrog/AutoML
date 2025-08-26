@@ -27,7 +27,6 @@ from mainappsrc.subapps.risk_assessment_subapp import RiskAssessmentSubApp
 from mainappsrc.subapps.reliability_subapp import ReliabilitySubApp
 
 from .open_windows_features import Open_Windows_Features
-from .safety_analysis import SafetyAnalysis_FTA_FMEA
 from .syncing_and_ids import Syncing_And_IDs
 from .diagram_renderer import DiagramRenderer
 from .navigation_selection_input import Navigation_Selection_Input
@@ -55,7 +54,9 @@ from .versioning_review import Versioning_Review
 from .data_access_queries import DataAccess_Queries
 from .validation_consistency import Validation_Consistency
 from .reporting_export import Reporting_Export
-from .editors import Editors
+from mainappsrc.services.editing.editors_service import EditorsService
+from mainappsrc.services.analysis.analysis_utils_service import AnalysisUtilsService
+from mainappsrc.services.safety_analysis import SafetyAnalysisService
 
 
 class ServiceInitMixin:
@@ -70,7 +71,7 @@ class ServiceInitMixin:
         self.risk_app = RiskAssessmentSubApp()
         self.reliability_app = ReliabilitySubApp()
         self.open_windows_features = Open_Windows_Features(self)
-        self.safety_analysis = SafetyAnalysis_FTA_FMEA(self)
+        self.safety_analysis = SafetyAnalysisService(self)
         self.fta_app = self.safety_analysis
         self.fmea_service = self.safety_analysis
         self.fmeda_manager = self.safety_analysis
@@ -124,4 +125,6 @@ class ServiceInitMixin:
         self.data_access_queries = DataAccess_Queries(self)
         self.validation_consistency = Validation_Consistency(self)
         self.reporting_export = Reporting_Export(self)
-        self.editors = Editors(self)
+        self.editors_service = EditorsService(self)
+        self.analysis_utils_service = AnalysisUtilsService(self)
+        self.probability_reliability = self.analysis_utils_service.probability_reliability

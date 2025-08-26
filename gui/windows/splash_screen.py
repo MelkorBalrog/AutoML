@@ -235,6 +235,7 @@ class SplashScreen(tk.Toplevel):
         y = self.canvas_size - 40
         main_text = "AutoML"
         sub_text = "Automotive Modeling Language"
+        font_family = "DejaVu Serif"
         sub_size = 12
         title_size = sub_size * 4
         offset = 1

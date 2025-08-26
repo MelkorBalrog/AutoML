@@ -22,8 +22,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import mainappsrc.core.app_lifecycle_ui as app_lifecycle_ui
-from mainappsrc.core.app_lifecycle_ui import AppLifecycleUI
+import mainappsrc.ui.app_lifecycle_ui as app_lifecycle_ui
+from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
 
 
 def test_tool_tab_not_duplicated(monkeypatch):

@@ -59,7 +59,6 @@ from dataclasses import asdict
 from pathlib import Path
 from .event_handlers import EventHandlersMixin
 from .persistence_wrappers import PersistenceWrappersMixin
-from .analysis_utils import AnalysisUtilsMixin
 from .service_init_mixin import ServiceInitMixin
 from .page_diagram import PageDiagram
 from .node_utils import resolve_original as resolve_node_original
@@ -153,9 +152,8 @@ from gui.windows.architecture import (
 )
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 from .undo_manager import UndoRedoManager
-from analysis.fmeda_utils import compute_fmeda_metrics
 from analysis.scenario_description import template_phrases
-from mainappsrc.core.app_lifecycle_ui import AppLifecycleUI
+from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
 from tools.crash_report_logger import install_best, watchdog_best
 from tools.thread_manager import manager as thread_manager
 from mainappsrc.core.editing_labels_styling import Editing_Labels_Styling
@@ -239,10 +237,8 @@ from analysis.utils import (
 from analysis.safety_management import SafetyManagementToolbox, ACTIVE_TOOLBOX
 from analysis.causal_bayesian_network import CausalBayesianNetwork, CausalBayesianNetworkDoc
 try:  # pragma: no cover - support direct module import
-    from .probability_reliability import Probability_Reliability
     from .version import VERSION
 except Exception:  # pragma: no cover
-    from mainappsrc.core.probability_reliability import Probability_Reliability
     from mainappsrc.version import VERSION
 try:  # pragma: no cover
     from .models.fta.fault_tree_node import FaultTreeNode, add_failure_mode as ft_add_failure_mode, refresh_tree as fault_tree_refresh, add_node_of_type as _add_node_of_type
@@ -284,7 +280,7 @@ from gui.dialogs.edit_node_dialog import EditNodeDialog, DecompositionDialog
 from gui.dialogs.fmea_row_dialog import FMEARowDialog
 from gui.dialogs.req_dialog import ReqDialog
 from gui.dialogs.select_base_event_dialog import SelectBaseEventDialog
-from .safety_ui import SafetyUIMixin
+from mainappsrc.ui.safety_ui import SafetyUIMixin
 
 ##########################################
 # Main Application (Parent Diagram)
@@ -294,7 +290,6 @@ class AutoMLApp(
     SafetyUIMixin,
     EventHandlersMixin,
     PersistenceWrappersMixin,
-    AnalysisUtilsMixin,
 ):
     """Main application window for AutoML Analyzer."""
 
@@ -346,6 +341,28 @@ class AutoMLApp(
     # corresponding menu items.
     for _wp in REQUIREMENT_WORK_PRODUCTS:
         WORK_PRODUCT_PARENTS.setdefault(_wp, "Requirements")
+
+    def classify_scenarios(self):
+        """Delegate scenario classification to analysis service."""
+        service = getattr(self, "analysis_utils_service", None)
+        if service is None:  # pragma: no cover - fallback for tests
+            from mainappsrc.services.analysis.analysis_utils_service import (
+                AnalysisUtilsService,
+            )
+
+            service = AnalysisUtilsService(self)
+        return service.classify_scenarios()
+
+    def load_default_mechanisms(self):
+        """Delegate default mechanism loading to analysis service."""
+        service = getattr(self, "analysis_utils_service", None)
+        if service is None:  # pragma: no cover - fallback for tests
+            from mainappsrc.services.analysis.analysis_utils_service import (
+                AnalysisUtilsService,
+            )
+
+            service = AnalysisUtilsService(self)
+        return service.load_default_mechanisms()
 
     @property
     def window_controllers(self) -> WindowControllers:
@@ -1524,7 +1541,7 @@ class AutoMLApp(
         return self.safety_analysis.calculate_fmeda_metrics(events)
 
     def compute_fmeda_metrics(self, events):
-        """Delegate detailed FMEDA metric computation to the facade."""
+        """Delegate detailed FMEDA metric computation to the safety analysis service."""
         return self.safety_analysis.compute_fmeda_metrics(events)
 
     def sync_hara_to_safety_goals(self):
@@ -1994,19 +2011,19 @@ class AutoMLApp(
         return self.probability_reliability.calculate_pmfh()
 
     def show_requirements_matrix(self):
-        return self.editors.show_requirements_matrix()
+        return self.editors_service.show_requirements_matrix()
 
     def show_item_definition_editor(self):
-        return self.editors.show_item_definition_editor()
+        return self.editors_service.show_item_definition_editor()
 
     def show_safety_concept_editor(self):
-        return self.editors.show_safety_concept_editor()
+        return self.editors_service.show_safety_concept_editor()
 
     def show_requirements_editor(self):
-        return self.editors.show_requirements_editor()
+        return self.editors_service.show_requirements_editor()
 
     def _show_fmea_table_impl(self, fmea=None, fmeda=False):
-        return self.editors._show_fmea_table_impl(fmea, fmeda)
+        return self.editors_service._show_fmea_table_impl(fmea, fmeda)
 
     def export_fmea_to_csv(self, fmea, path):
         return self.safety_analysis.export_fmea_to_csv(fmea, path)
