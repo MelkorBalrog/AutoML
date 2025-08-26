@@ -35,10 +35,27 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for bundled executabl
     AUTHOR_LINKEDIN = "https://www.linkedin.com/in/progman32/"
 
 # Guard against external ``gui`` packages shadowing the application's module
-_prefix = "AutoML." if __package__ and __package__.startswith("AutoML") else ""
-SplashScreen = importlib.import_module(
-    f"{_prefix}gui.windows.splash_screen"
-).SplashScreen
+def _import_splash_screen() -> type:
+    """Locate the project's :class:`SplashScreen` implementation.
+
+    Bundled executables sometimes expose packages under an ``AutoML`` prefix
+    while the source layout keeps them at the repository root.  The resolver
+    therefore attempts both locations and prefers the namespaced variant to
+    avoid accidentally importing a third-party module named ``gui``.
+    """
+
+    for module_name in (
+        "AutoML.gui.windows.splash_screen",
+        "gui.windows.splash_screen",
+    ):
+        try:
+            return importlib.import_module(module_name).SplashScreen
+        except ModuleNotFoundError:  # pragma: no cover - frozen build fallback
+            continue
+    raise ModuleNotFoundError("Could not resolve project GUI module")
+
+
+SplashScreen = _import_splash_screen()
 from mainappsrc.version import VERSION
 
 

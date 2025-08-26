@@ -19,6 +19,7 @@
 import importlib
 import sys
 from types import ModuleType
+import types
 
 
 def test_launcher_invokes_main(monkeypatch):
@@ -36,7 +37,24 @@ def test_launcher_invokes_main(monkeypatch):
 def test_launcher_prefers_project_gui(monkeypatch):
     """Ensure an external ``gui`` package doesn't shadow the project one."""
     monkeypatch.setitem(sys.modules, "gui", ModuleType("gui"))
-    sys.modules.pop("AutoML.tools.splash_launcher", None)
     sys.modules.pop("tools.splash_launcher", None)
-    module = importlib.import_module("AutoML.tools.splash_launcher")
+    module = importlib.import_module("tools.splash_launcher")
+    assert module.SplashScreen.__module__ == "gui.windows.splash_screen"
+
+
+def test_launcher_falls_back_to_namespaced_gui(monkeypatch):
+    """Resolve the GUI module when only the namespaced package exists."""
+    splash_mod = importlib.import_module("gui.windows.splash_screen")
+    fake = types.ModuleType("AutoML.gui.windows.splash_screen")
+    fake.SplashScreen = splash_mod.SplashScreen
+    monkeypatch.setitem(sys.modules, "AutoML", types.ModuleType("AutoML"))
+    monkeypatch.setitem(sys.modules, "AutoML.gui", types.ModuleType("AutoML.gui"))
+    monkeypatch.setitem(sys.modules, "AutoML.gui.windows", types.ModuleType("AutoML.gui.windows"))
+    monkeypatch.setitem(sys.modules, "AutoML.gui.windows.splash_screen", fake)
+    sys.modules["AutoML.gui"].windows = sys.modules["AutoML.gui.windows"]
+    sys.modules["AutoML.gui.windows"].splash_screen = fake
+    sys.modules["AutoML"].gui = sys.modules["AutoML.gui"]
+    sys.modules.pop("gui", None)
+    sys.modules.pop("tools.splash_launcher", None)
+    module = importlib.import_module("tools.splash_launcher")
     assert module.SplashScreen.__module__ == "AutoML.gui.windows.splash_screen"
