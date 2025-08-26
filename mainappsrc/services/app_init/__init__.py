@@ -15,7 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Application initialisation services."""
 
-"""Compatibility wrapper exporting :mod:`AutoML` as a package."""
+from .app_initialization_service import AppInitializationService
 
-from AutoML import *  # noqa: F401,F403
+__all__ = ["AppInitializationService"]
