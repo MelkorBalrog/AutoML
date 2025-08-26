@@ -22,11 +22,11 @@ import os
 import sys
 import types
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 spec = importlib.util.spec_from_file_location(
     "analysis.safety_management",
-    os.path.join(os.path.dirname(__file__), "..", "analysis", "safety_management.py"),
+    os.path.join(os.path.dirname(__file__), "..", "..", "analysis", "safety_management.py"),
 )
 safety_management = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(safety_management)
