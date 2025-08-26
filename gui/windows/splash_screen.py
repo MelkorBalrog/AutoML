@@ -239,28 +239,24 @@ class SplashScreen(tk.Toplevel):
         sub_size = 12
         title_size = sub_size * 2
         offset = 1
+        self._sub_size = sub_size
         self._title_size = title_size
 
-        # Load the same font family for both title and subtitle, falling back
-        # to a reasonable default if unavailable.  This guarantees the AutoML
-        # title mirrors the subtitle's typography.
         font = None
-        font_paths = [
-            f"{font_family.replace(' ', '')}.ttf",
-            f"{font_family.replace(' ', '')}-Bold.ttf",
-        ]
-        for path in font_paths:
+        for candidate in ("DejaVuSerif.ttf", "DejaVuSerif-Bold.ttf"):
             try:
-                font = ImageFont.truetype(path, title_size)
+                font = ImageFont.truetype(candidate, title_size)
                 break
             except OSError:
                 continue
         if font is None:
             font = ImageFont.load_default()
 
-        self._title_font_name = getattr(font, "getname", lambda: (font_family,))[0]
-        self._sub_font_name = self._title_font_name
-        sub_font = (self._sub_font_name, sub_size)
+        get_name = getattr(font, "getname", None)
+        self._title_font_name = get_name()[0] if callable(get_name) else ""
+        sub_font_name = self._title_font_name
+        sub_font = (sub_font_name, sub_size)
+        self._sub_font_name = sub_font_name
 
         bbox = font.getbbox(main_text, stroke_width=1)
         width, height = bbox[2] - bbox[0], bbox[3] - bbox[1]
