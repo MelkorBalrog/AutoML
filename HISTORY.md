@@ -1,4 +1,5 @@
 # Version History
+- 0.2.131 - Fix splash launcher circular import and add package entry point for Python execution.
 - 0.2.130 - Ensure detached windows display tab content and restore tabs when detachment fails.
 - 0.2.129 - Remove snap-back fallback when detaching tabs so floating windows persist.
 - 0.2.128 - Expose requirement pattern regeneration through config utils for legacy callers.
