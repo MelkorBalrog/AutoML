@@ -20,6 +20,7 @@ import tkinter as tk
 import math
 import random
 from dataclasses import dataclass
+from gui.utils import DIALOG_BG_COLOR
 
 
 @dataclass
@@ -86,16 +87,18 @@ class SplashScreen(tk.Toplevel):
             self._shadow_alpha_target = None
 
         self.canvas_size = 300
-        # Deep dark background similar to log area for void effect
+        # Use properties dialog background for consistency
+        self._dark_rgb = tuple(
+            int(DIALOG_BG_COLOR.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4)
+        )
         self.canvas = tk.Canvas(
             self,
             width=self.canvas_size,
             height=self.canvas_size,
             highlightthickness=0,
-            bg="#1e1e1e",
+            bg=DIALOG_BG_COLOR,
         )
         self.canvas.pack()
-        self._draw_top_gradient()
         self._draw_gradient()
         self._draw_stars()
         self._draw_floor()
@@ -194,33 +197,12 @@ class SplashScreen(tk.Toplevel):
         self.geometry(f"{w}x{h}+{x}+{y}")
         self.shadow.lower(self)
 
-    def _draw_top_gradient(self) -> None:
-        """Add a small violet-to-blue gradient at the top."""
-        gradient_height = int(self.canvas_size * 0.1)
-        half = gradient_height // 2
-        violet = (0x9B, 0x59, 0xB6)
-        blue = (0x56, 0x9C, 0xD6)
-        dark = (0x1E, 0x1E, 0x1E)
-        for y in range(gradient_height):
-            if y < half:
-                ratio = y / max(1, half - 1)
-                r = int(violet[0] + (blue[0] - violet[0]) * ratio)
-                g = int(violet[1] + (blue[1] - violet[1]) * ratio)
-                b = int(violet[2] + (blue[2] - violet[2]) * ratio)
-            else:
-                ratio = (y - half) / max(1, gradient_height - half - 1)
-                r = int(blue[0] + (dark[0] - blue[0]) * ratio)
-                g = int(blue[1] + (dark[1] - blue[1]) * ratio)
-                b = int(blue[2] + (dark[2] - blue[2]) * ratio)
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="top_gradient")
-
     def _draw_gradient(self):
         """Emit a narrow light-green glow around the white horizon."""
         horizon = int(self.canvas_size * 0.55)
         gradient_height = int(self.canvas_size * 0.1)
         start = horizon - gradient_height
-        dark = (0x1E, 0x1E, 0x1E)
+        dark = self._dark_rgb
         glow = (0x90, 0xEE, 0x90)
         # Upward glow
         for y in range(start, horizon):
@@ -272,8 +254,8 @@ class SplashScreen(tk.Toplevel):
         y = self.canvas_size - 40
         main_text = "Automotive Modeling Language"
         sub_text = "by Karel Capek Robotics"
-        title_font = ("Helvetica", 14, "bold")
-        sub_font = ("Helvetica", 12, "bold")
+        title_font = ("ITC Stone Serif SemiBold", 14)
+        sub_font = ("ITC Stone Serif SemiBold", 12)
         offset = 1
 
         # Black shadow drawn slightly offset behind the main text

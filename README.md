@@ -1,4 +1,4 @@
-version: 0.2.92
+version: 0.2.93
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.93 - Replace splash background with properties window color, remove top gradient, and switch title font.
 - 0.2.92 - Thicken white horizon, add violet-blue sky gradient, and whiten title text.
 - 0.2.91 - Emit light green glow from white horizon into void.
 - 0.2.90 - Add light green and white gradient shading to the void.
