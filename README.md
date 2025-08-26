@@ -8,7 +8,7 @@ Project configuration is handled by the new **ProjectPropertiesManager** module,
 
 The metamodel blends concepts from key automotive standards—ISO 26262 (functional safety), ISO 21448 (SOTIF), ISO 21434 (cybersecurity) and ISO 8800 (safety and AI)—so one project can address safety, cybersecurity and assurance requirements side by side.
 
-Diagram drawing is centralised in a dedicated :class:`DiagramRenderer`, providing a clear interface for generating and exporting diagrams.
+Diagram drawing is centralised in a dedicated :class:`DiagramRendererService`, providing a clear interface for generating and exporting diagrams.
 
 ## Getting Started
 
