@@ -473,7 +473,6 @@ class SplashScreen(tk.Toplevel):
             x = cx + r * math.cos(theta)
             y = cy + r * math.sin(theta)
             pts.append((x, y))
-
         for width, colour in [(6, "#00ffff"), (4, "#66ffff")]:
             self.canvas.create_polygon(
                 pts, outline=colour, fill="", width=width, tags="gear_glow"

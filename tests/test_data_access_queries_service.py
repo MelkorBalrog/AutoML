@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
@@ -16,9 +15,25 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Tests for :mod:`DataAccessQueriesService`."""
 
-"""Lowercase wrapper for the AutoML launcher."""
+from types import SimpleNamespace
+import sys
+from pathlib import Path
 
-from AutoML import *  # re-export launcher utilities
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-__all__ = [name for name in globals() if not name.startswith('_')]
+import mainappsrc.services.data_access.data_access_queries_service as svc_module
+
+
+class DummyQueries:
+    def __init__(self, app):
+        self.app = app
+    def sample(self, value):
+        return value * 2
+
+
+def test_service_delegates_attributes(monkeypatch):
+    monkeypatch.setattr(svc_module, "DataAccess_Queries", DummyQueries)
+    service = svc_module.DataAccessQueriesService(app=SimpleNamespace())
+    assert service.sample(5) == 10

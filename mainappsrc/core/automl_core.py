@@ -83,6 +83,7 @@ from .validation_consistency import Validation_Consistency
 from .reporting_export import Reporting_Export
 from mainappsrc.services.node_clone import NodeCloneServiceInterface
 from mainappsrc.services.view import ViewUpdateService
+from mainappsrc.services.data_access import DataAccessQueriesService
 from analysis.user_config import (
     load_user_config,
     save_user_config,
