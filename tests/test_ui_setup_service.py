@@ -22,7 +22,7 @@ import tkinter as tk
 import pytest
 
 from mainappsrc.services.ui import UISetupService
-from mainappsrc.core.app_lifecycle_ui import AppLifecycleUI
+from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
 
 
 class _DummyApp:

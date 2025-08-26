@@ -153,7 +153,7 @@ from gui.windows.architecture import (
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 from .undo_manager import UndoRedoManager
 from analysis.scenario_description import template_phrases
-from mainappsrc.core.app_lifecycle_ui import AppLifecycleUI
+from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
 from tools.crash_report_logger import install_best, watchdog_best
 from tools.thread_manager import manager as thread_manager
 from mainappsrc.core.editing_labels_styling import Editing_Labels_Styling
@@ -280,7 +280,7 @@ from gui.dialogs.edit_node_dialog import EditNodeDialog, DecompositionDialog
 from gui.dialogs.fmea_row_dialog import FMEARowDialog
 from gui.dialogs.req_dialog import ReqDialog
 from gui.dialogs.select_base_event_dialog import SelectBaseEventDialog
-from .safety_ui import SafetyUIMixin
+from mainappsrc.ui.safety_ui import SafetyUIMixin
 
 ##########################################
 # Main Application (Parent Diagram)
