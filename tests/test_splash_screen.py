@@ -52,11 +52,14 @@ class SplashScreenTests(unittest.TestCase):
     def test_gear_gradient(self):
         self.splash._draw_gear()
         fill_items = self.splash.canvas.find_withtag("gear_fill")
-        self.assertGreater(len(fill_items), 1)
-        outer_color = self.splash.canvas.itemcget(fill_items[0], "fill")
-        inner_color = self.splash.canvas.itemcget(fill_items[-1], "fill")
-        self.assertEqual(outer_color, "#ccffcc")
-        self.assertEqual(inner_color, "#ffffff")
+        self.assertEqual(len(fill_items), 1)
+        base = self.splash._gear_base
+        center = base.getpixel((base.width // 2, base.height // 2))
+        edge = base.getpixel((base.width - 2, base.height // 2))
+        self.assertEqual(center[:3], (255, 255, 255))
+        self.assertEqual(edge[:3], (204, 255, 204))
+        self.assertEqual(center[3], 128)
+        self.assertEqual(edge[3], 128)
 
     def test_title_shadow(self):
         shadow_items = self.splash.canvas.find_withtag("title_shadow")

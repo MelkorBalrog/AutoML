@@ -94,6 +94,16 @@ class SplashScreen(tk.Toplevel):
             (1, 2, 6, 5),
             (0, 3, 7, 4),
         ]
+
+        # Pre-render gradient gear used during animation
+        self._gear_teeth = 8
+        self._gear_inner = 20
+        self._gear_outer = 30
+        self._gear_base = self._generate_gear_image(
+            teeth=self._gear_teeth, inner=self._gear_inner, outer=self._gear_outer
+        )
+        self._gear_photo = None
+
         self._draw_title()
 
         # Version and author info at top right
@@ -295,6 +305,37 @@ class SplashScreen(tk.Toplevel):
             tags="title_text",
         )
 
+    def _generate_gear_image(
+        self, *, teeth: int, inner: int, outer: int, steps: int = 25
+    ) -> Image.Image:
+        """Build a PIL image of a gear with a radial gradient."""
+        size = outer * 2
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img, "RGBA")
+        center = size / 2
+        start = (255, 255, 255)
+        end = (204, 255, 204)  # light green
+        for step in range(steps, 0, -1):
+            ratio = step / steps
+            r_in = inner * ratio
+            r_out = outer * ratio
+            pts = []
+            for i in range(teeth * 2):
+                r = r_out if i % 2 == 0 else r_in
+                theta = i * math.pi / teeth
+                x = center + r * math.cos(theta)
+                y = center + r * math.sin(theta)
+                pts.append((x, y))
+            cr = int(start[0] * (1 - ratio) + end[0] * ratio)
+            cg = int(start[1] * (1 - ratio) + end[1] * ratio)
+            cb = int(start[2] * (1 - ratio) + end[2] * ratio)
+            draw.polygon(pts, fill=(cr, cg, cb, 128))
+        draw.ellipse(
+            (center - 1, center - 1, center + 1, center + 1),
+            fill=(255, 255, 255, 128),
+        )
+        return img
+
     def _project(self, x, y, z):
         """Project 3D point onto 2D canvas."""
         distance = 5
@@ -418,56 +459,20 @@ class SplashScreen(tk.Toplevel):
         self.canvas.delete("gear")
         self.canvas.delete("gear_glow")
         self.canvas.delete("gear_fill")
-        teeth = 8
-        inner = 20
-        outer = 30
-        angle = math.radians(self.angle * 2)
-
-        # Radial gradient fill from white at the centre to light green at the teeth
-        steps = 25
-        start = (255, 255, 255)
-        end = (204, 255, 204)  # low green
-        for step in range(steps, 0, -1):
-            ratio = step / steps
-            r_inner = inner * ratio
-            r_outer = outer * ratio
-            pts = []
-            for i in range(teeth * 2):
-                r = r_outer if i % 2 == 0 else r_inner
-                theta = angle + i * math.pi / teeth
-                x = self.canvas_size / 2 + r * math.cos(theta)
-                y = self.canvas_size / 2 + r * math.sin(theta)
-                pts.append((x, y))
-            cr = int(start[0] * (1 - ratio) + end[0] * ratio)
-            cg = int(start[1] * (1 - ratio) + end[1] * ratio)
-            cb = int(start[2] * (1 - ratio) + end[2] * ratio)
-            colour = f"#{cr:02x}{cg:02x}{cb:02x}"
-            self.canvas.create_polygon(
-                pts, outline="", fill=colour, tags="gear_fill"
-            )
-
-        # Ensure a bright spot at the very centre for a shiny appearance
+        angle_deg = self.angle * 2
+        rotated = self._gear_base.rotate(angle_deg, resample=Image.BICUBIC, expand=True)
+        self._gear_photo = ImageTk.PhotoImage(rotated)
         cx = cy = self.canvas_size / 2
-        self.canvas.create_oval(
-            cx - 1,
-            cy - 1,
-            cx + 1,
-            cy + 1,
-            fill="#ffffff",
-            outline="",
-            tags="gear_fill",
-        )
+        self.canvas.create_image(cx, cy, image=self._gear_photo, tags="gear_fill")
 
-        # Points for gear outline and glow
         pts = []
-        for i in range(teeth * 2):
-            r = outer if i % 2 == 0 else inner
-            theta = angle + i * math.pi / teeth
-            x = self.canvas_size / 2 + r * math.cos(theta)
-            y = self.canvas_size / 2 + r * math.sin(theta)
+        angle_rad = math.radians(angle_deg)
+        for i in range(self._gear_teeth * 2):
+            r = self._gear_outer if i % 2 == 0 else self._gear_inner
+            theta = angle_rad + i * math.pi / self._gear_teeth
+            x = cx + r * math.cos(theta)
+            y = cy + r * math.sin(theta)
             pts.append((x, y))
-
-        # Draw expanding outlines for a simple glow effect
         for width, colour in [(6, "#00ffff"), (4, "#66ffff")]:
             self.canvas.create_polygon(
                 pts, outline=colour, fill="", width=width, tags="gear_glow"
@@ -478,8 +483,8 @@ class SplashScreen(tk.Toplevel):
 
     def _animate(self):
         self.angle = (self.angle + 2) % 360
-        self._draw_cube()
         self._draw_gear()
+        self._draw_cube()
         self.after(50, self._animate)
 
     def _close(self):
