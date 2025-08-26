@@ -16,11 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Lowercase convenience alias for the :mod:`AutoML` launcher."""
+"""Compatibility wrapper exposing the AutoML launcher as ``automl``.
 
-# Re-export everything from the canonical ``AutoML`` module so legacy imports
-# using ``import automl`` continue to work.  Tests rely on functions such as
-# ``ensure_ghostscript`` and ``ensure_packages`` being available at module level.
+This module re-exports all public objects from :mod:`AutoML` so tests and
+user scripts can ``import automl`` regardless of filename casing.
+"""
+
 from AutoML import *  # noqa: F401,F403
-from AutoML import __all__  # noqa: F401
+
+__all__ = [name for name in globals() if not name.startswith("_")]
 

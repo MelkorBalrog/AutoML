@@ -72,7 +72,7 @@ from pathlib import Path
 from collections.abc import Mapping
 from gui.utils.drawing_helper import FTADrawingHelper, fta_drawing_helper
 from mainappsrc.core.event_dispatcher import EventDispatcher
-from mainappsrc.core.window_controllers import WindowControllers
+from gui.controls.window_controllers import WindowControllers
 from mainappsrc.core.top_event_workflows import Top_Event_Workflows
 from mainappsrc.managers.review_manager import ReviewManager
 from mainappsrc.managers.drawing_manager import DrawingManager

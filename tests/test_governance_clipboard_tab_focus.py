@@ -24,7 +24,7 @@ import types
 
 from AutoML import AutoMLApp
 from mainappsrc.core.diagram_clipboard_manager import DiagramClipboardManager
-from mainappsrc.core.window_controllers import WindowControllers
+from gui.controls.window_controllers import WindowControllers
 from gui.architecture import ARCH_WINDOWS, SysMLObject, _get_next_id
 from tests.test_cross_diagram_clipboard import DummyRepo, make_window
 
