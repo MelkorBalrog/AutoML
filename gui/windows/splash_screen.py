@@ -236,9 +236,10 @@ class SplashScreen(tk.Toplevel):
         main_text = "AUTOML"
         sub_text = "Automotive Modeling Language"
         sub_size = 12
-        title_size = sub_size * 2
+        title_size = sub_size * 4
         sub_font = ("DejaVu Serif", sub_size)
         offset = 1
+        self._title_size = title_size
 
         try:
             font = ImageFont.truetype("ITC Stone Serif SemiBold", title_size)
