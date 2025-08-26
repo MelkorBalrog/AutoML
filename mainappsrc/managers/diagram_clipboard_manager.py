@@ -33,7 +33,7 @@ from gui.controls import messagebox
 from mainappsrc.models.gsn.nodes import GSNNode, ALLOWED_AWAY_TYPES
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 from gui.windows.architecture import ARCH_WINDOWS
-from . import config_utils
+from mainappsrc.core import config_utils
 
 AutoML_Helper = config_utils.AutoML_Helper
 

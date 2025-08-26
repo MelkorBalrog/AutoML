@@ -151,7 +151,7 @@ from gui.windows.architecture import (
     ARCH_WINDOWS,
 )
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
-from .undo_manager import UndoRedoManager
+from mainappsrc.managers.undo_manager import UndoRedoManager
 from analysis.scenario_description import template_phrases
 from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
 from tools.crash_report_logger import install_best, watchdog_best

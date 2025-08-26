@@ -24,8 +24,8 @@ import types
 
 import pytest
 
-import mainappsrc.core.undo_manager as um
-from mainappsrc.core.undo_manager import UndoRedoManager
+import mainappsrc.managers.undo_manager as um
+from mainappsrc.managers.undo_manager import UndoRedoManager
 
 
 class DummyApp:

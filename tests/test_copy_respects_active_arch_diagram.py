@@ -24,7 +24,7 @@ import weakref
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from AutoML import AutoMLApp
-from mainappsrc.core.diagram_clipboard_manager import DiagramClipboardManager
+from mainappsrc.managers.diagram_clipboard_manager import DiagramClipboardManager
 from gui.gsn_diagram_window import GSNNode, GSNDiagram, GSNDiagramWindow, GSN_WINDOWS
 from gui.architecture import SysMLDiagramWindow, _get_next_id, SysMLObject, ARCH_WINDOWS
 

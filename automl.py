@@ -15,9 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Compatibility wrapper exposing the AutoML launcher API.
 
-"""Project version information."""
+This module provides backward compatible access to :mod:`AutoML` under a
+lowercase name so unit tests and external tools can import it without
+case sensitivity issues.
+"""
 
-VERSION = "0.2.104"
-
-__all__ = ["VERSION"]
+from AutoML import *  # noqa: F401,F403

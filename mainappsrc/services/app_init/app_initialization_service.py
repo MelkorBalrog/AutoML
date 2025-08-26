@@ -20,8 +20,8 @@
 from __future__ import annotations
 
 from ...core.app_initializer import AppInitializer
-from ...core.project_properties_manager import ProjectPropertiesManager
-from ...core.diagram_clipboard_manager import DiagramClipboardManager
+from ...managers.project_properties_manager import ProjectPropertiesManager
+from ...managers.diagram_clipboard_manager import DiagramClipboardManager
 
 
 class AppInitializationService:

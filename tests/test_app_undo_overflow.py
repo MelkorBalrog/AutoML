@@ -73,7 +73,7 @@ except ModuleNotFoundError:
     from AutoML import AutoMLApp
 
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
-from mainappsrc.core.undo_manager import UndoRedoManager
+from mainappsrc.managers.undo_manager import UndoRedoManager
 
 
 def test_undo_does_not_unload_project_when_stack_empty():

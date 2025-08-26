@@ -28,7 +28,7 @@ from mainappsrc.subapps.reliability_subapp import ReliabilitySubApp
 
 from .syncing_and_ids import Syncing_And_IDs
 from .diagram_renderer import DiagramRenderer
-from .undo_manager import UndoRedoManager
+from mainappsrc.managers.undo_manager import UndoRedoManager
 from mainappsrc.services.navigation import NavigationInputService
 
 from mainappsrc.managers.user_manager import UserManager

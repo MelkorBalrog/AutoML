@@ -30,7 +30,7 @@ sys.modules.setdefault("PIL.ImageFont", types.ModuleType("PIL.ImageFont"))
 from mainappsrc.models.gsn import GSNNode, GSNDiagram
 from gui.gsn_explorer import GSNExplorer
 from AutoML import AutoMLApp
-from mainappsrc.core.undo_manager import UndoRedoManager
+from mainappsrc.managers.undo_manager import UndoRedoManager
 
 
 def test_gsn_diagram_undo_redo_rename(monkeypatch):

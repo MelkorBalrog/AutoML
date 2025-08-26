@@ -20,7 +20,7 @@ import unittest
 from types import SimpleNamespace
 
 from AutoML import AutoMLApp, AutoML_Helper, messagebox
-from mainappsrc.core.diagram_clipboard_manager import DiagramClipboardManager
+from mainappsrc.managers.diagram_clipboard_manager import DiagramClipboardManager
 from mainappsrc.models.gsn import GSNNode, GSNDiagram
 
 
