@@ -51,34 +51,28 @@ class SplashScreenTests(unittest.TestCase):
         self.assertEqual(len(gear_items), 1)
 
     def test_title_shadow(self):
-        bg_items = self.splash.canvas.find_withtag("title_bg")
         shadow_items = self.splash.canvas.find_withtag("title_shadow")
         text_items = self.splash.canvas.find_withtag("title_text")
-        self.assertEqual(len(bg_items), 0)
         self.assertEqual(len(shadow_items), 2)
         self.assertEqual(len(text_items), 2)
-        for t in text_items:
-            self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "white")
-        for s in shadow_items:
-            self.assertEqual(self.splash.canvas.itemcget(s, "fill"), "black")
+        fills = {self.splash.canvas.itemcget(t, "fill") for t in text_items}
+        self.assertIn("black", fills)
+        self.assertIn("white", fills)
+        shadow_fills = {self.splash.canvas.itemcget(s, "fill") for s in shadow_items}
+        self.assertIn("black", shadow_fills)
+        self.assertIn("white", shadow_fills)
 
-    def test_horizon_line(self):
-        horizon_items = self.splash.canvas.find_withtag("horizon")
-        self.assertEqual(len(horizon_items), 1)
-        self.assertEqual(
-            self.splash.canvas.itemcget(horizon_items[0], "fill"), "white"
-        )
-
-    def test_void_gradient(self):
+    def test_background_gradient(self):
         bg_items = self.splash.canvas.find_withtag("void_bg")
-        self.assertGreater(len(bg_items), 0)
-        gradient_height = int(self.splash.canvas_size * 0.1)
-        top_color = self.splash.canvas.itemcget(bg_items[0], "fill")
-        mid_color = self.splash.canvas.itemcget(bg_items[gradient_height - 1], "fill")
-        bottom_color = self.splash.canvas.itemcget(bg_items[-1], "fill")
-        self.assertEqual(top_color.lower(), DIALOG_BG_COLOR.lower())
-        self.assertEqual(mid_color, "#90ee90")
-        self.assertEqual(bottom_color.lower(), DIALOG_BG_COLOR.lower())
+        self.assertEqual(len(bg_items), 1)
+        top = self.splash._bg_pil.getpixel((0, 0))
+        bottom = self.splash._bg_pil.getpixel(
+            (self.splash.canvas_size - 1, self.splash.canvas_size - 1)
+        )
+        self.assertEqual(f"#{top[0]:02x}{top[1]:02x}{top[2]:02x}", "#006699")
+        self.assertEqual(
+            f"#{bottom[0]:02x}{bottom[1]:02x}{bottom[2]:02x}", "#002d5f"
+        )
 
     def test_close_fades_to_invisible(self):
         if not getattr(self.splash, "_alpha_supported", False):
@@ -91,24 +85,6 @@ class SplashScreenTests(unittest.TestCase):
             self.splash._fade_out()
         self.assertAlmostEqual(float(self.splash.attributes("-alpha")), 0.0)
         self.assertTrue(self._closed)
-
-    def test_void_background(self):
-        top_item = min(
-            self.splash.canvas.find_overlapping(0, 0, self.splash.canvas_size, 0)
-        )
-        top_color = self.splash.canvas.itemcget(top_item, "fill").lower()
-        horizon_y = int(self.splash.canvas_size * 0.55)
-        horizon_item = min(
-            self.splash.canvas.find_overlapping(
-                0, horizon_y, self.splash.canvas_size, horizon_y
-            )
-        )
-        horizon_color = self.splash.canvas.itemcget(horizon_item, "fill").lower()
-        self.assertEqual(top_color, DIALOG_BG_COLOR.lower())
-        self.assertEqual(horizon_color, "white")
-    def test_no_top_gradient(self):
-        items = self.splash.canvas.find_withtag("top_gradient")
-        self.assertEqual(len(items), 0)
 
 
 if __name__ == "__main__":
