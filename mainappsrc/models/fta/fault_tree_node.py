@@ -484,7 +484,10 @@ def add_failure_mode(
 
 def refresh_tree(app, tree):
     """Populate a Treeview with the application's top events."""
-    from config.automl_constants import PMHF_TARGETS
+    if __package__ and __package__.startswith("AutoML"):
+        from AutoML.config.automl_constants import PMHF_TARGETS
+    else:  # pragma: no cover - script context
+        from config.automl_constants import PMHF_TARGETS
 
     tree.delete(*tree.get_children())
     for sg in app.top_events:

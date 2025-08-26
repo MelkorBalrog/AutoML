@@ -32,7 +32,10 @@ from tkinter import ttk, simpledialog, filedialog
 from gui.controls import messagebox
 from gui.dialogs.req_dialog import ReqDialog
 from gui.toolboxes import _RequirementRelationDialog
-from config.automl_constants import PMHF_TARGETS
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import PMHF_TARGETS
+else:  # pragma: no cover - script context
+    from config.automl_constants import PMHF_TARGETS
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 from analysis.models import ASIL_ORDER, global_requirements, ensure_requirement_defaults
 from gui.windows.architecture import link_requirements, unlink_requirements

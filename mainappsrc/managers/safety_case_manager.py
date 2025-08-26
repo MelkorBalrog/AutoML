@@ -27,7 +27,10 @@ from tkinter import ttk, simpledialog, filedialog
 
 from gui.controls import messagebox
 from analysis.constants import CHECK_MARK
-from config.automl_constants import PMHF_TARGETS
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import PMHF_TARGETS
+else:  # pragma: no cover - script context
+    from config.automl_constants import PMHF_TARGETS
 from gui.explorers.safety_case_explorer import SafetyCaseExplorer
 from mainappsrc.managers.sotif_manager import SOTIFManager
 

@@ -27,7 +27,10 @@ from tkinter import ttk
 import tkinter.font as tkFont
 
 from analysis.constants import CHECK_MARK, CROSS_MARK
-from config.automl_constants import PMHF_TARGETS
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import PMHF_TARGETS
+else:  # pragma: no cover - script context
+    from config.automl_constants import PMHF_TARGETS
 from analysis.utils import update_probability_tables as _update_probability_tables
 
 

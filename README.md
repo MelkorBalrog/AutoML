@@ -1,4 +1,4 @@
-version: 0.2.86
+version: 0.2.87
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.87 - Use absolute imports for config constants to support bundled executables.
 - 0.2.86 - Explicitly include tools package in PyInstaller builds to prevent runtime import errors.
 - 0.2.85 - Ensure PyInstaller bundles the tools package by collecting all modules.
 - 0.2.84 - Bundle tools package in executable to fix missing module at runtime.

@@ -173,12 +173,20 @@ from mainappsrc.ui.project_properties_dialog import ProjectPropertiesDialog
 from mainappsrc.managers.sotif_manager import SOTIFManager
 from mainappsrc.managers.cyber_manager import CyberSecurityManager
 from mainappsrc.managers.cta_manager import ControlTreeManager
-from config.automl_constants import (
-    dynamic_recommendations,
-    WORK_PRODUCT_INFO as BASE_WORK_PRODUCT_INFO,
-    WORK_PRODUCT_PARENTS as BASE_WORK_PRODUCT_PARENTS,
-    PMHF_TARGETS,
-)
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import (
+        dynamic_recommendations,
+        WORK_PRODUCT_INFO as BASE_WORK_PRODUCT_INFO,
+        WORK_PRODUCT_PARENTS as BASE_WORK_PRODUCT_PARENTS,
+        PMHF_TARGETS,
+    )
+else:  # pragma: no cover - script context
+    from config.automl_constants import (
+        dynamic_recommendations,
+        WORK_PRODUCT_INFO as BASE_WORK_PRODUCT_INFO,
+        WORK_PRODUCT_PARENTS as BASE_WORK_PRODUCT_PARENTS,
+        PMHF_TARGETS,
+    )
 
 builtins.REQUIREMENT_WORK_PRODUCTS = REQUIREMENT_WORK_PRODUCTS
 builtins.SafetyCaseTable = SafetyCaseTable
