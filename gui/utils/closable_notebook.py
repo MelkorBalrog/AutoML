@@ -378,6 +378,7 @@ class ClosableNotebook(ttk.Notebook):
         kwargs = self._collect_required_kwargs(widget, cls)
         clone = cls(parent, **kwargs)
         self._copy_widget_config(widget, clone)
+        self._copy_widget_state(widget, clone)
         for child in widget.winfo_children():
             self._clone_widget(child, clone)
         return clone
@@ -415,6 +416,44 @@ class ClosableNotebook(ttk.Notebook):
                     clone.configure({opt: widget.cget(opt)})
                 except tk.TclError:
                     continue
+        except Exception:
+            pass
+
+    def _copy_widget_state(self, widget: tk.Widget, clone: tk.Widget) -> None:
+        """Copy widget-specific state such as text contents."""
+        try:
+            if isinstance(widget, (tk.Entry, ttk.Entry)):
+                clone.insert(0, widget.get())
+            elif isinstance(widget, tk.Text):
+                clone.insert("1.0", widget.get("1.0", "end"))
+            elif isinstance(widget, tk.Listbox):
+                for item in widget.get(0, "end"):
+                    clone.insert("end", item)
+                for idx in widget.curselection():
+                    clone.selection_set(idx)
+            elif isinstance(widget, ttk.Treeview):
+                for iid in widget.get_children(""):
+                    self._copy_tree_item(widget, clone, iid, "")
+        except Exception:
+            pass
+
+    def _copy_tree_item(
+        self,
+        src: ttk.Treeview,
+        dst: ttk.Treeview,
+        item: str,
+        parent: str,
+    ) -> None:
+        """Recursively copy a tree item from *src* to *dst*."""
+        try:
+            new_id = dst.insert(
+                parent,
+                "end",
+                text=src.item(item, "text"),
+                values=src.item(item, "values"),
+            )
+            for child in src.get_children(item):
+                self._copy_tree_item(src, dst, child, new_id)
         except Exception:
             pass
 

@@ -262,3 +262,32 @@ class TestCloning:
         new_widget = new_nb.nametowidget(new_nb.tabs()[0])
         assert getattr(new_widget, "_text", None) == "hello"
         root.destroy()
+
+    def test_clone_copies_entry_content(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        entry = ttk.Entry(nb)
+        entry.insert(0, "data")
+        nb.add(entry, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_entry = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_entry.get() == "data"
+        root.destroy()
