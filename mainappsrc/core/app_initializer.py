@@ -38,7 +38,7 @@ from gui.toolboxes.safety_management_toolbox import SafetyManagementToolbox
 from mainappsrc.managers.governance_manager import GovernanceManager
 from mainappsrc.managers.product_goal_manager import ProductGoalManager
 from mainappsrc.managers.gsn_manager import GSNManager
-from mainappsrc.core.structure_tree_operations import Structure_Tree_Operations
+from mainappsrc.services.project_structure import StructureTreeOperationsService
 from gui.utils.drawing_helper import fta_drawing_helper
 from ..managers.project_properties_manager import ProjectPropertiesManager
 from ..managers.diagram_clipboard_manager import DiagramClipboardManager
@@ -165,7 +165,7 @@ class AppInitializer:
         app.odd_elements = []
         app.update_odd_elements()
         app.fta_drawing_helper = fta_drawing_helper
-        app.structure_tree_operations = Structure_Tree_Operations(app)
+        app.structure_tree_operations = StructureTreeOperationsService(app)
         app.mechanism_libraries = []
         app.selected_mechanism_libraries = []
         app.load_default_mechanisms()

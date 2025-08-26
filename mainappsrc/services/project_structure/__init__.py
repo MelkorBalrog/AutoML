@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Project structure manipulation service package."""
 
-VERSION = "0.2.118"
+from .structure_tree_operations_service import StructureTreeOperationsService
 
-__all__ = ["VERSION"]
+__all__ = ["StructureTreeOperationsService"]

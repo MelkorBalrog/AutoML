@@ -1,5 +1,5 @@
 # Version History
-
+- 0.2.118 - Wrap structure tree operations in service and delegate from core.
 - 0.2.117 - Wrap safety UI helpers in service and delegate from core.
 - 0.2.116 - Centralize window helpers into WindowControllersService and refactor core initialization.
 - 0.2.115 - Group core managers into ManagersFacadeService, provide compatibility launcher module, and update core initialization.

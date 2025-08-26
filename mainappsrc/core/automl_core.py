@@ -247,7 +247,7 @@ except Exception:  # pragma: no cover
     sys.path.append(os.path.dirname(base))
     from models.fta.fault_tree_node import FaultTreeNode, add_failure_mode as ft_add_failure_mode, refresh_tree as fault_tree_refresh, add_node_of_type as _add_node_of_type
 
-from .structure_tree_operations import Structure_Tree_Operations
+from mainappsrc.services.project_structure import StructureTreeOperationsService
 
 from gui.toolboxes import (
     RequirementsExplorerWindow,
