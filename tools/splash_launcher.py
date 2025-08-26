@@ -33,7 +33,6 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for bundled executabl
     AUTHOR = "Miguel Marina"
     AUTHOR_EMAIL = "karel.capek.robotics@gmail.com"
     AUTHOR_LINKEDIN = "https://www.linkedin.com/in/progman32/"
-from gui.windows.splash_screen import SplashScreen
 from mainappsrc.version import VERSION
 
 
@@ -85,6 +84,9 @@ class SplashLauncher:
                 module.main()
             return
         self._root.withdraw()
+        # Defer splash import to avoid circular initialization during package
+        # execution
+        from gui.windows.splash_screen import SplashScreen
         self._splash = SplashScreen(
             self._root,
             version=VERSION,
