@@ -246,38 +246,50 @@ class SplashScreen(tk.Toplevel):
         )
 
     def _draw_title(self) -> None:
-        """Render project title in white on a black shadow background."""
+        """Render project title with a subtle white shadow."""
         x = self.canvas_size / 2
         y = self.canvas_size - 40
         main_text = "Automotive Modeling Language"
         sub_text = "by Karel Capek Robotics"
-        title_font = ("Helvetica", 12, "bold")
-        sub_font = ("Helvetica", 10)
+        title_font = ("Helvetica", 14, "bold")
+        sub_font = ("Helvetica", 12, "bold")
+        offset = 1
 
-        text_ids = [
-            self.canvas.create_text(
-                x,
-                y,
-                text=main_text,
-                font=title_font,
-                fill="white",
-                tags="title_text",
-            ),
-            self.canvas.create_text(
-                x,
-                y + 20,
-                text=sub_text,
-                font=sub_font,
-                fill="white",
-                tags="title_text",
-            ),
-        ]
-        bbox = self.canvas.bbox(*text_ids)
-        bg_id = self.canvas.create_rectangle(
-            bbox, fill="black", outline="", tags="title_bg"
+        # White shadow drawn slightly offset behind the main text
+        self.canvas.create_text(
+            x + offset,
+            y + offset,
+            text=main_text,
+            font=title_font,
+            fill="white",
+            tags="title_shadow",
         )
-        for t_id in text_ids:
-            self.canvas.tag_raise(t_id, bg_id)
+        self.canvas.create_text(
+            x + offset,
+            y + 20 + offset,
+            text=sub_text,
+            font=sub_font,
+            fill="white",
+            tags="title_shadow",
+        )
+
+        # Foreground text in bold black
+        self.canvas.create_text(
+            x,
+            y,
+            text=main_text,
+            font=title_font,
+            fill="black",
+            tags="title_text",
+        )
+        self.canvas.create_text(
+            x,
+            y + 20,
+            text=sub_text,
+            font=sub_font,
+            fill="black",
+            tags="title_text",
+        )
 
     def _draw_floor(self):
         """Add subtle white light near horizon and darker shadow toward bottom."""
