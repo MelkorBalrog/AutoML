@@ -32,7 +32,7 @@ from typing import Optional
 
 from ..models.fta.fault_tree_node import FaultTreeNode
 from ..models.gsn.nodes import GSNNode, ALLOWED_AWAY_TYPES
-from .config_utils import AutoML_Helper
+from gui.utils.config_utils import AutoML_Helper
 
 
 class NodeCloneService:

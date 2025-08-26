@@ -40,7 +40,7 @@ except ModuleNotFoundError:  # pragma: no cover
 from analysis.fmeda_utils import GATE_NODE_TYPES
 from analysis.models import global_requirements
 from config import load_report_template
-from .config_utils import AutoML_Helper, _REPORT_TEMPLATE_PATH
+from gui.utils.config_utils import AutoML_Helper, _REPORT_TEMPLATE_PATH
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 
 
