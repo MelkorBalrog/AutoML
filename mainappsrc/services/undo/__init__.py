@@ -15,26 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Undo/redo services."""
 
-"""Tests for the :mod:`mainappsrc.services.editing.editors_service` module."""
+from .undo_redo_service import UndoRedoService
 
-from __future__ import annotations
-
-from mainappsrc.services.editing.editors_service import EditorsService
-from mainappsrc.core import editors
-
-
-def test_editors_service_delegates(monkeypatch):
-    """EditorsService forwards attribute access to underlying Editors instance."""
-
-    called = {}
-
-    def dummy(self):
-        called["hit"] = True
-        return 42
-
-    monkeypatch.setattr(editors.Editors, "dummy", dummy, raising=False)
-
-    service = EditorsService(object())
-    assert service.dummy() == 42
-    assert called["hit"]
+__all__ = ["UndoRedoService"]

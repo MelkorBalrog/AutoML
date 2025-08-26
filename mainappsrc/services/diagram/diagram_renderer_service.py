@@ -30,7 +30,7 @@ from typing import Any
 
 from ...core.diagram_renderer import DiagramRenderer
 from ...core.page_diagram import PageDiagram
-from ...core.node_utils import resolve_original
+from gui.utils.node_utils import resolve_original
 
 
 class DiagramRendererService:

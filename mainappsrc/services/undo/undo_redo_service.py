@@ -15,26 +15,29 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-"""Tests for the :mod:`mainappsrc.services.editing.editors_service` module."""
+"""Service wrapper for :mod:`mainappsrc.core.undo_manager`."""
 
 from __future__ import annotations
 
-from mainappsrc.services.editing.editors_service import EditorsService
-from mainappsrc.core import editors
+from typing import Any
+
+from mainappsrc.core.undo_manager import UndoRedoManager
 
 
-def test_editors_service_delegates(monkeypatch):
-    """EditorsService forwards attribute access to underlying Editors instance."""
+class UndoRedoService:
+    """Expose :class:`UndoRedoManager` as a service.
 
-    called = {}
+    This thin wrapper enables dependency injection of the undo/redo
+    functionality and provides a stable service façade for the
+    application. Attribute access is delegated to the underlying manager
+    so existing calls continue to work unchanged.
+    """
 
-    def dummy(self):
-        called["hit"] = True
-        return 42
+    def __init__(self, app: Any) -> None:  # pragma: no cover - simple container
+        self._manager = UndoRedoManager(app)
 
-    monkeypatch.setattr(editors.Editors, "dummy", dummy, raising=False)
+    def __getattr__(self, name: str):  # pragma: no cover - delegation
+        return getattr(self._manager, name)
 
-    service = EditorsService(object())
-    assert service.dummy() == 42
-    assert called["hit"]
+
+__all__ = ["UndoRedoService"]

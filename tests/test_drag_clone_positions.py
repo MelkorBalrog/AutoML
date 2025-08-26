@@ -25,6 +25,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from AutoML import AutoMLApp
 from mainappsrc.models.gsn import GSNNode, GSNDiagram
 from mainappsrc.core.syncing_and_ids import Syncing_And_IDs
+from mainappsrc.services.syncing import SyncingAndIdsService
 
 
 class DummyEvent:
@@ -50,6 +51,18 @@ def _make_app_with_clone():
     app.canvas = types.SimpleNamespace(canvasx=lambda x: x, canvasy=lambda y: y)
     app.move_subtree = lambda *args: None
     app.redraw_canvas = lambda: None
+    app.syncing_service = SyncingAndIdsService(app)
+
+    def nav_drag(event):
+        node = app.dragging_node
+        node.x = event.x
+        node.y = event.y
+        app.sync_nodes_by_id(node)
+
+    app.nav_input = types.SimpleNamespace(
+        on_canvas_drag=nav_drag,
+        on_canvas_release=lambda _e: None,
+    )
     return app, root, clone
 
 
@@ -96,7 +109,8 @@ def test_sync_nodes_by_id_excludes_coordinates():
         captured_attrs["attrs"] = list(attrs)
         return orig(self, updated_node, attrs)
 
-    app.syncing_and_ids._sync_nodes_by_id_strategy1 = types.MethodType(capture, app.syncing_and_ids)
-    app.syncing_and_ids.sync_nodes_by_id(root)
+    impl = app.syncing_service._impl
+    impl._sync_nodes_by_id_strategy1 = types.MethodType(capture, impl)
+    app.syncing_service.sync_nodes_by_id(root)
     assert "x" not in captured_attrs["attrs"]
     assert "y" not in captured_attrs["attrs"]

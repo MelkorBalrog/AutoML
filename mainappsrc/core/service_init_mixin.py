@@ -29,6 +29,7 @@ from mainappsrc.subapps.reliability_subapp import ReliabilitySubApp
 from .syncing_and_ids import Syncing_And_IDs
 from ..managers.undo_manager import UndoRedoManager
 from mainappsrc.services.navigation import NavigationInputService
+from mainappsrc.services.syncing import SyncingAndIdsService
 
 from mainappsrc.managers.user_manager import UserManager
 from mainappsrc.managers.project_manager import ProjectManager
@@ -74,7 +75,7 @@ class ServiceInitMixin:
         self.fmeda_manager = self.safety_analysis
         self.fmeda = self.safety_analysis
         self.helper = AutoML_Helper
-        self.syncing_and_ids = Syncing_And_IDs(self)
+        self.syncing_service = SyncingAndIdsService(self)
         from mainappsrc.services.diagram import DiagramRendererService
         self.diagram_service = DiagramRendererService(self)
         self.diagram_renderer = self.diagram_service
@@ -101,7 +102,7 @@ class ServiceInitMixin:
             "open_search_toolbox",
         ):
             setattr(self, _name, getattr(self.nav_input, _name))
-        self.undo_manager = UndoRedoManager(self)
+        self.undo_manager = UndoRedoService(self)
         self.user_manager = UserManager(self)
         self.project_manager = ProjectManager(self)
         self.cyber_manager = CyberSecurityManager(self)
