@@ -48,9 +48,11 @@ class TestTabDetach:
         nb._on_tab_release(release)
 
         assert len(nb.tabs()) == 0
+        assert len(nb._floating_windows) == 1
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_frame is frame
 
         press2 = Event(); press2.x = 5; press2.y = 5
         new_nb._on_tab_press(press2)
@@ -108,7 +110,7 @@ class TestTabDetach:
         release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
         nb._on_tab_release(release)
 
-        assert nb._floating_windows
+        assert len(nb._floating_windows) == 1
         win = nb._floating_windows[0]
         assert win.winfo_exists()
         root.destroy()
@@ -162,9 +164,11 @@ class TestTabDetach:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         assert len(new_nb.tabs()) == 1
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert isinstance(new_frame, ttk.Frame)
         root.destroy()
 
-    def test_detach_clones_widget(self):
+    def test_detach_moves_widget(self):
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -187,5 +191,5 @@ class TestTabDetach:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_frame = new_nb.nametowidget(new_nb.tabs()[0])
-        assert new_frame is not frame
+        assert new_frame is frame
         root.destroy()

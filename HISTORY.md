@@ -1,4 +1,5 @@
 # Version History
+- 0.2.135 - Move tab widgets instead of cloning to prevent empty detached windows and ensure only one floating window per drag.
 - 0.2.134 - Clone tab contents into brand-new windows so dragged tabs stay
             detached without relying on platform reparenting.
 - 0.2.133 - Keep detached tabs in new windows even when reparenting fails by

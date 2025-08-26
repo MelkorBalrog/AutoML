@@ -377,7 +377,6 @@ class ClosableNotebook(ttk.Notebook):
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
-        orig = self.nametowidget(tab_id)
         text = self.tab(tab_id, "text")
         win = tk.Toplevel(self)
         win.geometry(f"{width}x{height}+{x}+{y}")
@@ -390,11 +389,15 @@ class ClosableNotebook(ttk.Notebook):
         )
         nb = ClosableNotebook(win)
         nb.pack(expand=True, fill="both")
-        clone = self._clone_widget(orig, nb)
-        self.forget(tab_id)
-        orig.destroy()
-        nb.add(clone, text=text)
-        nb.select(clone)
+        if not self._move_tab(tab_id, nb):
+            orig = self.nametowidget(tab_id)
+            clone = self._clone_widget(orig, nb)
+            self.forget(tab_id)
+            orig.destroy()
+            nb.add(clone, text=text)
+            nb.select(clone)
+        else:
+            nb.select(nb.tabs()[-1])
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
