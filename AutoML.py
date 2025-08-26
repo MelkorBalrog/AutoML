@@ -30,6 +30,7 @@ import importlib
 import os
 import subprocess
 import sys
+import types
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -40,6 +41,27 @@ else:
     _ROOT = Path(__file__).resolve().parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
+
+# Provide default configuration when the external package is absent
+try:  # pragma: no cover - executed in frozen builds
+    from config import automl_constants as _automl_constants
+except ModuleNotFoundError:
+    _automl_constants = types.SimpleNamespace(
+        AUTHOR="Miguel Marina",
+        AUTHOR_EMAIL="karel.capek.robotics@gmail.com",
+        AUTHOR_LINKEDIN="https://www.linkedin.com/in/progman32/",
+        PMHF_TARGETS={},
+        VALID_SUBTYPES=[],
+        dynamic_recommendations={},
+    )
+    _config_module = types.ModuleType("config")
+    _config_module.automl_constants = _automl_constants
+    sys.modules["config"] = _config_module
+    sys.modules["config.automl_constants"] = _automl_constants
+else:
+    sys.modules.setdefault("config", types.ModuleType("config"))
+    sys.modules["config.automl_constants"] = _automl_constants
+
 import tools  # noqa: F401  # ensure package is bundled
 from tools.crash_report_logger import install_best
 from tools.memory_manager import manager as memory_manager
