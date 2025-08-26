@@ -48,16 +48,18 @@ class ThreadMonitor(threading.Thread):
         super().__init__(daemon=True)
         self._manager = manager
         self._interval = interval
-        self._stop = threading.Event()
+        # Internal event used to signal monitor shutdown; named to avoid
+        # clashing with ``threading.Thread`` internal ``_stop`` method.
+        self._stop_event = threading.Event()
 
     def run(self) -> None:  # pragma: no cover - trivial loop
-        while not self._stop.is_set():
+        while not self._stop_event.is_set():
             self._manager._check_threads()
-            self._stop.wait(self._interval)
+            self._stop_event.wait(self._interval)
 
     def stop(self) -> None:
         """Signal the monitor to terminate."""
-        self._stop.set()
+        self._stop_event.set()
 
 
 class ThreadManager:

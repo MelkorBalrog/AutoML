@@ -19,4 +19,3 @@
 """Compatibility wrapper exposing :mod:`AutoML` as ``automl``."""
 
 from AutoML import *  # noqa: F401,F403
-
