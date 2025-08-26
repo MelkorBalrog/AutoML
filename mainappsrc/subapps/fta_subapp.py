@@ -24,7 +24,10 @@ from __future__ import annotations
 import re
 
 from analysis.fmeda_utils import GATE_NODE_TYPES
-from config.automl_constants import dynamic_recommendations, VALID_SUBTYPES
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import dynamic_recommendations, VALID_SUBTYPES
+else:  # pragma: no cover - script context
+    from config.automl_constants import dynamic_recommendations, VALID_SUBTYPES
 from gui.controls import messagebox
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 

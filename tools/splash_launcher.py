@@ -27,7 +27,10 @@ import tkinter as tk
 from types import ModuleType
 from typing import Callable, Optional
 
-from config.automl_constants import AUTHOR, AUTHOR_EMAIL, AUTHOR_LINKEDIN
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import AUTHOR, AUTHOR_EMAIL, AUTHOR_LINKEDIN
+else:  # pragma: no cover - running as script
+    from config.automl_constants import AUTHOR, AUTHOR_EMAIL, AUTHOR_LINKEDIN
 from gui.windows.splash_screen import SplashScreen
 from mainappsrc.version import VERSION
 

@@ -37,7 +37,10 @@ from analysis.models import (
 )
 from analysis.fmeda_utils import GATE_NODE_TYPES
 from analysis.risk_assessment import AutoMLHelper
-from config.automl_constants import VALID_SUBTYPES
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import VALID_SUBTYPES
+else:  # pragma: no cover - script context
+    from config.automl_constants import VALID_SUBTYPES
 
 AutoML_Helper = AutoMLHelper()
 

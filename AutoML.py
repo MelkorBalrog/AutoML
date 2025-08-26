@@ -57,7 +57,10 @@ from mainappsrc.core.safety_analysis import SafetyAnalysis_FTA_FMEA
 from mainappsrc.page_diagram import PageDiagram
 import tkinter.font as tkFont
 from gui.utils.drawing_helper import fta_drawing_helper
-from config.automl_constants import PMHF_TARGETS
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import PMHF_TARGETS
+else:  # pragma: no cover - running as script
+    from config.automl_constants import PMHF_TARGETS
 from analysis.models import HazopDoc
 from gui.dialogs.edit_node_dialog import EditNodeDialog
 from analysis.risk_assessment import AutoMLHelper

@@ -29,7 +29,10 @@ from analysis.safety_case import SafetyCase
 from gui.controls import messagebox
 from gui.toolboxes import _wrap_val
 from gui.utils.table_controller import TableController
-from config.automl_constants import PMHF_TARGETS
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import PMHF_TARGETS
+else:  # pragma: no cover - script context
+    from config.automl_constants import PMHF_TARGETS
 
 
 class SafetyCaseTable(tk.Frame):
