@@ -16,19 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import importlib
+"""Package entry point for running AutoML as ``python automl``."""
 
-from tools.splash_launcher import SplashLauncher
+from . import main
 
-
-class TestSplashLauncher:
-    """Group SplashLauncher tests."""
-
-    def test_launcher_invokes_main(self, monkeypatch):
-        dummy = importlib.import_module("tests.dummy_module")
-        dummy.called["main"] = False
-
-        launcher = SplashLauncher(module_name="tests.dummy_module")
-        launcher.launch()
-
-        assert dummy.called["main"] is True
+if __name__ == "__main__":
+    main()

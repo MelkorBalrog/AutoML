@@ -16,19 +16,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import importlib
+"""Tests for package-level entry points."""
 
-from tools.splash_launcher import SplashLauncher
+import runpy
 
 
-class TestSplashLauncher:
-    """Group SplashLauncher tests."""
+class TestPackageEntrypoint:
+    """Ensure the package entry point delegates to AutoML.main."""
 
-    def test_launcher_invokes_main(self, monkeypatch):
-        dummy = importlib.import_module("tests.dummy_module")
-        dummy.called["main"] = False
+    def test_run_module_invokes_main(self, monkeypatch):
+        called = {"main": False}
 
-        launcher = SplashLauncher(module_name="tests.dummy_module")
-        launcher.launch()
+        def fake_main():
+            called["main"] = True
 
-        assert dummy.called["main"] is True
+        monkeypatch.setattr("AutoML.main", fake_main)
+        runpy.run_module("automl.__main__", run_name="__main__")
+
+        assert called["main"] is True

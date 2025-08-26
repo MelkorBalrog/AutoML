@@ -16,19 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Tests for :mod:`gui.utils.config_utils`."""
+
+from __future__ import annotations
+
 import importlib
 
-from tools.splash_launcher import SplashLauncher
+config_utils = importlib.import_module("gui.utils.config_utils")
 
 
-class TestSplashLauncher:
-    """Group SplashLauncher tests."""
+class TestConfigUtils:
+    """Group config-utils related tests."""
 
-    def test_launcher_invokes_main(self, monkeypatch):
-        dummy = importlib.import_module("tests.dummy_module")
-        dummy.called["main"] = False
+    def test_regenerate_requirement_patterns_delegates(self, monkeypatch):
+        called = {"val": False}
 
-        launcher = SplashLauncher(module_name="tests.dummy_module")
-        launcher.launch()
+        def fake() -> None:
+            called["val"] = True
 
-        assert dummy.called["main"] is True
+        monkeypatch.setattr(config_utils, "_regen_patterns", fake)
+        config_utils.regenerate_requirement_patterns()
+        assert called["val"]
