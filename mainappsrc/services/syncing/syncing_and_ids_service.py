@@ -16,25 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Tests for the :mod:`mainappsrc.services.editing.editors_service` module."""
+"""Service wrapper for node synchronization helpers."""
 
 from __future__ import annotations
 
-from mainappsrc.services.editing.editors_service import EditorsService
-from mainappsrc.core import editors
+from mainappsrc.core.syncing_and_ids import Syncing_And_IDs
 
 
-def test_editors_service_delegates(monkeypatch):
-    """EditorsService forwards attribute access to underlying Editors instance."""
+class SyncingAndIdsService:
+    """Facade exposing :class:`Syncing_And_IDs` as a service."""
 
-    called = {}
+    def __init__(self, app: object) -> None:
+        self._impl = Syncing_And_IDs(app)
 
-    def dummy(self):
-        called["hit"] = True
-        return 42
+    def __getattr__(self, name: str):
+        return getattr(self._impl, name)
 
-    monkeypatch.setattr(editors.Editors, "dummy", dummy, raising=False)
 
-    service = EditorsService(object())
-    assert service.dummy() == 42
-    assert called["hit"]
+__all__ = ["SyncingAndIdsService"]
+
