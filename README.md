@@ -1,4 +1,4 @@
-version: 0.2.107
+version: 0.2.108
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.108 - Import UndoRedoService during service setup to fix NameError when launching the application.
 - 0.2.107 - Allow importing top-level modules when rewriting legacy mainappsrc paths.
 - 0.2.106 - Move clipboard, project properties and undo managers into managers package.
 - 0.2.105 - Fix missing mechanism library references in analysis utilities and prevent thread monitor shutdown error.

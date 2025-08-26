@@ -29,12 +29,12 @@ def _load_service(monkeypatch):
     """Load the service module with a stubbed ``mainappsrc`` package."""
 
     dummy_pkg = types.SimpleNamespace()
-    core_pkg = types.SimpleNamespace()
+    managers_pkg = types.SimpleNamespace()
     undo_pkg = types.SimpleNamespace(UndoRedoManager=object)
     monkeypatch.setitem(sys.modules, "mainappsrc", dummy_pkg)  # type: ignore[arg-type]
-    monkeypatch.setitem(sys.modules, "mainappsrc.core", core_pkg)  # type: ignore[arg-type]
+    monkeypatch.setitem(sys.modules, "mainappsrc.managers", managers_pkg)  # type: ignore[arg-type]
     monkeypatch.setitem(
-        sys.modules, "mainappsrc.core.undo_manager", undo_pkg
+        sys.modules, "mainappsrc.managers.undo_manager", undo_pkg
     )  # type: ignore[arg-type]
 
     path = Path("mainappsrc/services/undo/undo_redo_service.py")
