@@ -27,7 +27,6 @@ from mainappsrc.subapps.risk_assessment_subapp import RiskAssessmentSubApp
 from mainappsrc.subapps.reliability_subapp import ReliabilitySubApp
 
 from .syncing_and_ids import Syncing_And_IDs
-from .diagram_renderer import DiagramRenderer
 from .undo_manager import UndoRedoManager
 from mainappsrc.services.navigation import NavigationInputService
 
@@ -76,7 +75,9 @@ class ServiceInitMixin:
         self.fmeda = self.safety_analysis
         self.helper = AutoML_Helper
         self.syncing_and_ids = Syncing_And_IDs(self)
-        self.diagram_renderer = DiagramRenderer(self)
+        from mainappsrc.services.diagram import DiagramRendererService
+        self.diagram_service = DiagramRendererService(self)
+        self.diagram_renderer = self.diagram_service
         self.nav_input = NavigationInputService(self)
         for _name in (
             "go_back",
