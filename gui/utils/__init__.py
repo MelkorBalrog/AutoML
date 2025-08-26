@@ -28,6 +28,7 @@ older code that expected these objects to live directly under
 # The logging helper is implemented in ``logger.py`` but we import it here so
 # ``from gui.utils import logger`` continues to work.
 from . import logger  # noqa: F401
+from .node_utils import resolve_original  # noqa: F401
 
 # Treeview convenience helpers live in the top level ``gui`` package. Importing
 # them here preserves backward compatibility for modules that relied on
@@ -50,4 +51,4 @@ def add_treeview_scrollbars(*args, **kwargs):
 DIALOG_BG_COLOR = "#A9BCE2"
 
 
-__all__ = ["logger", "DIALOG_BG_COLOR", "add_treeview_scrollbars"]
+__all__ = ["logger", "DIALOG_BG_COLOR", "add_treeview_scrollbars", "resolve_original"]
