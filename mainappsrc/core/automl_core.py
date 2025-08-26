@@ -430,6 +430,10 @@ class AutoMLApp(
         self.zoom = 1.0
         self.rc_dragged = False
         self.diagram_font = tkFont.Font(family="Arial", size=int(8 * self.zoom))
+        # Ensure collections required by services exist before setup
+        self.scenario_libraries = []
+        self.mechanism_libraries = []
+        self.selected_mechanism_libraries = []
         self.setup_services()
         self.init_service = AppInitializationService(self)
         self.init_service.initialize()
