@@ -16,6 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from __future__ import annotations
 
 import math
 import sys
@@ -73,14 +74,14 @@ from analysis.mechanisms import (
 from pathlib import Path
 from collections.abc import Mapping
 from gui.utils.drawing_helper import FTADrawingHelper, fta_drawing_helper
-from mainappsrc.core.event_dispatcher import EventDispatcher
-from gui.controls.window_controllers import WindowControllers
-from mainappsrc.core.top_event_workflows import Top_Event_Workflows
+from mainappsrc.services.windows import WindowControllersService
 from mainappsrc.services.versioning import VersioningReviewService
 from mainappsrc.services.reporting import ReportingExportService
 from mainappsrc.services.managers import ManagersFacadeService
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from gui.controls.window_controllers import WindowControllers
+    from mainappsrc.core.top_event_workflows import Top_Event_Workflows
     from mainappsrc.services.validation import ValidationConsistencyService
 from mainappsrc.services.node_clone import NodeCloneServiceInterface
 from mainappsrc.services.view import ViewUpdateService
@@ -256,8 +257,6 @@ from gui.toolboxes import (
 
 
 from pathlib import Path
-from gui.dialogs.user_info_dialog import UserInfoDialog
-
 from mainappsrc.services.config import config_service
 
 
@@ -368,16 +367,18 @@ class AutoMLApp(
         return service.load_default_mechanisms()
 
     @property
+    def window_controllers_service(self) -> WindowControllersService:
+        if not hasattr(self, "_window_controllers_service"):
+            self._window_controllers_service = WindowControllersService(self)
+        return self._window_controllers_service
+
+    @property
     def window_controllers(self) -> WindowControllers:
-        if not hasattr(self, "_window_controllers"):
-            self._window_controllers = WindowControllers(self)
-        return self._window_controllers
+        return self.window_controllers_service.window_controllers
 
     @property
     def top_event_workflows(self) -> Top_Event_Workflows:
-        if not hasattr(self, "_top_event_workflows"):
-            self._top_event_workflows = Top_Event_Workflows(self)
-        return self._top_event_workflows
+        return self.window_controllers_service.top_event_workflows
 
     def __getattr__(self, name):  # pragma: no cover - simple delegation
         """Delegate missing attributes to UI helper services.
@@ -1098,9 +1099,8 @@ class AutoMLApp(
         self._doc_tip = ToolTip(self.doc_nb, "", automatic=False)
 
         # Centralised event binding
-        self.event_dispatcher = EventDispatcher(self)
-        self.event_dispatcher.register_keyboard_shortcuts()
-        self.event_dispatcher.register_tab_events()
+        self.window_controllers_service.register_events()
+        self.event_dispatcher = self.window_controllers_service.event_dispatcher
 
         # Do not open the FTA tab by default so the application starts with no
         # documents visible. The tab and the initial top event will be created
@@ -3057,7 +3057,7 @@ def _launch_app() -> None:
         if dlg.result:
             name, email = dlg.result
             if name == "New User...":
-                info = UserInfoDialog(root, "", "").result
+                info = WindowControllersService.prompt_user_info(root, "", "")
                 if info:
                     name, email = info
                     save_user_config(name, email)
@@ -3065,9 +3065,9 @@ def _launch_app() -> None:
                 email = users.get(name, email)
                 set_last_user(name)
     else:
-        dlg = UserInfoDialog(root, last_name, last_email)
-        if dlg.result:
-            name, email = dlg.result
+        info = WindowControllersService.prompt_user_info(root, last_name, last_email)
+        if info:
+            name, email = info
             save_user_config(name, email)
     set_current_user(name, email)
     global AutoML_Helper

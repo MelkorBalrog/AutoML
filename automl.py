@@ -15,9 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Compatibility launcher module.
 
-"""Project version information."""
+This wrapper re-exports the contents of :mod:`AutoML` so tests and scripts
+can import ``automl`` regardless of case sensitivity.
+"""
 
-VERSION = "0.2.116"
-
-__all__ = ["VERSION"]
+from AutoML import *  # noqa: F401,F403

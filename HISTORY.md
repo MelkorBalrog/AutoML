@@ -1,5 +1,6 @@
 # Version History
 
+- 0.2.116 - Centralize window helpers into WindowControllersService and refactor core initialization.
 - 0.2.115 - Group core managers into ManagersFacadeService, provide compatibility launcher module, and update core initialization.
 - 0.2.114 - Wrap versioning review helpers in service and update core initialization.
 - 0.2.113 - Wrap reporting helpers in service and delegate PDF/HTML generation.

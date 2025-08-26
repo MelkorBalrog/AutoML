@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Windows-related services for the AutoML application."""
 
-"""Project version information."""
+from .window_controllers_service import WindowControllersService
 
-VERSION = "0.2.116"
-
-__all__ = ["VERSION"]
+__all__ = ["WindowControllersService"]
