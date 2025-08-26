@@ -134,3 +134,28 @@ class TestTabDetach:
 
         assert frame.master is not nb
         root.destroy()
+
+    def test_detached_window_shows_content(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        new_nb = frame.master
+        assert isinstance(new_nb, ClosableNotebook)
+        assert new_nb.tabs() == (str(frame),)
+        root.destroy()

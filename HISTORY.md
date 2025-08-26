@@ -1,6 +1,9 @@
 # Version History
-- 0.2.127 - Resolve GUI module in frozen builds even when top-level package is absent.
-- 0.2.126 - Guard splash launcher against external `gui` packages in frozen executables.
+- 0.2.130 - Ensure detached windows display tab content and restore tabs when detachment fails.
+- 0.2.129 - Remove snap-back fallback when detaching tabs so floating windows persist.
+- 0.2.128 - Expose requirement pattern regeneration through config utils for legacy callers.
+- 0.2.127 - Use native Tk reparenting when detaching tabs to keep windows alive.
+- 0.2.126 - Preserve detached tabs by retaining references to floating windows.
 - 0.2.125 - Guard configuration import against external `config` modules in frozen executables.
 - 0.2.124 - Import global requirements into core and add lazy service registry with context-managed cleanup.
 - 0.2.123 - Define local service registry alias for backwards compatibility.

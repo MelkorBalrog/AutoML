@@ -394,6 +394,8 @@ class ClosableNotebook(ttk.Notebook):
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
+        child = self.nametowidget(tab_id)
+        text = self.tab(tab_id, "text")
         win = tk.Toplevel(self)
         win.geometry(f"{width}x{height}+{x}+{y}")
         self._floating_windows.append(win)
@@ -410,7 +412,15 @@ class ClosableNotebook(ttk.Notebook):
         # attempting to move the tab so that reparenting commands have a valid
         # window to target.
         win.update_idletasks()
-        self._move_tab(tab_id, nb)
+        if self._move_tab(tab_id, nb):
+            nb.select(child)
+            child.update_idletasks()
+        else:
+            self.add(child, text=text)
+            self.select(child)
+            if win in self._floating_windows:
+                self._floating_windows.remove(win)
+            win.destroy()
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
