@@ -51,6 +51,7 @@ from mainappsrc.models.gsn import GSNModule, GSNDiagram
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 from mainappsrc.services.config import config_service
+from mainappsrc.services.lazy_model_loader import LazyModelLoader
 
 
 class ProjectManager:
@@ -58,6 +59,7 @@ class ProjectManager:
 
     def __init__(self, app: "AutoMLApp") -> None:
         self.app = app
+        self._lazy_loader: LazyModelLoader | None = None
 
     # ------------------------------------------------------------------
     def apply_project_properties(
@@ -153,9 +155,18 @@ class ProjectManager:
         app.undo_manager.clear_history()
         app.analysis_tree.delete(*app.analysis_tree.get_children())
         app.update_views()
-        app.set_last_saved_state()
-        if app.canvas:
-            app.canvas.update()
+
+    # ------------------------------------------------------------------
+    def load_section(self, name: str) -> None:
+        """Load a project section on demand."""
+        if self._lazy_loader:
+            self._lazy_loader.load_section(name)
+
+    # ------------------------------------------------------------------
+    def unload_section(self, name: str) -> None:
+        """Unload a previously loaded project section."""
+        if self._lazy_loader:
+            self._lazy_loader.unload_section(name)
 
     # ------------------------------------------------------------------
     def _reset_on_load(self) -> None:
@@ -347,7 +358,8 @@ class ProjectManager:
                     mb.showerror("Load Model", f"Failed to parse JSON file:\n{exc}")
                     return
         self._reset_on_load()
-        self.apply_model_data(data)
+        self._lazy_loader = LazyModelLoader(app, data)
+        self._lazy_loader.load_core()
         app.set_last_saved_state()
         app._loaded_model_paths.append(path)
 
@@ -364,20 +376,11 @@ class ProjectManager:
             except Exception:
                 pass
         app.enabled_work_products = set()
-        app._load_project_properties(data)
 
-        repo_data = data.get("sysml_repository")
-        if repo_data:
-            repo = SysMLRepository.get_instance()
-            repo.from_dict(repo_data)
+        loader = LazyModelLoader(app, data, ensure_root)
+        loader.load_all()
+        self._lazy_loader = loader
 
-        app._load_fault_tree_events(data, ensure_root)
-
-        global_requirements.clear()
-        for rid, req in data.get("global_requirements", {}).items():
-            global_requirements[rid] = ensure_requirement_defaults(req)
-
-        app.gsn_modules = [GSNModule.from_dict(m) for m in data.get("gsn_modules", [])]
         app.gsn_diagrams = [GSNDiagram.from_dict(d) for d in data.get("gsn_diagrams", [])]
 
         app.safety_mgmt_toolbox = SafetyManagementToolbox.from_dict(
