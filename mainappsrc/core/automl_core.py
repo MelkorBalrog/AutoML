@@ -31,7 +31,7 @@ if base not in sys.path:
 parent = os.path.dirname(base)
 if parent not in sys.path:
     sys.path.append(parent)
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 from tkinter import ttk, filedialog, simpledialog, scrolledtext
 from gui.dialogs.dialog_utils import askstring_fixed
 from gui.controls import messagebox
@@ -79,8 +79,10 @@ from mainappsrc.core.top_event_workflows import Top_Event_Workflows
 from mainappsrc.managers.review_manager import ReviewManager
 from mainappsrc.managers.drawing_manager import DrawingManager
 from .versioning_review import Versioning_Review
-from .validation_consistency import Validation_Consistency
 from .reporting_export import Reporting_Export
+
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from mainappsrc.services.validation import ValidationConsistencyService
 from mainappsrc.services.node_clone import NodeCloneServiceInterface
 from mainappsrc.services.view import ViewUpdateService
 from mainappsrc.services.data_access import DataAccessQueriesService
@@ -299,6 +301,7 @@ class AutoMLApp(
     """Main application window for AutoML Analyzer."""
 
     _instance: Optional["AutoMLApp"] = None
+    validation_consistency: "ValidationConsistencyService"
 
     #: Maximum number of characters displayed for a notebook tab title. Longer
     #: titles are truncated with an ellipsis to avoid giant tabs that overflow
