@@ -230,14 +230,14 @@ class SplashScreen(tk.Toplevel):
         self.canvas.create_image(0, 0, anchor="nw", image=self._bg_photo, tags="void_bg")
 
     def _draw_title(self) -> None:
-        """Render white AutoML title and subtitle with black shadows."""
+        """Render orange ``AutoML`` title at 1.5x subtitle size with black shadows."""
         x = self.canvas_size / 2
         y = self.canvas_size - 40
         main_text = "AutoML"
         sub_text = "Automotive Modeling Language"
         font_family = "DejaVu Serif"
         sub_size = 12
-        title_size = sub_size * 4
+        title_size = int(sub_size * 1.5)
         offset = 1
         self._sub_size = sub_size
         self._title_size = title_size
@@ -273,7 +273,7 @@ class SplashScreen(tk.Toplevel):
             y,
             text=main_text,
             font=title_font,
-            fill="white",
+            fill="orange",
             tags="title_text",
         )
 
