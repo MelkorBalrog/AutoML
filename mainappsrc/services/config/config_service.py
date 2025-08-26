@@ -27,6 +27,24 @@ from config import load_diagram_rules
 from analysis.requirement_rule_generator import regenerate_requirement_patterns
 from analysis.risk_assessment import AutoMLHelper
 
+REQUIREMENT_WORK_PRODUCTS = [
+    "Requirement Specification",
+    "Vehicle Requirement Specification",
+    "Operational Requirement Specification",
+    "Operational Safety Requirement Specification",
+    "Functional Safety Requirement Specification",
+    "Technical Safety Requirement Specification",
+    "AI Safety Requirement Specification",
+    "Functional Modification Requirement Specification",
+    "Cybersecurity Requirement Specification",
+    "Production Requirement Specification",
+    "Service Requirement Specification",
+    "Decommissioning Requirement Specification",
+    "Product Requirement Specification",
+    "Legal Requirement Specification",
+    "Organizational Requirement Specification",
+]
+
 
 class ConfigService:
     """Provide access to global configuration paths and helpers."""
@@ -42,6 +60,7 @@ class ConfigService:
         self.gate_node_types: set[str] = set(self._config.get("gate_node_types", []))
         self.automl_helper = AutoMLHelper()
         self.unique_node_id_counter = 1
+        self.requirement_work_products = REQUIREMENT_WORK_PRODUCTS
         regenerate_requirement_patterns()
 
     def reload_local_config(self) -> None:
@@ -50,6 +69,12 @@ class ConfigService:
         self.gate_node_types.clear()
         self.gate_node_types.update(self._config.get("gate_node_types", []))
         regenerate_requirement_patterns()
+
+    def reset_automl_helper(self) -> AutoMLHelper:
+        """Recreate and return a fresh :class:`AutoMLHelper`."""
+        self.automl_helper = AutoMLHelper()
+        self.unique_node_id_counter = 1
+        return self.automl_helper
 
 
 config_service = ConfigService()
