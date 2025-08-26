@@ -38,7 +38,7 @@ if __package__ and __package__.startswith("AutoML"):
 else:  # pragma: no cover - script context
     from config.automl_constants import PMHF_TARGETS
 from analysis.constants import CHECK_MARK
-from mainappsrc.core.undo_manager import UndoRedoManager
+from mainappsrc.managers.undo_manager import UndoRedoManager
 
 
 class DummyTree:

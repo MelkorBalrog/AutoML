@@ -36,6 +36,8 @@ _submodule_map = {
     "core.safety_ui": "ui.safety_ui",
     "ui_setup": "ui.ui_setup",
     "core.ui_setup": "ui.ui_setup",
+    "node_utils": "gui.utils.node_utils",
+    "core.node_utils": "gui.utils.node_utils",
     "fmea_service": "core.fmea_service",
     "safety_analysis": "core.safety_analysis",
     "automl_core": "core.automl_core",
@@ -52,6 +54,12 @@ _submodule_map = {
     "review_manager": "managers.review_manager",
     "sotif_manager": "managers.sotif_manager",
     "user_manager": "managers.user_manager",
+    "diagram_clipboard_manager": "managers.diagram_clipboard_manager",
+    "core.diagram_clipboard_manager": "managers.diagram_clipboard_manager",
+    "project_properties_manager": "managers.project_properties_manager",
+    "core.project_properties_manager": "managers.project_properties_manager",
+    "undo_manager": "managers.undo_manager",
+    "core.undo_manager": "managers.undo_manager",
     # Sub-apps
     "activity_diagram_subapp": "subapps.activity_diagram_subapp",
     "block_diagram_subapp": "subapps.block_diagram_subapp",
@@ -68,7 +76,11 @@ _submodule_map = {
 }
 
 for old, new in _submodule_map.items():
-    sys.modules[f"{__name__}.{old}"] = importlib.import_module(f".{new}", __name__)
+    try:
+        module = importlib.import_module(f".{new}", __name__)
+    except ModuleNotFoundError:
+        module = importlib.import_module(new)
+    sys.modules[f"{__name__}.{old}"] = module
 
 from .core.automl_core import AutoMLApp
 from .core.page_diagram import PageDiagram
