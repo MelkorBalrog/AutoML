@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Node cloning service interface package."""
 
-"""Project version information."""
+from .node_clone_service_interface import NodeCloneServiceInterface
 
-VERSION = "0.2.106"
-
-__all__ = ["VERSION"]
+__all__ = ["NodeCloneServiceInterface"]

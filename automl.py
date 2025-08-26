@@ -15,9 +15,22 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Lowercase launcher shim for tests."""
 
-"""Project version information."""
+from __future__ import annotations
 
-VERSION = "0.2.106"
+import importlib.util
+import os
+import subprocess
+from pathlib import Path
 
-__all__ = ["VERSION"]
+_spec = importlib.util.spec_from_file_location(
+    "_automl_launcher", Path(__file__).with_name("AutoML.py")
+)
+_launcher = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_launcher)  # type: ignore[arg-type]
+
+ensure_ghostscript = _launcher.ensure_ghostscript
+GS_PATH = _launcher.GS_PATH
+
+__all__ = ["ensure_ghostscript", "GS_PATH", "os", "subprocess"]

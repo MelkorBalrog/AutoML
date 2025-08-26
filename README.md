@@ -1,4 +1,4 @@
-version: 0.2.105
+version: 0.2.106
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.106 - Introduce NodeCloneServiceInterface and refactor core to use it.
 - 0.2.105 - Introduce SyncingAndIdsService and integrate into core.
 - 0.2.104 - Move node utilities from core to gui.utils for centralized access.
 - 0.2.103 - Render white AutoML splash title using subtitle font at quadruple size.

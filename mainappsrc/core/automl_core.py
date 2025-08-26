@@ -81,7 +81,7 @@ from mainappsrc.managers.drawing_manager import DrawingManager
 from .versioning_review import Versioning_Review
 from .validation_consistency import Validation_Consistency
 from .reporting_export import Reporting_Export
-from .node_clone_service import NodeCloneService
+from mainappsrc.services.node_clone import NodeCloneServiceInterface
 from mainappsrc.services.view import ViewUpdateService
 from analysis.user_config import (
     load_user_config,
@@ -417,7 +417,7 @@ class AutoMLApp(
         self.product_goal_manager = ProductGoalManager()
         self.selected_node = None
         self.clone_offset_counter = {}
-        self.node_clone_service = NodeCloneService()
+        self.node_clone_service = NodeCloneServiceInterface()
         self.view_update_service = ViewUpdateService(self)
         self._loaded_model_paths = []
         self.root.title("AutoML-Analyzer")
@@ -2613,7 +2613,13 @@ class AutoMLApp(
 
 
     def clone_node_preserving_id(self, node, parent=None):
-        """Delegate cloning to :class:`NodeCloneService`."""
+        """Delegate cloning to :class:`NodeCloneServiceInterface`.
+
+        The attribute is lazily initialised to keep tests lightweight when the
+        full application initialisation is bypassed via ``__new__``.
+        """
+        if not hasattr(self, "node_clone_service"):
+            self.node_clone_service = NodeCloneServiceInterface()
         return self.node_clone_service.clone_node_preserving_id(node, parent)
 
     def _find_gsn_diagram(self, node):
