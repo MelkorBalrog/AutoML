@@ -1994,19 +1994,19 @@ class AutoMLApp(
         return self.probability_reliability.calculate_pmfh()
 
     def show_requirements_matrix(self):
-        return self.editors.show_requirements_matrix()
+        return self.editors_service.show_requirements_matrix()
 
     def show_item_definition_editor(self):
-        return self.editors.show_item_definition_editor()
+        return self.editors_service.show_item_definition_editor()
 
     def show_safety_concept_editor(self):
-        return self.editors.show_safety_concept_editor()
+        return self.editors_service.show_safety_concept_editor()
 
     def show_requirements_editor(self):
-        return self.editors.show_requirements_editor()
+        return self.editors_service.show_requirements_editor()
 
     def _show_fmea_table_impl(self, fmea=None, fmeda=False):
-        return self.editors._show_fmea_table_impl(fmea, fmeda)
+        return self.editors_service._show_fmea_table_impl(fmea, fmeda)
 
     def export_fmea_to_csv(self, fmea, path):
         return self.safety_analysis.export_fmea_to_csv(fmea, path)
