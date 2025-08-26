@@ -26,7 +26,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from gui.closable_notebook import ClosableNotebook
 
 
-class TestTabDetach:
+class TestTabDetachBasics:
     def test_tab_detach_and_reattach(self):
         try:
             root = tk.Tk()
@@ -90,6 +90,7 @@ class TestTabDetach:
         assert len(nb.tabs()) == 0
         root.destroy()
 
+class TestFloatingWindowBehavior:
     def test_detached_window_kept_alive(self):
         try:
             root = tk.Tk()
@@ -194,6 +195,7 @@ class TestTabDetach:
         assert new_frame is frame
         root.destroy()
 
+class TestCloning:
     def test_clone_handles_required_args(self, monkeypatch):
         try:
             root = tk.Tk()

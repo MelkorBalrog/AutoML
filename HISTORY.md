@@ -1,4 +1,5 @@
 # Version History
+- 0.2.138 - Reduce tab-detachment cyclomatic complexity and ignore master when cloning widgets.
 - 0.2.137 - Capture attribute-based widget arguments when cloning tabs and clean up failed detachment windows.
 - 0.2.136 - Copy required widget options when cloning tabs so custom controls detach without errors.
 - 0.2.135 - Move tab widgets instead of cloning to prevent empty detached windows and ensure only one floating window per drag.

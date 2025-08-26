@@ -291,50 +291,63 @@ class ClosableNotebook(ttk.Notebook):
             self._dragging = True
 
     def _on_release(self, event: tk.Event) -> None:
-        if self.instate(["pressed"]):
-            element = self.identify(event.x, event.y)
-            index = self.index(f"@{event.x},{event.y}")
-            if "close" in element and self._active == index:
-                tab_id = self.tabs()[index]
-                if tab_id in self.protected:
-                    self.state(["!pressed"])
-                    self._active = None
-                    self._reset_drag()
-                    return
-                self._closing_tab = tab_id
-                self.event_generate("<<NotebookTabClosed>>")
-                if tab_id in self.tabs():
-                    try:
-                        self.forget(tab_id)
-                    except tk.TclError:
-                        pass
-            self.state(["!pressed"])
-            self._active = None
-            self._reset_drag()
+        if self._handle_close(event):
             return
-
         tab_index = self._drag_data["tab"]
         if tab_index is not None:
-            outside = (
-                event.x < 0
-                or event.y < 0
-                or event.x >= self.winfo_width()
-                or event.y >= self.winfo_height()
-            )
-            if self._dragging or outside:
-                try:
-                    tab_id = self.tabs()[tab_index]
-                except IndexError:
-                    self._reset_drag()
-                    return
-                widget = self.winfo_containing(event.x_root, event.y_root)
-                while widget is not None and not isinstance(widget, ClosableNotebook):
-                    widget = widget.master
-                if isinstance(widget, ClosableNotebook) and widget is not self:
-                    self._move_tab(tab_id, widget)
-                else:
-                    self._detach_tab(tab_id, event.x_root, event.y_root)
+            self._finalize_drag(tab_index, event)
         self._reset_drag()
+
+    def _handle_close(self, event: tk.Event) -> bool:
+        if not self.instate(["pressed"]):
+            return False
+        element = self.identify(event.x, event.y)
+        index = self.index(f"@{event.x},{event.y}")
+        if "close" in element and self._active == index:
+            tab_id = self.tabs()[index]
+            if tab_id in self.protected:
+                self.state(["!pressed"])
+                self._active = None
+                self._reset_drag()
+                return True
+            self._closing_tab = tab_id
+            self.event_generate("<<NotebookTabClosed>>")
+            if tab_id in self.tabs():
+                try:
+                    self.forget(tab_id)
+                except tk.TclError:
+                    pass
+        self.state(["!pressed"])
+        self._active = None
+        self._reset_drag()
+        return True
+
+    def _finalize_drag(self, tab_index: int, event: tk.Event) -> None:
+        if not (self._dragging or self._is_outside(event)):
+            return
+        try:
+            tab_id = self.tabs()[tab_index]
+        except IndexError:
+            return
+        target = self._target_notebook(event.x_root, event.y_root)
+        if target and target is not self:
+            self._move_tab(tab_id, target)
+        else:
+            self._detach_tab(tab_id, event.x_root, event.y_root)
+
+    def _is_outside(self, event: tk.Event) -> bool:
+        return (
+            event.x < 0
+            or event.y < 0
+            or event.x >= self.winfo_width()
+            or event.y >= self.winfo_height()
+        )
+
+    def _target_notebook(self, x: int, y: int) -> t.Optional["ClosableNotebook"]:
+        widget = self.winfo_containing(x, y)
+        while widget is not None and not isinstance(widget, ClosableNotebook):
+            widget = widget.master
+        return widget
 
     def _move_tab(self, tab_id: str, target: "ClosableNotebook") -> bool:
         """Move *tab_id* to *target* notebook using Tk's native commands."""
@@ -362,26 +375,40 @@ class ClosableNotebook(ttk.Notebook):
         """
 
         cls = widget.__class__
+        kwargs = self._collect_required_kwargs(widget, cls)
+        clone = cls(parent, **kwargs)
+        self._copy_widget_config(widget, clone)
+        for child in widget.winfo_children():
+            self._clone_widget(child, clone)
+        return clone
+
+    def _collect_required_kwargs(self, widget: tk.Widget, cls: type) -> dict[str, t.Any]:
         kwargs: dict[str, t.Any] = {}
         try:
             sig = inspect.signature(cls.__init__)
             for name, param in list(sig.parameters.items())[1:]:
-                if param.default is inspect._empty:
-                    value: t.Any | None = None
-                    if name in widget.keys():
-                        try:
-                            value = widget.cget(name)
-                        except tk.TclError:
-                            value = None
-                    elif hasattr(widget, name):
-                        value = getattr(widget, name)
-                    elif hasattr(widget, f"_{name}"):
-                        value = getattr(widget, f"_{name}")
-                    if value is not None:
-                        kwargs[name] = value
+                if name == "master" or param.default is not inspect._empty:
+                    continue
+                value = self._get_widget_value(widget, name)
+                if value is not None:
+                    kwargs[name] = value
         except Exception:
             pass
-        clone = cls(parent, **kwargs)
+        return kwargs
+
+    def _get_widget_value(self, widget: tk.Widget, name: str) -> t.Any | None:
+        if name in widget.keys():
+            try:
+                return widget.cget(name)
+            except tk.TclError:
+                return None
+        if hasattr(widget, name):
+            return getattr(widget, name)
+        if hasattr(widget, f"_{name}"):
+            return getattr(widget, f"_{name}")
+        return None
+
+    def _copy_widget_config(self, widget: tk.Widget, clone: tk.Widget) -> None:
         try:
             for opt in widget.configure():
                 try:
@@ -390,9 +417,6 @@ class ClosableNotebook(ttk.Notebook):
                     continue
         except Exception:
             pass
-        for child in widget.winfo_children():
-            self._clone_widget(child, clone)
-        return clone
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
