@@ -27,7 +27,7 @@ from mainappsrc.subapps.risk_assessment_subapp import RiskAssessmentSubApp
 from mainappsrc.subapps.reliability_subapp import ReliabilitySubApp
 
 from .syncing_and_ids import Syncing_And_IDs
-from .undo_manager import UndoRedoManager
+from mainappsrc.services.undo import UndoRedoService
 from mainappsrc.services.navigation import NavigationInputService
 
 from mainappsrc.managers.user_manager import UserManager
@@ -101,7 +101,7 @@ class ServiceInitMixin:
             "open_search_toolbox",
         ):
             setattr(self, _name, getattr(self.nav_input, _name))
-        self.undo_manager = UndoRedoManager(self)
+        self.undo_manager = UndoRedoService(self)
         self.user_manager = UserManager(self)
         self.project_manager = ProjectManager(self)
         self.cyber_manager = CyberSecurityManager(self)

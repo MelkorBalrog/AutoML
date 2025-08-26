@@ -15,9 +15,29 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Service wrapper for :mod:`mainappsrc.core.undo_manager`."""
 
-"""Project version information."""
+from __future__ import annotations
 
-VERSION = "0.2.106"
+from typing import Any
 
-__all__ = ["VERSION"]
+from mainappsrc.core.undo_manager import UndoRedoManager
+
+
+class UndoRedoService:
+    """Expose :class:`UndoRedoManager` as a service.
+
+    This thin wrapper enables dependency injection of the undo/redo
+    functionality and provides a stable service façade for the
+    application. Attribute access is delegated to the underlying manager
+    so existing calls continue to work unchanged.
+    """
+
+    def __init__(self, app: Any) -> None:  # pragma: no cover - simple container
+        self._manager = UndoRedoManager(app)
+
+    def __getattr__(self, name: str):  # pragma: no cover - delegation
+        return getattr(self._manager, name)
+
+
+__all__ = ["UndoRedoService"]
