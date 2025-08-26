@@ -32,7 +32,7 @@ spec.loader.exec_module(automl)
 AutoMLApp = automl.AutoMLApp
 FaultTreeNode = automl.FaultTreeNode
 messagebox = automl.messagebox
-from mainappsrc.core.diagram_clipboard_manager import DiagramClipboardManager
+from mainappsrc.managers.diagram_clipboard_manager import DiagramClipboardManager
 
 page_module = importlib.import_module("mainappsrc.core.page_diagram")
 PageDiagram = page_module.PageDiagram

@@ -19,7 +19,7 @@
 import types
 
 from AutoML import AutoMLApp
-from mainappsrc.core.diagram_clipboard_manager import DiagramClipboardManager
+from mainappsrc.managers.diagram_clipboard_manager import DiagramClipboardManager
 from gui.architecture import SysMLObject, ARCH_WINDOWS, _get_next_id
 from tests.test_cross_diagram_clipboard import DummyRepo, make_window
 
