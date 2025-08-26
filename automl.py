@@ -15,7 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-"""Compatibility wrapper exposing the AutoML launcher as a module."""
+"""Compatibility wrapper exposing the main AutoML module as ``automl``."""
 
 from AutoML import *  # noqa: F401,F403
+
+if __name__ == "__main__":
+    from AutoML import main
+    main()
