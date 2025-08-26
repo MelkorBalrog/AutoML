@@ -28,6 +28,11 @@ class AnalysisUtilsService(AnalysisUtilsMixin):
 
     def __init__(self, app: object) -> None:
         self.app = app
+        # Mirror collections used by the mixin so service methods operate on
+        # the application's data structures.
+        self.scenario_libraries = app.scenario_libraries
+        self.mechanism_libraries = app.mechanism_libraries
+        self.selected_mechanism_libraries = app.selected_mechanism_libraries
         self.probability_reliability = Probability_Reliability(app)
 
     # ------------------------------------------------------------------
