@@ -429,11 +429,15 @@ class ClosableNotebook(ttk.Notebook):
             nb.select(child)
             child.update_idletasks()
         else:
-            self.add(child, text=text)
-            self.select(child)
-            if win in self._floating_windows:
-                self._floating_windows.remove(win)
-            win.destroy()
+            nb.destroy()
+            try:
+                child.pack(in_=win, expand=True, fill="both")
+            except tk.TclError:
+                self.add(child, text=text)
+                self.select(child)
+                if win in self._floating_windows:
+                    self._floating_windows.remove(win)
+                win.destroy()
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
