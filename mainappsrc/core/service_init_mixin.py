@@ -26,9 +26,21 @@ from mainappsrc.subapps.project_editor_subapp import ProjectEditorSubApp
 from mainappsrc.subapps.risk_assessment_subapp import RiskAssessmentSubApp
 from mainappsrc.subapps.reliability_subapp import ReliabilitySubApp
 
-from mainappsrc.services.undo import UndoRedoService
-from mainappsrc.services.navigation import NavigationInputService
-from mainappsrc.services.syncing import SyncingAndIdsService
+from mainappsrc.services import (
+    UndoRedoService,
+    NavigationInputService,
+    SyncingAndIdsService,
+    ManagersFacadeService,
+    VersioningReviewService,
+    ReportingExportService,
+    EditorsService,
+    AnalysisUtilsService,
+    SafetyAnalysisService,
+    DataAccessQueriesService,
+    ValidationConsistencyService,
+    SafetyUIService,
+    DiagramRendererService,
+)
 
 from mainappsrc.subapps.diagram_export_subapp import DiagramExportSubApp
 from mainappsrc.subapps.use_case_diagram_subapp import UseCaseDiagramSubApp
@@ -36,15 +48,6 @@ from mainappsrc.subapps.activity_diagram_subapp import ActivityDiagramSubApp
 from mainappsrc.subapps.block_diagram_subapp import BlockDiagramSubApp
 from mainappsrc.subapps.internal_block_diagram_subapp import InternalBlockDiagramSubApp
 from mainappsrc.subapps.control_flow_diagram_subapp import ControlFlowDiagramSubApp
-from mainappsrc.services.managers import ManagersFacadeService
-from mainappsrc.services.versioning import VersioningReviewService
-from mainappsrc.services.reporting import ReportingExportService
-from mainappsrc.services.editing.editors_service import EditorsService
-from mainappsrc.services.analysis.analysis_utils_service import AnalysisUtilsService
-from mainappsrc.services.safety_analysis import SafetyAnalysisService
-from mainappsrc.services.data_access import DataAccessQueriesService
-from mainappsrc.services.validation import ValidationConsistencyService
-from mainappsrc.services.safety_ui import SafetyUIService
 
 
 class ServiceInitMixin:
@@ -65,7 +68,7 @@ class ServiceInitMixin:
         self.fmeda = self.safety_analysis
         self.helper = AutoML_Helper
         self.syncing_service = SyncingAndIdsService(self)
-        from mainappsrc.services.diagram import DiagramRendererService
+        from mainappsrc.services import DiagramRendererService
         self.diagram_service = DiagramRendererService(self)
         self.diagram_renderer = self.diagram_service
         self.nav_input = NavigationInputService(self)
