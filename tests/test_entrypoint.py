@@ -16,8 +16,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Tests for package-level entry points."""
 
-VERSION = "0.2.135"
+import runpy
 
-__all__ = ["VERSION"]
+
+class TestPackageEntrypoint:
+    """Ensure the package entry point delegates to AutoML.main."""
+
+    def test_run_module_invokes_main(self, monkeypatch):
+        called = {"main": False}
+
+        def fake_main():
+            called["main"] = True
+
+        monkeypatch.setattr("AutoML.main", fake_main)
+        runpy.run_module("automl.__main__", run_name="__main__")
+
+        assert called["main"] is True

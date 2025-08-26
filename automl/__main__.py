@@ -16,8 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Package entry point for running AutoML as ``python automl``."""
 
-VERSION = "0.2.135"
+from . import main
 
-__all__ = ["VERSION"]
+if __name__ == "__main__":
+    main()
