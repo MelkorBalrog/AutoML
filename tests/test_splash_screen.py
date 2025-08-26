@@ -77,8 +77,11 @@ class SplashScreenTests(unittest.TestCase):
         self.assertIn((255, 140, 0), colors)
         self.assertIn((0, 0, 0), colors)
 
-    def test_title_size_is_doubled_twice(self):
-        self.assertEqual(self.splash._title_size, 48)
+    def test_title_font_matches_subtitle(self):
+        self.assertEqual(self.splash._title_font_name, self.splash._sub_font_name)
+
+    def test_title_size_is_double(self):
+        self.assertEqual(self.splash._title_size, 24)
 
     def test_background_gradient(self):
         bg_items = self.splash.canvas.find_withtag("void_bg")
@@ -103,6 +106,7 @@ class SplashScreenTests(unittest.TestCase):
             self.splash._fade_out()
         self.assertAlmostEqual(float(self.splash.attributes("-alpha")), 0.0)
         self.assertTrue(self._closed)
+
 
 if __name__ == "__main__":
     unittest.main()
