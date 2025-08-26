@@ -55,7 +55,8 @@ from .versioning_review import Versioning_Review
 from .data_access_queries import DataAccess_Queries
 from .validation_consistency import Validation_Consistency
 from .reporting_export import Reporting_Export
-from .editors import Editors
+from mainappsrc.services.editing.editors_service import EditorsService
+from mainappsrc.services.analysis.analysis_utils_service import AnalysisUtilsService
 
 
 class ServiceInitMixin:
@@ -124,4 +125,6 @@ class ServiceInitMixin:
         self.data_access_queries = DataAccess_Queries(self)
         self.validation_consistency = Validation_Consistency(self)
         self.reporting_export = Reporting_Export(self)
-        self.editors = Editors(self)
+        self.editors_service = EditorsService(self)
+        self.analysis_utils_service = AnalysisUtilsService(self)
+        self.probability_reliability = self.analysis_utils_service.probability_reliability

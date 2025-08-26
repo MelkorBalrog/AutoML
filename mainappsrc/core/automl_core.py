@@ -59,7 +59,6 @@ from dataclasses import asdict
 from pathlib import Path
 from .event_handlers import EventHandlersMixin
 from .persistence_wrappers import PersistenceWrappersMixin
-from .analysis_utils import AnalysisUtilsMixin
 from .service_init_mixin import ServiceInitMixin
 from .page_diagram import PageDiagram
 from .node_utils import resolve_original as resolve_node_original
@@ -239,10 +238,8 @@ from analysis.utils import (
 from analysis.safety_management import SafetyManagementToolbox, ACTIVE_TOOLBOX
 from analysis.causal_bayesian_network import CausalBayesianNetwork, CausalBayesianNetworkDoc
 try:  # pragma: no cover - support direct module import
-    from .probability_reliability import Probability_Reliability
     from .version import VERSION
 except Exception:  # pragma: no cover
-    from mainappsrc.core.probability_reliability import Probability_Reliability
     from mainappsrc.version import VERSION
 try:  # pragma: no cover
     from .models.fta.fault_tree_node import FaultTreeNode, add_failure_mode as ft_add_failure_mode, refresh_tree as fault_tree_refresh, add_node_of_type as _add_node_of_type
@@ -294,7 +291,6 @@ class AutoMLApp(
     SafetyUIMixin,
     EventHandlersMixin,
     PersistenceWrappersMixin,
-    AnalysisUtilsMixin,
 ):
     """Main application window for AutoML Analyzer."""
 
@@ -346,6 +342,28 @@ class AutoMLApp(
     # corresponding menu items.
     for _wp in REQUIREMENT_WORK_PRODUCTS:
         WORK_PRODUCT_PARENTS.setdefault(_wp, "Requirements")
+
+    def classify_scenarios(self):
+        """Delegate scenario classification to analysis service."""
+        service = getattr(self, "analysis_utils_service", None)
+        if service is None:  # pragma: no cover - fallback for tests
+            from mainappsrc.services.analysis.analysis_utils_service import (
+                AnalysisUtilsService,
+            )
+
+            service = AnalysisUtilsService(self)
+        return service.classify_scenarios()
+
+    def load_default_mechanisms(self):
+        """Delegate default mechanism loading to analysis service."""
+        service = getattr(self, "analysis_utils_service", None)
+        if service is None:  # pragma: no cover - fallback for tests
+            from mainappsrc.services.analysis.analysis_utils_service import (
+                AnalysisUtilsService,
+            )
+
+            service = AnalysisUtilsService(self)
+        return service.load_default_mechanisms()
 
     @property
     def window_controllers(self) -> WindowControllers:
@@ -1994,19 +2012,19 @@ class AutoMLApp(
         return self.probability_reliability.calculate_pmfh()
 
     def show_requirements_matrix(self):
-        return self.editors.show_requirements_matrix()
+        return self.editors_service.show_requirements_matrix()
 
     def show_item_definition_editor(self):
-        return self.editors.show_item_definition_editor()
+        return self.editors_service.show_item_definition_editor()
 
     def show_safety_concept_editor(self):
-        return self.editors.show_safety_concept_editor()
+        return self.editors_service.show_safety_concept_editor()
 
     def show_requirements_editor(self):
-        return self.editors.show_requirements_editor()
+        return self.editors_service.show_requirements_editor()
 
     def _show_fmea_table_impl(self, fmea=None, fmeda=False):
-        return self.editors._show_fmea_table_impl(fmea, fmeda)
+        return self.editors_service._show_fmea_table_impl(fmea, fmeda)
 
     def export_fmea_to_csv(self, fmea, path):
         return self.safety_analysis.export_fmea_to_csv(fmea, path)
