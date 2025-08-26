@@ -359,6 +359,19 @@ class ClosableNotebook(ttk.Notebook):
             moved = False
 
         if not moved:
+            # Try standard geometry-manager reparenting, which is available on
+            # all Tk builds, before falling back to platform specific commands.
+            try:
+                child.pack_forget()
+                child.pack(in_=target)
+                child.pack_forget()
+                target.add(child, text=text)
+                target.select(child)
+                moved = True
+            except tk.TclError:
+                moved = False
+
+        if not moved:
             toplevel = target.winfo_toplevel()
             for cmd in (
                 ("::tk::unsupported::reparent", child.winfo_id(), target.winfo_id()),
