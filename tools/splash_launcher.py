@@ -27,10 +27,12 @@ import tkinter as tk
 from types import ModuleType
 from typing import Callable, Optional
 
-if __package__ and __package__.startswith("AutoML"):
-    from AutoML.config.automl_constants import AUTHOR, AUTHOR_EMAIL, AUTHOR_LINKEDIN
-else:  # pragma: no cover - running as script
+try:
     from config.automl_constants import AUTHOR, AUTHOR_EMAIL, AUTHOR_LINKEDIN
+except ModuleNotFoundError:  # pragma: no cover - fallback for bundled executables
+    AUTHOR = "Miguel Marina"
+    AUTHOR_EMAIL = "karel.capek.robotics@gmail.com"
+    AUTHOR_LINKEDIN = "https://www.linkedin.com/in/progman32/"
 from gui.windows.splash_screen import SplashScreen
 from mainappsrc.version import VERSION
 
