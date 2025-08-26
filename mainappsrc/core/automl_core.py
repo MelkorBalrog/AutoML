@@ -153,6 +153,8 @@ from io import BytesIO, StringIO
 from email.utils import make_msgid
 import html
 import datetime
+import importlib
+import pkgutil
 try:
     import PIL.Image as PILImage
 except ModuleNotFoundError:
@@ -200,7 +202,6 @@ from gui.toolboxes import (
     DiagramElementDialog,
     _RequirementRelationDialog,
 )
-
 
 def _reload_local_config() -> None:
     config_service.reload_local_config()
@@ -353,6 +354,7 @@ class AutoMLApp(
     def __init__(self, root):
         AutoMLApp._instance = self
         self.root = root
+        self.services = SERVICE_MODULES
         self.ui_service = UISetupService(self, root)
         self.ui_service.initialize(root)
         self.lifecycle_ui = self.ui_service.lifecycle_ui

@@ -19,10 +19,7 @@
 
 from __future__ import annotations
 
-from mainappsrc.automl_core import AutoMLApp
-from mainappsrc import services
-
-user_config_service = services.user_config_service
+from mainappsrc.automl_core import AutoMLApp, user_config_service, load_services
 
 
 class TestAnalysisServices:
@@ -59,9 +56,9 @@ class TestUserConfigService:
         assert user_config_service.current_user_name == name
         assert user_config_service.current_user_email == email
 
-class TestServiceRegistry:
-    def test_all_service_classes_resolvable(self):
-        """Every service listed in the registry is accessible."""
 
-        for name in services.SERVICE_CLASSES:
-            assert hasattr(services, name)
+class TestServiceLoader:
+    def test_load_services_discovers_config(self):
+        modules = load_services()
+        assert "mainappsrc.services.config.config_service" in modules
+        assert "mainappsrc.services.config.user_config_service" in modules
