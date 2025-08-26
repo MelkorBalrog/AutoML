@@ -1,4 +1,4 @@
-version: 0.2.88
+version: 0.2.91
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,8 +1644,11 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.88 - Inject default configuration module when missing so standalone executables launch without bundled config.
-- 0.2.87 - Gracefully handle missing configuration in splash launcher to fix standalone executable start-up.
+- 0.2.91 - Emit light green glow from white horizon into void.
+- 0.2.90 - Add light green and white gradient shading to the void.
+- 0.2.89 - Render splash screen as a black void with a white horizon.
+- 0.2.88 - Add translucent night sky gradient to splash screen.
+- 0.2.87 - Use absolute imports for config constants to support bundled executables.
 - 0.2.86 - Explicitly include tools package in PyInstaller builds to prevent runtime import errors.
 - 0.2.85 - Ensure PyInstaller bundles the tools package by collecting all modules.
 - 0.2.84 - Bundle tools package in executable to fix missing module at runtime.
