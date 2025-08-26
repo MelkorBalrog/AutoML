@@ -32,7 +32,7 @@ sys.modules.setdefault("PIL.ImageTk", types.ModuleType("PIL.ImageTk"))
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from AutoML import FaultTreeNode  # type: ignore
+from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 from mainappsrc.core.node_clone_service import NodeCloneService
 from mainappsrc.models.gsn.nodes import GSNNode
 
