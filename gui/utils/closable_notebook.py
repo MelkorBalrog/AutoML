@@ -27,6 +27,8 @@ notebook re-attaches it to that notebook.
 """
 
 
+import inspect
+import typing as t
 import tkinter as tk
 from tkinter import ttk
 
@@ -122,6 +124,7 @@ class ClosableNotebook(ttk.Notebook):
         self._drag_root: tk.Misc | None = None
         self._drag_root_motion: str | None = None
         self._drag_root_release: str | None = None
+        self._floating_windows: list[tk.Toplevel] = []
 
         self.bind("<ButtonPress-1>", self._on_press, True)
         self.bind("<B1-Motion>", self._on_motion)
@@ -334,77 +337,80 @@ class ClosableNotebook(ttk.Notebook):
         self._reset_drag()
 
     def _move_tab(self, tab_id: str, target: "ClosableNotebook") -> bool:
+        """Move *tab_id* to *target* notebook using Tk's native commands."""
+
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
         self.forget(tab_id)
-        # Reparent the tab's child widget to the target notebook before adding.
-        # ``tk::unsupported::reparent`` is available on most Tk builds but the
-        # exact command name differs across platforms.  Try the known variants
-        # and ignore any errors so that platforms without the command still
-        # proceed.  Some Windows builds expose the command as
-        # ``ReparentWindow`` instead.  ``tk::unsupported::reparent`` expects
-        # platform specific arguments, sometimes window path names and other
-        # times the identifier returned by ``winfo_id``.  Try every combination
-        # and silently continue if the command is unavailable.
-        reparented = False
-        toplevel = target.winfo_toplevel()
-        # Some Tk builds require the new parent to be the containing toplevel
-        # instead of the widget itself.  Try both the notebook and its
-        # toplevel using window path names and numeric identifiers.
-        for cmd in (
-            ("::tk::unsupported::reparent", child.winfo_id(), target.winfo_id()),
-            ("::tk::unsupported::reparent", child._w, target._w),
-            ("::tk::unsupported::reparent", child.winfo_id(), toplevel.winfo_id()),
-            ("::tk::unsupported::reparent", child._w, toplevel._w),
-            ("tk", "unsupported", "reparent", child.winfo_id(), target.winfo_id()),
-            ("tk", "unsupported", "reparent", child._w, target._w),
-            ("tk", "unsupported", "reparent", child.winfo_id(), toplevel.winfo_id()),
-            ("tk", "unsupported", "reparent", child._w, toplevel._w),
-            ("::tk::unsupported::ReparentWindow", child.winfo_id(), target.winfo_id()),
-            ("::tk::unsupported::ReparentWindow", child._w, target._w),
-            ("::tk::unsupported::ReparentWindow", child.winfo_id(), toplevel.winfo_id()),
-            ("::tk::unsupported::ReparentWindow", child._w, toplevel._w),
-            ("tk", "unsupported", "ReparentWindow", child.winfo_id(), target.winfo_id()),
-            ("tk", "unsupported", "ReparentWindow", child._w, target._w),
-            ("tk", "unsupported", "ReparentWindow", child.winfo_id(), toplevel.winfo_id()),
-            ("tk", "unsupported", "ReparentWindow", child._w, toplevel._w),
-        ):
-            try:
-                child.tk.call(*cmd)
-                reparented = True
-                break
-            except tk.TclError:
-                continue
-        if reparented:
-            child.master = target  # keep Python's widget hierarchy in sync
+        try:
             target.add(child, text=text)
             target.select(child)
-        else:
-            # If reparenting is unsupported we simply abort the move.
-            # Re-insert the tab into its original notebook so the widget
-            # remains accessible instead of raising a TclError.
+            moved = True
+        except tk.TclError:
             self.add(child, text=text)
             self.select(child)
-            return False
+            moved = False
         if isinstance(self.master, tk.Toplevel) and not self.tabs():
             self.master.destroy()
-        return True
+        return moved
+
+    def _clone_widget(self, widget: tk.Widget, parent: tk.Widget) -> tk.Widget:
+        """Recursively clone *widget* into *parent*.
+
+        Only standard configuration options are copied.  Widgets without
+        compatible options are skipped to keep the cloning logic minimal.
+        """
+
+        cls = widget.__class__
+        kwargs: dict[str, t.Any] = {}
+        try:
+            sig = inspect.signature(cls.__init__)
+            for name, param in list(sig.parameters.items())[1:]:
+                if param.default is inspect._empty and name in widget.keys():
+                    try:
+                        kwargs[name] = widget.cget(name)
+                    except tk.TclError:
+                        continue
+        except Exception:
+            pass
+        clone = cls(parent, **kwargs)
+        try:
+            for opt in widget.configure():
+                try:
+                    clone.configure({opt: widget.cget(opt)})
+                except tk.TclError:
+                    continue
+        except Exception:
+            pass
+        for child in widget.winfo_children():
+            self._clone_widget(child, clone)
+        return clone
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
+        text = self.tab(tab_id, "text")
         win = tk.Toplevel(self)
         win.geometry(f"{width}x{height}+{x}+{y}")
+        self._floating_windows.append(win)
+        win.bind(
+            "<Destroy>",
+            lambda _e, w=win: self._floating_windows.remove(w)
+            if w in self._floating_windows
+            else None,
+        )
         nb = ClosableNotebook(win)
         nb.pack(expand=True, fill="both")
-        # ``tk::unsupported::reparent`` requires the target widget to be
-        # realised.  Make sure the toplevel and its notebook both exist before
-        # attempting to move the tab so that reparenting commands have a valid
-        # window to target.
-        win.update_idletasks()
         if not self._move_tab(tab_id, nb):
-            win.destroy()
+            orig = self.nametowidget(tab_id)
+            clone = self._clone_widget(orig, nb)
+            self.forget(tab_id)
+            orig.destroy()
+            nb.add(clone, text=text)
+            nb.select(clone)
+        else:
+            nb.select(nb.tabs()[-1])
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
