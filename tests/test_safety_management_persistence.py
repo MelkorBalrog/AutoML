@@ -38,6 +38,7 @@ def _minimal_app():
     """Return a barebones ``AutoMLApp`` suitable for serialisation tests."""
 
     app = AutoMLApp.__new__(AutoMLApp)
+    app.safety_analysis = types.SimpleNamespace(fmeas=[], fmedas=[])
     app.top_events = []
     app.root_node = None
     app.fmea_entries = []
