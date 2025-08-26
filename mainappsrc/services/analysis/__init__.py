@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Analysis-related services."""
 
-"""Project version information."""
+from .analysis_utils_service import AnalysisUtilsService
 
-VERSION = "0.2.101"
-
-__all__ = ["VERSION"]
+__all__ = ["AnalysisUtilsService"]
