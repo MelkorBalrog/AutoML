@@ -18,6 +18,35 @@
 
 import tkinter as tk
 import math
+import random
+from dataclasses import dataclass
+
+
+@dataclass
+class StarField:
+    """Render a simple star field on a Tkinter canvas."""
+
+    canvas: tk.Canvas
+    width: int
+    height: int
+    star_count: int = 50
+
+    def draw(self) -> None:
+        """Draw randomly positioned stars across the sky region."""
+        sky_limit = int(self.height * 0.55)
+        for _ in range(self.star_count):
+            x = random.randint(0, self.width)
+            y = random.randint(0, sky_limit)
+            size = random.choice((1, 2))
+            self.canvas.create_oval(
+                x,
+                y,
+                x + size,
+                y + size,
+                fill="white",
+                outline="",
+                tags="star",
+            )
 
 
 class SplashScreen(tk.Toplevel):
@@ -67,6 +96,7 @@ class SplashScreen(tk.Toplevel):
         )
         self.canvas.pack()
         self._draw_gradient()
+        self._draw_stars()
         self._draw_floor()
         self._center()
         # Initialize cube geometry
@@ -188,6 +218,10 @@ class SplashScreen(tk.Toplevel):
             b = int(left_col[2] + (right_col[2] - left_col[2]) * local)
             color = f"#{r:02x}{g:02x}{b:02x}"
             self.canvas.create_line(0, i, self.canvas_size, i, fill=color)
+
+    def _draw_stars(self) -> None:
+        """Scatter small white stars across the upper sky."""
+        StarField(self.canvas, self.canvas_size, self.canvas_size).draw()
     def _draw_cloud(self):
         """Draw a small turquoise-magenta-white cloud on the sky."""
         cx, cy = 80, 80

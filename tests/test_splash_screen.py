@@ -58,6 +58,10 @@ class SplashScreenTests(unittest.TestCase):
         for t in text_items:
             self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "white")
 
+    def test_star_field_present(self):
+        star_items = self.splash.canvas.find_withtag("star")
+        self.assertGreater(len(star_items), 0)
+
     def test_close_fades_to_invisible(self):
         if not getattr(self.splash, "_alpha_supported", False):
             self.skipTest("alpha not supported")
