@@ -1,4 +1,4 @@
-version: 0.2.82
+version: 0.2.85
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1555,7 +1555,7 @@ If sending fails with a connection error, the dialog will prompt again so you ca
 
 AutoML relies on a few third‑party Python packages. The new
 `automl.py` script checks for these dependencies and installs any that are
-missing before handing off execution to `mainappsrc/automl_core.py`. The required packages
+missing before handing off execution to `mainappsrc/core/automl_core.py`. The required packages
 are:
 
 ```
@@ -1578,7 +1578,7 @@ dependencies with `python -m pip show` so the correct interpreter is used and
 pass `--hidden-import=PIL.ImageTk` to PyInstaller to ensure the module is
 bundled correctly.
 
-If double‑clicking `mainappsrc/automl_core.py` closes immediately, launch it from a command
+If double‑clicking `mainappsrc/core/automl_core.py` closes immediately, launch it from a command
 prompt instead so any error messages remain visible. Running `automl.py`
 performs the dependency installation automatically:
 
@@ -1644,6 +1644,9 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.85 - Ensure PyInstaller bundles the tools package by collecting all modules.
+- 0.2.84 - Bundle tools package in executable to fix missing module at runtime.
+- 0.2.83 - Fix PyInstaller data path for core module and update documentation.
 - 0.2.82 - Preserve governance folder structure when saving and loading projects.
 - 0.2.81 - Show GSN diagrams as inputs when governance conditions are met and provide compatibility wrapper for ``page_diagram``.
 - 0.2.80 - Enforce active-phase governance relations for safety case inputs.
