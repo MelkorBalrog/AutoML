@@ -57,13 +57,27 @@ class SplashScreenTests(unittest.TestCase):
         self.assertEqual(len(shadow_items), 2)
         self.assertEqual(len(text_items), 2)
         for t in text_items:
-            self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "black")
+            self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "white")
         for s in shadow_items:
-            self.assertEqual(self.splash.canvas.itemcget(s, "fill"), "white")
+            self.assertEqual(self.splash.canvas.itemcget(s, "fill"), "black")
 
-    def test_star_field_present(self):
-        star_items = self.splash.canvas.find_withtag("star")
-        self.assertGreater(len(star_items), 0)
+    def test_horizon_line(self):
+        horizon_items = self.splash.canvas.find_withtag("horizon")
+        self.assertEqual(len(horizon_items), 1)
+        self.assertEqual(
+            self.splash.canvas.itemcget(horizon_items[0], "fill"), "white"
+        )
+
+    def test_void_gradient(self):
+        bg_items = self.splash.canvas.find_withtag("void_bg")
+        self.assertGreater(len(bg_items), 0)
+        gradient_height = int(self.splash.canvas_size * 0.1)
+        top_color = self.splash.canvas.itemcget(bg_items[0], "fill")
+        mid_color = self.splash.canvas.itemcget(bg_items[gradient_height - 1], "fill")
+        bottom_color = self.splash.canvas.itemcget(bg_items[-1], "fill")
+        self.assertEqual(top_color, "#1e1e1e")
+        self.assertEqual(mid_color, "#90ee90")
+        self.assertEqual(bottom_color, "#1e1e1e")
 
     def test_close_fades_to_invisible(self):
         if not getattr(self.splash, "_alpha_supported", False):
@@ -77,16 +91,31 @@ class SplashScreenTests(unittest.TestCase):
         self.assertAlmostEqual(float(self.splash.attributes("-alpha")), 0.0)
         self.assertTrue(self._closed)
 
-    def test_night_sky_gradient(self):
-        top_item = min(self.splash.canvas.find_overlapping(0, 0, self.splash.canvas_size, 0))
-        top_color = self.splash.canvas.itemcget(top_item, "fill").lower()
-        mid_y = int(self.splash.canvas_size * 0.3)
-        mid_item = min(
-            self.splash.canvas.find_overlapping(0, mid_y, self.splash.canvas_size, mid_y)
+    def test_void_background(self):
+        top_item = min(
+            self.splash.canvas.find_overlapping(0, 0, self.splash.canvas_size, 0)
         )
-        mid_color = self.splash.canvas.itemcget(mid_item, "fill").lower()
-        self.assertEqual(top_color, "#451571")
-        self.assertEqual(mid_color, "#ff00ff")
+        top_color = self.splash.canvas.itemcget(top_item, "fill").lower()
+        horizon_y = int(self.splash.canvas_size * 0.55)
+        horizon_item = min(
+            self.splash.canvas.find_overlapping(
+                0, horizon_y, self.splash.canvas_size, horizon_y
+            )
+        )
+        horizon_color = self.splash.canvas.itemcget(horizon_item, "fill").lower()
+        self.assertEqual(top_color, "#9b59b6")
+        self.assertEqual(horizon_color, "white")
+
+    def test_top_gradient(self):
+        items = self.splash.canvas.find_withtag("top_gradient")
+        self.assertGreater(len(items), 0)
+        half = len(items) // 2
+        top_color = self.splash.canvas.itemcget(items[0], "fill")
+        mid_color = self.splash.canvas.itemcget(items[half - 1], "fill")
+        bottom_color = self.splash.canvas.itemcget(items[-1], "fill")
+        self.assertEqual(top_color, "#9b59b6")
+        self.assertEqual(mid_color, "#569cd6")
+        self.assertEqual(bottom_color, "#1e1e1e")
 
 
 if __name__ == "__main__":
