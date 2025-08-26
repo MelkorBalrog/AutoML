@@ -1,5 +1,6 @@
 # Version History
 
+- 0.2.113 - Wrap reporting helpers in service and delegate PDF/HTML generation.
 - 0.2.112 - Wrap validation consistency helpers in dedicated service and refactor core initialization.
 - 0.2.111 - Wrap data access queries in service and update core.
 - 0.2.110 - Add radial green highlight to gear on splash screen.

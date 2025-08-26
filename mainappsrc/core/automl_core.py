@@ -79,7 +79,7 @@ from mainappsrc.core.top_event_workflows import Top_Event_Workflows
 from mainappsrc.managers.review_manager import ReviewManager
 from mainappsrc.managers.drawing_manager import DrawingManager
 from .versioning_review import Versioning_Review
-from .reporting_export import Reporting_Export
+from mainappsrc.services.reporting import ReportingExportService
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
     from mainappsrc.services.validation import ValidationConsistencyService

@@ -20,8 +20,8 @@ import ast
 from pathlib import Path
 
 
-def test_automl_core_initialises_reporting_export():
-    code = Path("mainappsrc/core/automl_core.py").read_text()
+def test_service_init_mixin_initialises_reporting_service():
+    code = Path("mainappsrc/core/service_init_mixin.py").read_text()
     tree = ast.parse(code)
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
@@ -34,10 +34,10 @@ def test_automl_core_initialises_reporting_export():
             ):
                 if (
                     isinstance(node.value, ast.Call)
-                    and getattr(node.value.func, "id", None) == "Reporting_Export"
+                    and getattr(node.value.func, "id", None) == "ReportingExportService"
                 ):
                     break
     else:
         raise AssertionError(
-            "AutoMLApp.__init__ does not assign Reporting_Export to self.reporting_export"
+            "ServiceInitMixin.setup_services does not assign ReportingExportService to self.reporting_export"
         )
