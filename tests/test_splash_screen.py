@@ -49,14 +49,17 @@ class SplashScreenTests(unittest.TestCase):
         gear_items = self.splash.canvas.find_withtag("gear")
         self.assertEqual(len(gear_items), 1)
 
-    def test_title_background(self):
+    def test_title_shadow(self):
         bg_items = self.splash.canvas.find_withtag("title_bg")
+        shadow_items = self.splash.canvas.find_withtag("title_shadow")
         text_items = self.splash.canvas.find_withtag("title_text")
-        self.assertEqual(len(bg_items), 1)
+        self.assertEqual(len(bg_items), 0)
+        self.assertEqual(len(shadow_items), 2)
         self.assertEqual(len(text_items), 2)
-        self.assertEqual(self.splash.canvas.itemcget(bg_items[0], "fill"), "black")
         for t in text_items:
-            self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "white")
+            self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "black")
+        for s in shadow_items:
+            self.assertEqual(self.splash.canvas.itemcget(s, "fill"), "white")
 
     def test_star_field_present(self):
         star_items = self.splash.canvas.find_withtag("star")
