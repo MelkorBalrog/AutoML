@@ -194,36 +194,16 @@ class SplashScreen(tk.Toplevel):
         self.shadow.lower(self)
 
     def _draw_gradient(self):
-        """Fill the void with vertical gradients of light green and white."""
-        horizon = int(self.canvas_size * 0.55)
-        # Top gradient: light green to black
-        for y in range(horizon):
-            ratio = 1 - (y / max(1, horizon))
-            r = int(144 * ratio)
-            g = int(238 * ratio)
-            b = int(144 * ratio)
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(
-                0,
-                y,
-                self.canvas_size,
-                y,
-                fill=color,
-                tags="void_bg",
-            )
-        # Bottom gradient: white to black
-        for y in range(horizon, self.canvas_size):
-            ratio = (y - horizon) / max(1, self.canvas_size - horizon)
-            v = int(255 * (1 - ratio))
-            color = f"#{v:02x}{v:02x}{v:02x}"
-            self.canvas.create_line(
-                0,
-                y,
-                self.canvas_size,
-                y,
-                fill=color,
-                tags="void_bg",
-            )
+        """Fill the background with pure black for a void effect."""
+        self.canvas.create_rectangle(
+            0,
+            0,
+            self.canvas_size,
+            self.canvas_size,
+            fill="black",
+            outline="",
+            tags="void_bg",
+        )
 
     def _draw_stars(self) -> None:
         """No stars in the void."""
