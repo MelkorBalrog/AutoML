@@ -15,9 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Compatibility wrapper exposing the AutoML package as a module."""
 
-"""Project version information."""
-
-VERSION = "0.2.115"
-
-__all__ = ["VERSION"]
+from AutoML import *  # noqa: F401,F403
