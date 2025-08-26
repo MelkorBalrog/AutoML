@@ -16,7 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from mainappsrc.automl_core import PageDiagram
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from mainappsrc.services.diagram import DiagramRendererService
+import mainappsrc.core.page_diagram as page_module
 
 class DummyApp:
     def __init__(self):
@@ -67,14 +73,13 @@ class DummyFont:
 
 
 def test_page_diagram_uses_own_mode(monkeypatch):
-    from mainappsrc import AutoML as auto_module
-
-    monkeypatch.setattr(auto_module.tkFont, "Font", lambda *a, **k: DummyFont())
-    monkeypatch.setattr(auto_module, "fta_drawing_helper", StubDrawingHelper())
+    monkeypatch.setattr(page_module.tkFont, "Font", lambda *a, **k: DummyFont())
+    monkeypatch.setattr(page_module, "fta_drawing_helper", StubDrawingHelper())
 
     app = DummyApp()
     canvas = DummyCanvas()
-    pd = PageDiagram(app, DummyNode(), canvas)
+    svc = DiagramRendererService(app)
+    pd = svc.create_page_diagram(DummyNode(), canvas)
     pd.draw_node(DummyNode())
 
     assert app.modes == ["CTA"]
