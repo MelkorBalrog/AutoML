@@ -1401,6 +1401,14 @@ class Reporting_Export:
             ],
             "gsn_modules": [m.to_dict() for m in app.gsn_modules],
             "gsn_diagrams": [d.to_dict() for d in app.gsn_diagrams],
+            "safety_mgmt_toolbox": (
+                app.safety_mgmt_toolbox.to_dict()
+                if getattr(app, "safety_mgmt_toolbox", None)
+                else {}
+            ),
+            "enabled_work_products": list(
+                getattr(app, "enabled_work_products", [])
+            ),
         }
         return data
 
