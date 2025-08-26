@@ -16,15 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import ast
-from pathlib import Path
+"""Compatibility wrapper exposing the AutoML launcher as a module."""
 
-
-def test_ui_setup_mixin_defines_setup_style():
-    tree = ast.parse(Path("mainappsrc/ui/ui_setup.py").read_text())
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name == "UISetupMixin":
-            if any(isinstance(n, ast.FunctionDef) and n.name == "setup_style" for n in node.body):
-                return
-            break
-    raise AssertionError("UISetupMixin.setup_style is not defined")
+from AutoML import *  # noqa: F401,F403

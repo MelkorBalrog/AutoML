@@ -20,10 +20,10 @@
 
 from __future__ import annotations
 
-from ...core.ui_setup import UISetupMixin
+from ...ui.ui_setup import UISetupMixin
 from ...core.style_setup_mixin import StyleSetupMixin
 from ...core.icon_setup_mixin import IconSetupMixin
-from ...core.app_lifecycle_ui import AppLifecycleUI
+from ...ui.app_lifecycle_ui import AppLifecycleUI
 
 
 class UISetupService(UISetupMixin, StyleSetupMixin, IconSetupMixin):

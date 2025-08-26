@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from mainappsrc.core.ui_setup import UISetupMixin
+from mainappsrc.ui.ui_setup import UISetupMixin
 
 
 def test_enable_paa_actions_includes_gate():

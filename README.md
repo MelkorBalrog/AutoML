@@ -1,4 +1,4 @@
-version: 0.2.100
+version: 0.2.102
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,8 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.102 - Add compatibility mappings for UI modules migrated from core.
+- 0.2.101 - Move UI helpers to dedicated ui package.
 - 0.2.100 - Use subtitle font for AutoML splash title and size it at double the subtitle.
 - 0.2.99 - Double AutoML splash title size for improved visibility.
 - 0.2.98 - Render large orange AutoML title with black border.
