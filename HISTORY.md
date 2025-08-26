@@ -1,4 +1,5 @@
 # Version History
+- 0.2.140 - Apply original geometry when cloning tabs so detached windows retain full content layout.
 - 0.2.139 - Preserve widget state when detaching tabs so floating windows
             contain full content.
 - 0.2.138 - Reduce tab-detachment cyclomatic complexity and ignore master when cloning widgets.
