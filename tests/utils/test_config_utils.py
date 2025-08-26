@@ -16,8 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Tests for :mod:`gui.utils.config_utils`."""
 
-VERSION = "0.2.138"
+from __future__ import annotations
 
-__all__ = ["VERSION"]
+import importlib
+
+config_utils = importlib.import_module("gui.utils.config_utils")
+
+
+class TestConfigUtils:
+    """Group config-utils related tests."""
+
+    def test_regenerate_requirement_patterns_delegates(self, monkeypatch):
+        called = {"val": False}
+
+        def fake() -> None:
+            called["val"] = True
+
+        monkeypatch.setattr(config_utils, "_regen_patterns", fake)
+        config_utils.regenerate_requirement_patterns()
+        assert called["val"]
