@@ -42,10 +42,11 @@ else:
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-# Provide default configuration when the external package is absent
+# Provide default configuration when the external package is absent or incompatible
 try:  # pragma: no cover - executed in frozen builds
-    from config import automl_constants as _automl_constants
-except ModuleNotFoundError:
+    _prefix = "AutoML." if __package__ and __package__.startswith("AutoML") else ""
+    _automl_constants = importlib.import_module(f"{_prefix}config.automl_constants")
+except ImportError:
     _automl_constants = types.SimpleNamespace(
         AUTHOR="Miguel Marina",
         AUTHOR_EMAIL="karel.capek.robotics@gmail.com",
@@ -56,7 +57,7 @@ except ModuleNotFoundError:
     )
     _config_module = types.ModuleType("config")
     _config_module.automl_constants = _automl_constants
-    sys.modules["config"] = _config_module
+    sys.modules.setdefault("config", _config_module)
     sys.modules["config.automl_constants"] = _automl_constants
 else:
     sys.modules.setdefault("config", types.ModuleType("config"))
