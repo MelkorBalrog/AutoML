@@ -366,11 +366,19 @@ class ClosableNotebook(ttk.Notebook):
         try:
             sig = inspect.signature(cls.__init__)
             for name, param in list(sig.parameters.items())[1:]:
-                if param.default is inspect._empty and name in widget.keys():
-                    try:
-                        kwargs[name] = widget.cget(name)
-                    except tk.TclError:
-                        continue
+                if param.default is inspect._empty:
+                    value: t.Any | None = None
+                    if name in widget.keys():
+                        try:
+                            value = widget.cget(name)
+                        except tk.TclError:
+                            value = None
+                    elif hasattr(widget, name):
+                        value = getattr(widget, name)
+                    elif hasattr(widget, f"_{name}"):
+                        value = getattr(widget, f"_{name}")
+                    if value is not None:
+                        kwargs[name] = value
         except Exception:
             pass
         clone = cls(parent, **kwargs)
@@ -402,15 +410,19 @@ class ClosableNotebook(ttk.Notebook):
         )
         nb = ClosableNotebook(win)
         nb.pack(expand=True, fill="both")
-        if not self._move_tab(tab_id, nb):
-            orig = self.nametowidget(tab_id)
-            clone = self._clone_widget(orig, nb)
-            self.forget(tab_id)
-            orig.destroy()
-            nb.add(clone, text=text)
-            nb.select(clone)
-        else:
-            nb.select(nb.tabs()[-1])
+        try:
+            if not self._move_tab(tab_id, nb):
+                orig = self.nametowidget(tab_id)
+                clone = self._clone_widget(orig, nb)
+                self.forget(tab_id)
+                orig.destroy()
+                nb.add(clone, text=text)
+                nb.select(clone)
+            else:
+                nb.select(nb.tabs()[-1])
+        except Exception:
+            win.destroy()
+            raise
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
