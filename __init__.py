@@ -20,7 +20,8 @@
 import tkinter as tk
 from tkinter import ttk, simpledialog, filedialog, scrolledtext
 
-from .mainappsrc.automl_core import (
+# Import application core from the dedicated core package
+from .mainappsrc.core.automl_core import (
     AutoMLApp,
     FaultTreeNode,
     AutoML_Helper,

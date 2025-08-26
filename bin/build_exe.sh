@@ -62,9 +62,11 @@ pyinstaller --noconfirm --onefile --windowed \
     --hidden-import=tkinter.simpledialog \
     --hidden-import=tkinter.scrolledtext \
     --hidden-import=tkinter.ttk \
+    --hidden-import=tools \
+    --add-data "tools:tools" \
     --add-data "config/styles:config/styles" \
-    --add-data "mainappsrc/automl_core.py:mainappsrc" \
-    --icon bin/AutoML.ico automl.py
+    --add-data "mainappsrc/core/automl_core.py:mainappsrc/core" \
+    --icon bin/AutoML.ico AutoML.py
 
 # Move the resulting executable to the bin directory
 mkdir -p bin
