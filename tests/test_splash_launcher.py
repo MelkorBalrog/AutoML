@@ -21,11 +21,14 @@ import importlib
 from tools.splash_launcher import SplashLauncher
 
 
-def test_launcher_invokes_main(monkeypatch):
-    dummy = importlib.import_module("tests.dummy_module")
-    dummy.called["main"] = False
+class TestSplashLauncher:
+    """Group SplashLauncher tests."""
 
-    launcher = SplashLauncher(module_name="tests.dummy_module")
-    launcher.launch()
+    def test_launcher_invokes_main(self, monkeypatch):
+        dummy = importlib.import_module("tests.dummy_module")
+        dummy.called["main"] = False
 
-    assert dummy.called["main"] is True
+        launcher = SplashLauncher(module_name="tests.dummy_module")
+        launcher.launch()
+
+        assert dummy.called["main"] is True
