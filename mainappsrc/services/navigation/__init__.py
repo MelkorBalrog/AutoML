@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Navigation related services."""
 
-"""Project version information."""
+from .navigation_input_service import NavigationInputService
 
-VERSION = "0.2.103"
-
-__all__ = ["VERSION"]
+__all__ = ["NavigationInputService"]

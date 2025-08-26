@@ -1,4 +1,4 @@
-version: 0.2.102
+version: 0.2.103
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1722,6 +1722,7 @@ and run the build again if you hit this issue.
 - 0.2.29 - Instantiate validation consistency helper during application start-up.
 - 0.2.28 - Avoid circular import by using application helper in probability calculations.
 - 0.2.27 - Import Probability_Reliability in fallback path to avoid initialization error.
+- 0.2.103 - Introduced NavigationInputService to unify navigation and window helpers.
 - 0.2.26 - Import Syncing_And_IDs in fallback path to avoid initialization error.
 - 0.2.25 - Extract page and PAA helpers into dedicated module and delegate from core.
 - 0.2.24 - Move UI lifecycle helpers to dedicated class and delegate calls.

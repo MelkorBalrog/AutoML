@@ -26,11 +26,10 @@ from mainappsrc.subapps.project_editor_subapp import ProjectEditorSubApp
 from mainappsrc.subapps.risk_assessment_subapp import RiskAssessmentSubApp
 from mainappsrc.subapps.reliability_subapp import ReliabilitySubApp
 
-from .open_windows_features import Open_Windows_Features
 from .syncing_and_ids import Syncing_And_IDs
 from .diagram_renderer import DiagramRenderer
-from .navigation_selection_input import Navigation_Selection_Input
 from .undo_manager import UndoRedoManager
+from mainappsrc.services.navigation import NavigationInputService
 
 from mainappsrc.managers.user_manager import UserManager
 from mainappsrc.managers.project_manager import ProjectManager
@@ -70,7 +69,6 @@ class ServiceInitMixin:
         self.project_editor_app = ProjectEditorSubApp()
         self.risk_app = RiskAssessmentSubApp()
         self.reliability_app = ReliabilitySubApp()
-        self.open_windows_features = Open_Windows_Features(self)
         self.safety_analysis = SafetyAnalysisService(self)
         self.fta_app = self.safety_analysis
         self.fmea_service = self.safety_analysis
@@ -79,7 +77,7 @@ class ServiceInitMixin:
         self.helper = AutoML_Helper
         self.syncing_and_ids = Syncing_And_IDs(self)
         self.diagram_renderer = DiagramRenderer(self)
-        self.nav_input = Navigation_Selection_Input(self)
+        self.nav_input = NavigationInputService(self)
         for _name in (
             "go_back",
             "back_all_pages",

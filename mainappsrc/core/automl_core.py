@@ -1172,7 +1172,7 @@ class AutoMLApp(
         return self.lifecycle_ui.open_metrics_tab(*args, **kwargs)
 
     def open_management_window(self, *args, **kwargs):
-        return self.open_windows_features.open_management_window(*args, **kwargs)
+        return self.nav_input.open_management_window(*args, **kwargs)
 
     def _register_close(self, *args, **kwargs):
         return self.lifecycle_ui._register_close(*args, **kwargs)
@@ -1684,7 +1684,7 @@ class AutoMLApp(
 
         for idx, diag in enumerate(self.management_diagrams):
             if getattr(diag, "name", "") == name or getattr(diag, "diag_id", "") == name:
-                self.open_windows_features.open_management_window(idx)
+                self.nav_input.open_management_window(idx)
                 return
 
         for diag in getattr(self, "all_gsn_diagrams", []):
@@ -2109,7 +2109,7 @@ class AutoMLApp(
         return self.mission_profile_manager.manage_mission_profiles()
 
     def manage_mechanism_libraries(self):
-        return self.open_windows_features.manage_mechanism_libraries()
+        return self.nav_input.manage_mechanism_libraries()
 
     def manage_scenario_libraries(self):
         return self.scenario_library_manager.manage_scenario_libraries()
@@ -2118,34 +2118,34 @@ class AutoMLApp(
         return self.odd_library_manager.manage_odd_libraries()
 
     def open_reliability_window(self):
-        return self.open_windows_features.open_reliability_window()
+        return self.nav_input.open_reliability_window()
 
     def open_fmeda_window(self):
-        return self.open_windows_features.open_fmeda_window()
+        return self.nav_input.open_fmeda_window()
 
     def open_hazop_window(self):
-        return self.open_windows_features.open_hazop_window()
+        return self.nav_input.open_hazop_window()
 
     def open_risk_assessment_window(self):
-        return self.open_windows_features.open_risk_assessment_window()
+        return self.nav_input.open_risk_assessment_window()
 
     def open_stpa_window(self):
-        return self.open_windows_features.open_stpa_window()
+        return self.nav_input.open_stpa_window()
 
     def open_threat_window(self):
-        return self.open_windows_features.open_threat_window()
+        return self.nav_input.open_threat_window()
 
     def open_fi2tc_window(self):
-        return self.open_windows_features.open_fi2tc_window()
+        return self.nav_input.open_fi2tc_window()
 
     def open_tc2fi_window(self):
-        return self.open_windows_features.open_tc2fi_window()
+        return self.nav_input.open_tc2fi_window()
 
     def open_fault_prioritization_window(self):
-        return self.open_windows_features.open_fault_prioritization_window()
+        return self.nav_input.open_fault_prioritization_window()
 
     def open_safety_management_toolbox(self, show_diagrams: bool = True):
-        return self.open_windows_features.open_safety_management_toolbox(show_diagrams)
+        return self.nav_input.open_safety_management_toolbox(show_diagrams)
 
     def open_diagram_rules_toolbox(self):
         """Open editor for diagram rule configuration."""
@@ -2409,13 +2409,13 @@ class AutoMLApp(
         self.window_controllers.open_page_diagram(node, push_history)
 
     def manage_architecture(self):
-        return self.open_windows_features.manage_architecture()
+        return self.nav_input.manage_architecture()
 
     def manage_gsn(self):
         self.gsn_manager.manage_gsn()
 
     def manage_safety_management(self):
-        return self.open_windows_features.manage_safety_management()
+        return self.nav_input.manage_safety_management()
 
     def manage_safety_cases(self):
         return self.safety_case_manager.manage_safety_cases()
