@@ -16,8 +16,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Service wrapper for editor dialogs and tables."""
 
-VERSION = "0.2.100"
+from __future__ import annotations
 
-__all__ = ["VERSION"]
+from mainappsrc.core.editors import Editors
+
+
+class EditorsService:
+    """Facade exposing :class:`~mainappsrc.core.editors.Editors` as a service.
+
+    The legacy :class:`Editors` class contains a collection of UI-heavy helper
+    methods.  This service wraps an instance of that class and delegates attribute
+    access to preserve behaviour while enabling dependency injection and future
+    refactoring.
+    """
+
+    def __init__(self, app: object) -> None:
+        self._impl = Editors(app)
+
+    def __getattr__(self, name: str):
+        return getattr(self._impl, name)
+
+
+__all__ = ["EditorsService"]

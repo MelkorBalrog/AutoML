@@ -1,4 +1,4 @@
-version: 0.2.99
+version: 0.2.100
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.100 - Wrap legacy editor helpers into EditorsService and refactor core usage.
 - 0.2.99 - Introduce ViewUpdateService for centralised view refreshing.
 - 0.2.98 - Render large orange AutoML title with black border.
 - 0.2.97 - Enlarge AutoML title and apply per-letter white-to-orange gradient.

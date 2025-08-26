@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Editing-related services."""
 
-VERSION = "0.2.100"
-
-__all__ = ["VERSION"]
+__all__ = ["EditorsService"]
