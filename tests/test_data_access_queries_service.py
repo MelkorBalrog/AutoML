@@ -15,17 +15,25 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Tests for :mod:`DataAccessQueriesService`."""
 
-import ast
+from types import SimpleNamespace
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-def test_automl_core_imports_data_access_queries_service():
-    code = Path("mainappsrc/core/automl_core.py").read_text()
-    tree = ast.parse(code)
-    assert any(
-        isinstance(node, ast.ImportFrom)
-        and node.module == "mainappsrc.services.data_access"
-        and any(alias.name == "DataAccessQueriesService" for alias in node.names)
-        for node in ast.walk(tree)
-    ), "DataAccessQueriesService import missing in automl_core"
+import mainappsrc.services.data_access.data_access_queries_service as svc_module
+
+
+class DummyQueries:
+    def __init__(self, app):
+        self.app = app
+    def sample(self, value):
+        return value * 2
+
+
+def test_service_delegates_attributes(monkeypatch):
+    monkeypatch.setattr(svc_module, "DataAccess_Queries", DummyQueries)
+    service = svc_module.DataAccessQueriesService(app=SimpleNamespace())
+    assert service.sample(5) == 10
