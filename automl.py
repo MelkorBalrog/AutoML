@@ -16,25 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Tests for the :mod:`mainappsrc.services.editing.editors_service` module."""
+"""Compatibility wrapper exposing :mod:`AutoML` as ``automl``."""
 
-from __future__ import annotations
+from AutoML import *  # noqa: F401,F403
 
-from mainappsrc.services.editing.editors_service import EditorsService
-from mainappsrc.core import editors
-
-
-def test_editors_service_delegates(monkeypatch):
-    """EditorsService forwards attribute access to underlying Editors instance."""
-
-    called = {}
-
-    def dummy(self):
-        called["hit"] = True
-        return 42
-
-    monkeypatch.setattr(editors.Editors, "dummy", dummy, raising=False)
-
-    service = EditorsService(object())
-    assert service.dummy() == 42
-    assert called["hit"]

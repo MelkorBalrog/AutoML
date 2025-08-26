@@ -2700,7 +2700,7 @@ class AutoMLApp(
     def sync_nodes_by_id(self, updated_node):  # pragma: no cover - simple delegation
         """Delegate to :class:`Syncing_And_IDs` helper."""
 
-        return self.syncing_and_ids.sync_nodes_by_id(updated_node)
+        return self.syncing_service.sync_nodes_by_id(updated_node)
 
        
 
