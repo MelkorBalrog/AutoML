@@ -1,4 +1,7 @@
 # Version History
+- 0.2.127 - Resolve GUI module in frozen builds even when top-level package is absent.
+- 0.2.126 - Guard splash launcher against external `gui` packages in frozen executables.
+- 0.2.125 - Guard configuration import against external `config` modules in frozen executables.
 - 0.2.124 - Import global requirements into core and add lazy service registry with context-managed cleanup.
 - 0.2.123 - Define local service registry alias for backwards compatibility.
 - 0.2.122 - Expose service registry constants and integrate all services into core.
