@@ -17,15 +17,26 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import importlib
-
-from tools.splash_launcher import SplashLauncher
+import sys
+from types import ModuleType
 
 
 def test_launcher_invokes_main(monkeypatch):
     dummy = importlib.import_module("tests.dummy_module")
     dummy.called["main"] = False
 
+    from tools.splash_launcher import SplashLauncher
+
     launcher = SplashLauncher(module_name="tests.dummy_module")
     launcher.launch()
 
     assert dummy.called["main"] is True
+
+
+def test_launcher_prefers_project_gui(monkeypatch):
+    """Ensure an external ``gui`` package doesn't shadow the project one."""
+    monkeypatch.setitem(sys.modules, "gui", ModuleType("gui"))
+    sys.modules.pop("AutoML.tools.splash_launcher", None)
+    sys.modules.pop("tools.splash_launcher", None)
+    module = importlib.import_module("AutoML.tools.splash_launcher")
+    assert module.SplashScreen.__module__ == "AutoML.gui.windows.splash_screen"
