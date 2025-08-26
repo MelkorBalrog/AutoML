@@ -15,30 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Configuration services package."""
 
-"""Convenience wrapper exposing AutoML launcher helpers."""
+from .config_service import ConfigService, config_service
 
-from importlib import util
-from pathlib import Path
-
-_spec = util.spec_from_file_location("automl_launcher", Path(__file__).with_name("AutoML.py"))
-_launcher = util.module_from_spec(_spec)
-assert _spec and _spec.loader  # for type checkers
-_spec.loader.exec_module(_launcher)
-
-ensure_ghostscript = _launcher.ensure_ghostscript
-GS_PATH = _launcher.GS_PATH
-os = _launcher.os
-subprocess = _launcher.subprocess
-main = _launcher.main
-
-__all__ = [
-    "ensure_ghostscript",
-    "GS_PATH",
-    "os",
-    "subprocess",
-    "main",
-]
-
-if __name__ == "__main__":
-    main()
+__all__ = ["ConfigService", "config_service"]
