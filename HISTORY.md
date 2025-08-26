@@ -1,4 +1,5 @@
 # Version History
+- 0.2.126 - Organize tests into governance, gsn, and ui subdirectories.
 - 0.2.125 - Guard configuration import against external `config` modules in frozen executables.
 - 0.2.124 - Import global requirements into core and add lazy service registry with context-managed cleanup.
 - 0.2.123 - Define local service registry alias for backwards compatibility.
