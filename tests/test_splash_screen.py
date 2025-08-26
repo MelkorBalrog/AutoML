@@ -54,9 +54,12 @@ class SplashScreenTests(unittest.TestCase):
         text_items = self.splash.canvas.find_withtag("title_text")
         self.assertEqual(len(shadow_items), 2)
         self.assertEqual(len(text_items), 2)
-        for item in text_items:
-            self.assertEqual(self.splash.canvas.type(item), "text")
-            self.assertEqual(self.splash.canvas.itemcget(item, "fill"), "white")
+        colors = {
+            self.splash.canvas.itemcget(item, "text"): self.splash.canvas.itemcget(item, "fill")
+            for item in text_items
+        }
+        self.assertEqual(colors["AutoML"], "orange")
+        self.assertEqual(colors["Automotive Modeling Language"], "white")
         for item in shadow_items:
             self.assertEqual(self.splash.canvas.type(item), "text")
             self.assertEqual(self.splash.canvas.itemcget(item, "fill"), "black")
@@ -64,8 +67,8 @@ class SplashScreenTests(unittest.TestCase):
     def test_title_font_matches_subtitle(self):
         self.assertEqual(self.splash._title_font_name, self.splash._sub_font_name)
 
-    def test_title_size_is_quadruple(self):
-        self.assertEqual(self.splash._title_size, self.splash._sub_size * 4)
+    def test_title_size_is_one_and_half(self):
+        self.assertEqual(self.splash._title_size, int(self.splash._sub_size * 1.5))
 
     def test_background_gradient(self):
         bg_items = self.splash.canvas.find_withtag("void_bg")

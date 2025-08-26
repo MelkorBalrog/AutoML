@@ -1,4 +1,4 @@
-version: 0.2.103
+version: 0.2.104
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -8,7 +8,7 @@ Project configuration is handled by the new **ProjectPropertiesManager** module,
 
 The metamodel blends concepts from key automotive standards—ISO 26262 (functional safety), ISO 21448 (SOTIF), ISO 21434 (cybersecurity) and ISO 8800 (safety and AI)—so one project can address safety, cybersecurity and assurance requirements side by side.
 
-Diagram drawing is centralised in a dedicated :class:`DiagramRenderer`, providing a clear interface for generating and exporting diagrams.
+Diagram drawing is centralised in a dedicated :class:`DiagramRendererService`, providing a clear interface for generating and exporting diagrams.
 
 ## Getting Started
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.104 - Render orange AutoML splash title at 1.5x subtitle size.
 - 0.2.103 - Render white AutoML splash title using subtitle font at quadruple size.
 - 0.2.102 - Fix splash font name retrieval to avoid startup error.
 - 0.2.101 - Ensure AutoML splash title font matches subtitle and store ratio for testing.

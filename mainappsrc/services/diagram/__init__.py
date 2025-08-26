@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Diagram service package."""
 
-VERSION = "0.2.104"
+from .diagram_renderer_service import DiagramRendererService
 
-__all__ = ["VERSION"]
+__all__ = ["DiagramRendererService"]
