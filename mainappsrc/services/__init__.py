@@ -15,54 +15,130 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Service layer for application modules.
+"""Lazy service registry for application modules.
 
-This package re-exports all individual service classes so callers can
-import them from a central location, keeping :mod:`automl_core`
-decoupled from the underlying module structure.
+This package exposes all service classes and singletons via attributes
+that are imported on first access.  Delayed imports avoid circular
+initialisation issues during application start-up while preserving a
+central access point for :mod:`automl_core` and other modules.
 """
 
-from .app_init import AppInitializationService
-from .ui import UISetupService
-from .windows import WindowControllersService
-from .versioning import VersioningReviewService
-from .reporting import ReportingExportService
-from .managers import ManagersFacadeService
-from .node_clone import NodeCloneServiceInterface
-from .view import ViewUpdateService
-from .data_access import DataAccessQueriesService
-from .config import config_service, user_config_service
-from .project_structure import StructureTreeOperationsService
-from .undo import UndoRedoService
-from .navigation import NavigationInputService
-from .syncing import SyncingAndIdsService
-from .analysis import AnalysisUtilsService
-from .safety_analysis import SafetyAnalysisService
-from .validation import ValidationConsistencyService
-from .safety_ui import SafetyUIService
-from .diagram import DiagramRendererService
-from .editing.editors_service import EditorsService
+from __future__ import annotations
 
-__all__ = [
-    "AppInitializationService",
-    "UISetupService",
-    "WindowControllersService",
-    "VersioningReviewService",
-    "ReportingExportService",
-    "ManagersFacadeService",
-    "NodeCloneServiceInterface",
-    "ViewUpdateService",
-    "DataAccessQueriesService",
-    "config_service",
-    "user_config_service",
-    "StructureTreeOperationsService",
-    "UndoRedoService",
-    "NavigationInputService",
-    "SyncingAndIdsService",
-    "AnalysisUtilsService",
-    "SafetyAnalysisService",
-    "ValidationConsistencyService",
-    "SafetyUIService",
-    "DiagramRendererService",
-    "EditorsService",
-]
+from importlib import import_module
+from typing import Any, Dict, Tuple
+
+# Mapping of public attribute names to ``(module, attribute)`` pairs.  Each
+# entry will be imported only when accessed through ``__getattr__``.
+_SERVICE_ATTRS: Dict[str, Tuple[str, str]] = {
+    # App lifecycle and UI services
+    "AppInitializationService": (
+        "mainappsrc.services.app_init.app_initialization_service",
+        "AppInitializationService",
+    ),
+    "UISetupService": (
+        "mainappsrc.services.ui.ui_setup_service",
+        "UISetupService",
+    ),
+    "WindowControllersService": (
+        "mainappsrc.services.windows.window_controllers_service",
+        "WindowControllersService",
+    ),
+    # Versioning and reporting
+    "VersioningReviewService": (
+        "mainappsrc.services.versioning.versioning_review_service",
+        "VersioningReviewService",
+    ),
+    "ReportingExportService": (
+        "mainappsrc.services.reporting.reporting_export_service",
+        "ReportingExportService",
+    ),
+    # Miscellaneous helpers
+    "ManagersFacadeService": (
+        "mainappsrc.services.managers.managers_facade_service",
+        "ManagersFacadeService",
+    ),
+    "NodeCloneServiceInterface": (
+        "mainappsrc.services.node_clone.node_clone_service_interface",
+        "NodeCloneServiceInterface",
+    ),
+    "ViewUpdateService": (
+        "mainappsrc.services.view.view_update_service",
+        "ViewUpdateService",
+    ),
+    "DataAccessQueriesService": (
+        "mainappsrc.services.data_access.data_access_queries_service",
+        "DataAccessQueriesService",
+    ),
+    # Configuration services
+    "config_service": (
+        "mainappsrc.services.config.config_service",
+        "config_service",
+    ),
+    "user_config_service": (
+        "mainappsrc.services.config.user_config_service",
+        "user_config_service",
+    ),
+    # Project structure and history
+    "StructureTreeOperationsService": (
+        "mainappsrc.services.project_structure.structure_tree_operations_service",
+        "StructureTreeOperationsService",
+    ),
+    "UndoRedoService": (
+        "mainappsrc.services.undo.undo_redo_service",
+        "UndoRedoService",
+    ),
+    # Navigation and synchronisation
+    "NavigationInputService": (
+        "mainappsrc.services.navigation.navigation_input_service",
+        "NavigationInputService",
+    ),
+    "SyncingAndIdsService": (
+        "mainappsrc.services.syncing.syncing_and_ids_service",
+        "SyncingAndIdsService",
+    ),
+    # Analysis and validation
+    "AnalysisUtilsService": (
+        "mainappsrc.services.analysis.analysis_utils_service",
+        "AnalysisUtilsService",
+    ),
+    "SafetyAnalysisService": (
+        "mainappsrc.services.safety_analysis.safety_analysis_service",
+        "SafetyAnalysisService",
+    ),
+    "ValidationConsistencyService": (
+        "mainappsrc.services.validation.validation_consistency_service",
+        "ValidationConsistencyService",
+    ),
+    "SafetyUIService": (
+        "mainappsrc.services.safety_ui.safety_ui_service",
+        "SafetyUIService",
+    ),
+    "DiagramRendererService": (
+        "mainappsrc.services.diagram.diagram_renderer_service",
+        "DiagramRendererService",
+    ),
+    # Editing helpers
+    "EditorsService": (
+        "mainappsrc.services.editing.editors_service",
+        "EditorsService",
+    ),
+}
+
+__all__ = list(_SERVICE_ATTRS.keys())
+
+
+def __getattr__(name: str) -> Any:  # pragma: no cover - simple delegation
+    """Dynamically import and return a service attribute.
+
+    Parameters
+    ----------
+    name:
+        The attribute requested by the importing module.
+    """
+    try:
+        module_name, attr_name = _SERVICE_ATTRS[name]
+    except KeyError as exc:  # pragma: no cover - defensive programming
+        raise AttributeError(f"module 'mainappsrc.services' has no attribute {name!r}") from exc
+    module = import_module(module_name)
+    return getattr(module, attr_name)

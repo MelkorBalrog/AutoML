@@ -18,5 +18,11 @@
 """Configuration services package."""
 
 from .config_service import ConfigService, config_service
+from .user_config_service import UserConfigService, user_config_service
 
-__all__ = ["ConfigService", "config_service"]
+__all__ = [
+    "ConfigService",
+    "config_service",
+    "UserConfigService",
+    "user_config_service",
+]

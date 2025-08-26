@@ -84,11 +84,7 @@ from gui.utils.drawing_helper import FTADrawingHelper, fta_drawing_helper
 if TYPE_CHECKING:  # pragma: no cover - type hints only
     from gui.controls.window_controllers import WindowControllers
     from mainappsrc.core.top_event_workflows import Top_Event_Workflows
-    from mainappsrc.services.validation import ValidationConsistencyService
-from mainappsrc.services.node_clone import NodeCloneServiceInterface
-from mainappsrc.services.view import ViewUpdateService
-from mainappsrc.services.data_access import DataAccessQueriesService
-from mainappsrc.services.config.user_config_service import user_config_service
+    from mainappsrc.services import ValidationConsistencyService
 from gui.utils.safety_case_table import SafetyCaseTable
 from gui.windows.architecture import (
     UseCaseDiagramWindow,
@@ -204,29 +200,6 @@ from gui.toolboxes import (
     DiagramElementDialog,
     _RequirementRelationDialog,
 )
-
-
-from mainappsrc.services.config import config_service
-
-
-def load_services() -> dict[str, object]:
-    """Dynamically import all service modules under ``mainappsrc.services``."""
-
-    services = {}
-    import mainappsrc.services as services_pkg
-
-    for _finder, name, _ispkg in pkgutil.walk_packages(
-        services_pkg.__path__, services_pkg.__name__ + "."
-    ):
-        try:
-            services[name] = importlib.import_module(name)
-        except Exception:  # pragma: no cover - best effort
-            logger.warning("Failed to import service module %s", name)
-
-    return services
-
-
-SERVICE_MODULES = load_services()
 
 def _reload_local_config() -> None:
     config_service.reload_local_config()
