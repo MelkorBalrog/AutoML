@@ -15,17 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Data access related services."""
 
-import ast
-from pathlib import Path
+from .data_access_queries_service import DataAccessQueriesService
 
-
-def test_automl_core_imports_data_access_queries_service():
-    code = Path("mainappsrc/core/automl_core.py").read_text()
-    tree = ast.parse(code)
-    assert any(
-        isinstance(node, ast.ImportFrom)
-        and node.module == "mainappsrc.services.data_access"
-        and any(alias.name == "DataAccessQueriesService" for alias in node.names)
-        for node in ast.walk(tree)
-    ), "DataAccessQueriesService import missing in automl_core"
+__all__ = ["DataAccessQueriesService"]

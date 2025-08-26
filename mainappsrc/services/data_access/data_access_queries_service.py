@@ -15,17 +15,22 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Wrapper around :class:`DataAccess_Queries`."""
 
-import ast
-from pathlib import Path
+from __future__ import annotations
+
+from mainappsrc.core.data_access_queries import DataAccess_Queries
 
 
-def test_automl_core_imports_data_access_queries_service():
-    code = Path("mainappsrc/core/automl_core.py").read_text()
-    tree = ast.parse(code)
-    assert any(
-        isinstance(node, ast.ImportFrom)
-        and node.module == "mainappsrc.services.data_access"
-        and any(alias.name == "DataAccessQueriesService" for alias in node.names)
-        for node in ast.walk(tree)
-    ), "DataAccessQueriesService import missing in automl_core"
+class DataAccessQueriesService:
+    """Delegate data access query helpers for :class:`AutoMLApp`."""
+
+    def __init__(self, app: object) -> None:  # pragma: no cover - simple container
+        self.app = app
+        self._impl = DataAccess_Queries(app)
+
+    def __getattr__(self, name: str):
+        return getattr(self._impl, name)
+
+
+__all__ = ["DataAccessQueriesService"]
