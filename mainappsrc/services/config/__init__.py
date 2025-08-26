@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Configuration services package."""
 
-"""Project version information."""
+from .config_service import ConfigService, config_service
 
-VERSION = "0.2.107"
-
-__all__ = ["VERSION"]
+__all__ = ["ConfigService", "config_service"]

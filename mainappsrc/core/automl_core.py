@@ -261,16 +261,20 @@ from gui.toolboxes import (
 from pathlib import Path
 from gui.dialogs.user_info_dialog import UserInfoDialog
 
-import gui.utils.config_utils as config_utils
-from gui.utils.config_utils import _reload_local_config
+from mainappsrc.services.config import config_service
+
+
+def _reload_local_config() -> None:
+    config_service.reload_local_config()
+
 
 # Expose configuration helpers and global state
-_CONFIG_PATH = config_utils._CONFIG_PATH
-GATE_NODE_TYPES = config_utils.GATE_NODE_TYPES
-_PATTERN_PATH = config_utils._PATTERN_PATH
-_REPORT_TEMPLATE_PATH = config_utils._REPORT_TEMPLATE_PATH
-unique_node_id_counter = config_utils.unique_node_id_counter
-AutoML_Helper = config_utils.AutoML_Helper
+_CONFIG_PATH = config_service.config_path
+GATE_NODE_TYPES = config_service.gate_node_types
+_PATTERN_PATH = config_service.pattern_path
+_REPORT_TEMPLATE_PATH = config_service.report_template_path
+unique_node_id_counter = config_service.unique_node_id_counter
+AutoML_Helper = config_service.automl_helper
 import uuid
 
 ##########################################
@@ -2831,8 +2835,8 @@ class AutoMLApp(
 
         global AutoML_Helper, unique_node_id_counter
         SysMLRepository.reset_instance()
-        AutoML_Helper = config_utils.AutoML_Helper = AutoMLHelper()
-        unique_node_id_counter = config_utils.unique_node_id_counter = 1
+        AutoML_Helper = config_service.automl_helper = AutoMLHelper()
+        unique_node_id_counter = config_service.unique_node_id_counter = 1
 
         self.top_events = []
         self.cta_events = []
@@ -3064,7 +3068,7 @@ def _launch_app() -> None:
             save_user_config(name, email)
     set_current_user(name, email)
     global AutoML_Helper
-    AutoML_Helper = config_utils.AutoML_Helper = AutoMLHelper()
+    AutoML_Helper = config_service.automl_helper = AutoMLHelper()
     root.deiconify()
     try:
         root.state("zoomed")

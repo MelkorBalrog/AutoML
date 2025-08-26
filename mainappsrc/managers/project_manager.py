@@ -50,7 +50,7 @@ from analysis.safety_management import SafetyManagementToolbox
 from mainappsrc.models.gsn import GSNModule, GSNDiagram
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
-import gui.utils.config_utils as config_utils
+from mainappsrc.services.config import config_service
 
 
 class ProjectManager:
@@ -122,9 +122,11 @@ class ProjectManager:
         automl_mod = importlib.import_module("AutoML")
         helper_cls = getattr(automl_mod, "AutoMLHelper", _AutoMLHelper)
         global AutoML_Helper, unique_node_id_counter
-        AutoML_Helper = config_utils.AutoML_Helper = automl_mod.AutoML_Helper = helper_cls()
+        AutoML_Helper = (
+            config_service.automl_helper
+        ) = automl_mod.AutoML_Helper = helper_cls()
         unique_node_id_counter = (
-            config_utils.unique_node_id_counter
+            config_service.unique_node_id_counter
         ) = automl_mod.unique_node_id_counter = 1
         SysMLRepository.reset_instance()
         app.zoom = 1.0
@@ -188,9 +190,11 @@ class ProjectManager:
         automl_mod = importlib.import_module("AutoML")
         helper_cls = getattr(automl_mod, "AutoMLHelper", _AutoMLHelper)
         global AutoML_Helper, unique_node_id_counter
-        AutoML_Helper = config_utils.AutoML_Helper = automl_mod.AutoML_Helper = helper_cls()
+        AutoML_Helper = (
+            config_service.automl_helper
+        ) = automl_mod.AutoML_Helper = helper_cls()
         unique_node_id_counter = (
-            config_utils.unique_node_id_counter
+            config_service.unique_node_id_counter
         ) = automl_mod.unique_node_id_counter = 1
         SysMLRepository.reset_instance()
         app.top_events = []
