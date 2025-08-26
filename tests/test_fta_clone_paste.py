@@ -34,11 +34,7 @@ FaultTreeNode = automl.FaultTreeNode
 messagebox = automl.messagebox
 from mainappsrc.core.diagram_clipboard_manager import DiagramClipboardManager
 
-page_spec = importlib.util.spec_from_file_location(
-    "page_diagram", repo_root / "mainappsrc/page_diagram.py"
-)
-page_module = importlib.util.module_from_spec(page_spec)
-page_spec.loader.exec_module(page_module)
+page_module = importlib.import_module("mainappsrc.core.page_diagram")
 PageDiagram = page_module.PageDiagram
 fta_drawing_helper = page_module.fta_drawing_helper
 
