@@ -21,7 +21,11 @@ import types
 from mainappsrc.models.gsn import GSNNode, GSNDiagram
 from gui.safety_case_explorer import SafetyCaseExplorer
 from gui.architecture import SysMLObject
-from analysis.safety_management import SafetyManagementToolbox, SafetyWorkProduct
+from analysis.safety_management import (
+    GovernanceModule,
+    SafetyManagementToolbox,
+    SafetyWorkProduct,
+)
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 
 
@@ -81,3 +85,47 @@ def test_gsn_diagram_visibility_for_safety_case():
     assert explorer._available_diagrams() == []
     app.current_review.approved = True
     assert explorer._available_diagrams()
+
+
+def test_gsn_diagram_visibility_respects_active_phase():
+    """GSN diagrams are hidden when their relation resides in another phase."""
+    SysMLRepository._instance = None
+    repo = SysMLRepository.get_instance()
+    gov1 = repo.create_diagram("Governance Diagram", name="Gov1")
+    gov2 = repo.create_diagram("Governance Diagram", name="Gov2")
+
+    toolbox = SafetyManagementToolbox()
+    toolbox.diagrams = {"Gov1": gov1.diag_id, "Gov2": gov2.diag_id}
+    toolbox.modules = [
+        GovernanceModule(name="P1", diagrams=["Gov1"]),
+        GovernanceModule(name="P2", diagrams=["Gov2"]),
+    ]
+
+    e1 = repo.create_element("Block", name="E1")
+    e2 = repo.create_element("Block", name="E2")
+    repo.add_element_to_diagram(gov2.diag_id, e1.elem_id)
+    repo.add_element_to_diagram(gov2.diag_id, e2.elem_id)
+    o1 = SysMLObject(1, "Work Product", 0, 0, element_id=e1.elem_id, properties={"name": "GSN Argumentation"})
+    o2 = SysMLObject(2, "Work Product", 0, 100, element_id=e2.elem_id, properties={"name": "Safety & Security Case"})
+    gov2.objects = [o1.__dict__, o2.__dict__]
+    gov2.connections = [{"src": 1, "dst": 2, "conn_type": "Used By"}]
+
+    toolbox.work_products = [
+        SafetyWorkProduct("Gov2", "GSN Argumentation", ""),
+        SafetyWorkProduct("Gov2", "Safety & Security Case", ""),
+    ]
+    toolbox.doc_phases = {"GSN Argumentation": {"Diag": "P1"}}
+    toolbox.active_module = "P1"
+
+    root = GSNNode("Diag", "Goal")
+    gdiag = GSNDiagram(root)
+    explorer = SafetyCaseExplorer.__new__(SafetyCaseExplorer)
+    explorer.app = types.SimpleNamespace(
+        safety_mgmt_toolbox=toolbox,
+        current_review=types.SimpleNamespace(reviewed=False, approved=False),
+        gsn_diagrams=[gdiag],
+        gsn_modules=[],
+        all_gsn_diagrams=[],
+    )
+
+    assert explorer._available_diagrams() == []

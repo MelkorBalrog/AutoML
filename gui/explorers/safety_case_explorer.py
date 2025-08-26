@@ -154,12 +154,10 @@ class SafetyCaseExplorer(tk.Frame):
         if toolbox:
             reviewed = getattr(getattr(self.app, "current_review", None), "reviewed", False)
             approved = getattr(getattr(self.app, "current_review", None), "approved", False)
-            if toolbox.can_use_as_input(
-                "GSN Argumentation",
-                "Safety & Security Case",
-                reviewed=reviewed,
-                approved=approved,
-            ):
+            inputs = toolbox.analysis_inputs(
+                "Safety & Security Case", reviewed=reviewed, approved=approved
+            )
+            if "GSN Argumentation" in inputs:
                 diagrams = [
                     d
                     for d in diagrams
