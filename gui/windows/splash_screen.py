@@ -19,34 +19,7 @@
 import tkinter as tk
 import math
 import random
-from dataclasses import dataclass
-
-
-@dataclass
-class StarField:
-    """Render a simple star field on a Tkinter canvas."""
-
-    canvas: tk.Canvas
-    width: int
-    height: int
-    star_count: int = 50
-
-    def draw(self) -> None:
-        """Draw randomly positioned stars across the sky region."""
-        sky_limit = int(self.height * 0.55)
-        for _ in range(self.star_count):
-            x = random.randint(0, self.width)
-            y = random.randint(0, sky_limit)
-            size = random.choice((1, 2))
-            self.canvas.create_oval(
-                x,
-                y,
-                x + size,
-                y + size,
-                fill="white",
-                outline="",
-                tags="star",
-            )
+from PIL import Image, ImageDraw, ImageTk, ImageFont
 
 
 class SplashScreen(tk.Toplevel):
@@ -86,19 +59,15 @@ class SplashScreen(tk.Toplevel):
             self._shadow_alpha_target = None
 
         self.canvas_size = 300
-        # Deep dark background similar to log area for void effect
         self.canvas = tk.Canvas(
             self,
             width=self.canvas_size,
             height=self.canvas_size,
             highlightthickness=0,
-            bg="#1e1e1e",
+            bg="#002d5f",
         )
         self.canvas.pack()
-        self._draw_top_gradient()
-        self._draw_gradient()
-        self._draw_stars()
-        self._draw_floor()
+        self._draw_background()
         self._center()
         # Initialize cube geometry
         self.angle = 0.0
@@ -194,97 +163,122 @@ class SplashScreen(tk.Toplevel):
         self.geometry(f"{w}x{h}+{x}+{y}")
         self.shadow.lower(self)
 
-    def _draw_top_gradient(self) -> None:
-        """Add a small violet-to-blue gradient at the top."""
-        gradient_height = int(self.canvas_size * 0.1)
-        half = gradient_height // 2
-        violet = (0x9B, 0x59, 0xB6)
-        blue = (0x56, 0x9C, 0xD6)
-        dark = (0x1E, 0x1E, 0x1E)
-        for y in range(gradient_height):
-            if y < half:
-                ratio = y / max(1, half - 1)
-                r = int(violet[0] + (blue[0] - violet[0]) * ratio)
-                g = int(violet[1] + (blue[1] - violet[1]) * ratio)
-                b = int(violet[2] + (blue[2] - violet[2]) * ratio)
-            else:
-                ratio = (y - half) / max(1, gradient_height - half - 1)
-                r = int(blue[0] + (dark[0] - blue[0]) * ratio)
-                g = int(blue[1] + (dark[1] - blue[1]) * ratio)
-                b = int(blue[2] + (dark[2] - blue[2]) * ratio)
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="top_gradient")
+    def _draw_background(self) -> None:
+        """Draw beveled blue background with slanted bands."""
+        W = H = self.canvas_size
+        c_top = (0, 102, 153)
+        c_bottom = (0, 45, 95)
+        band_base = (0, 75, 130)
+        band_dark = (0, 40, 90)
+        n_bands_primary = 10
+        n_bands_secondary = 18
+        margin = 0.06
+        rng = random.Random(42)
 
-    def _draw_gradient(self):
-        """Emit a narrow light-green glow around the white horizon."""
-        horizon = int(self.canvas_size * 0.55)
-        gradient_height = int(self.canvas_size * 0.1)
-        start = horizon - gradient_height
-        dark = (0x1E, 0x1E, 0x1E)
-        glow = (0x90, 0xEE, 0x90)
-        # Upward glow
-        for y in range(start, horizon):
-            ratio = (y - start) / max(1, gradient_height - 1)
-            r = int(dark[0] + (glow[0] - dark[0]) * ratio)
-            g = int(dark[1] + (glow[1] - dark[1]) * ratio)
-            b = int(dark[2] + (glow[2] - dark[2]) * ratio)
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="void_bg")
-        # Downward glow
-        end = horizon + gradient_height
-        for y in range(horizon + 1, end + 1):
-            ratio = (y - horizon) / max(1, gradient_height)
-            r = int(glow[0] + (dark[0] - glow[0]) * ratio)
-            g = int(glow[1] + (dark[1] - glow[1]) * ratio)
-            b = int(glow[2] + (dark[2] - glow[2]) * ratio)
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="void_bg")
+        img = Image.new("RGBA", (W, H))
+        for y in range(H):
+            for x in range(W):
+                t = 0.65 * x / W + 0.35 * y / H
+                r = int(c_top[0] * (1 - t) + c_bottom[0] * t)
+                g = int(c_top[1] * (1 - t) + c_bottom[1] * t)
+                b = int(c_top[2] * (1 - t) + c_bottom[2] * t)
+                img.putpixel((x, y), (r, g, b, 255))
 
-    def _draw_stars(self) -> None:
-        """No stars in the void."""
-        return
-    def _draw_cloud(self):
-        """Draw a small turquoise-magenta-white cloud on the sky."""
-        cx, cy = 80, 80
-        ovals = [
-            (cx - 40, cy - 20, cx + 40, cy + 20),
-            (cx - 20, cy - 30, cx + 60, cy + 10),
-            (cx - 60, cy - 30, cx + 20, cy + 10),
-        ]
-        for x1, y1, x2, y2 in ovals:
-            self.canvas.create_oval(
-                x1, y1, x2, y2, fill="#40E0D0", outline="#FF00FF", width=2
-            )
-        # subtle white highlight
-        self.canvas.create_oval(
-            cx - 30,
-            cy - 20,
-            cx + 20,
-            cy + 10,
-            fill="white",
-            outline="",
-            stipple="gray50",
-        )
+        draw = ImageDraw.Draw(img, "RGBA")
+
+        def band_poly(x0, width, skew, notch, top_off, bottom_off):
+            y_top = int(margin * H + top_off)
+            y_bot = int((1 - margin) * H - bottom_off)
+            x1 = x0 + width
+            notch_y = y_top + 0.55 * (y_bot - y_top)
+            return [
+                (x0, y_top),
+                (x0 + skew, y_bot),
+                (x1 + skew, y_bot),
+                (x1 + 0.95 * skew - notch, notch_y),
+                (x1, y_top),
+            ]
+
+        for xi in sorted(
+            rng.uniform(margin * W * 0.5, W * (0.85 - margin))
+            for _ in range(n_bands_primary)
+        ):
+            width = rng.uniform(W * 0.018, W * 0.05)
+            skew = rng.uniform(W * 0.12, W * 0.22)
+            notch = rng.uniform(W * 0.01, W * 0.03)
+            top_off = rng.uniform(0, H * 0.03)
+            bot_off = rng.uniform(0, H * 0.03)
+            poly = band_poly(xi, width, skew, notch, top_off, bot_off)
+            color = band_base if rng.random() > 0.5 else band_dark
+            draw.polygon(poly, fill=color + (int(0.35 * 255),))
+
+        for xi in sorted(
+            rng.uniform(margin * W * 0.35, W * (0.9 - margin))
+            for _ in range(n_bands_secondary)
+        ):
+            width = rng.uniform(W * 0.003, W * 0.012)
+            skew = rng.uniform(W * 0.1, W * 0.24)
+            notch = rng.uniform(W * 0.004, W * 0.009)
+            top_off = rng.uniform(0, H * 0.02)
+            bot_off = rng.uniform(0, H * 0.02)
+            poly = band_poly(xi, width, skew, notch, top_off, bot_off)
+            bright = tuple(min(int(c * 1.2), 255) for c in band_base)
+            draw.polygon(poly, fill=bright + (int(0.55 * 255),))
+
+        self._bg_pil = img
+        self._bg_photo = ImageTk.PhotoImage(img)
+        self.canvas.create_image(0, 0, anchor="nw", image=self._bg_photo, tags="void_bg")
 
     def _draw_title(self) -> None:
-        """Render project title in white with a subtle black shadow."""
+        """Render orange AutoML title with black border and white subtitle."""
         x = self.canvas_size / 2
         y = self.canvas_size - 40
-        main_text = "Automotive Modeling Language"
-        sub_text = "by Karel Capek Robotics"
-        title_font = ("Helvetica", 14, "bold")
-        sub_font = ("Helvetica", 12, "bold")
+        main_text = "AUTOML"
+        sub_text = "Automotive Modeling Language"
+        sub_size = 12
+        title_size = sub_size * 2
+        sub_font = ("DejaVu Serif", sub_size)
         offset = 1
 
-        # Black shadow drawn slightly offset behind the main text
-        self.canvas.create_text(
-            x + offset,
-            y + offset,
-            text=main_text,
-            font=title_font,
-            fill="black",
-            tags="title_shadow",
+        try:
+            font = ImageFont.truetype("ITC Stone Serif SemiBold", title_size)
+        except OSError:
+            try:
+                font = ImageFont.truetype("DejaVuSerif-Bold.ttf", title_size)
+            except OSError:
+                font = ImageFont.load_default()
+
+        bbox = font.getbbox(main_text, stroke_width=1)
+        width, height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.text(
+            (-bbox[0], -bbox[1]),
+            main_text,
+            font=font,
+            fill=(255, 140, 0),
+            stroke_width=1,
+            stroke_fill="black",
         )
+        self._title_pil = img
+
+        shadow = Image.new("RGBA", (width + offset, height + offset), (0, 0, 0, 0))
+        shadow_draw = ImageDraw.Draw(shadow)
+        shadow_draw.text(
+            (offset - bbox[0], -bbox[1]),
+            main_text,
+            font=font,
+            fill=(0, 0, 0, 255),
+            stroke_width=1,
+            stroke_fill=(0, 0, 0, 255),
+        )
+        self._title_shadow_img = ImageTk.PhotoImage(shadow)
+        self.canvas.create_image(x, y, image=self._title_shadow_img, tags="title_shadow")
+
+        self._title_img = ImageTk.PhotoImage(img)
+        self.canvas.create_image(x, y, image=self._title_img, tags="title_text")
+
+        # Subtitle with white text and black shadow
         self.canvas.create_text(
             x + offset,
             y + 20 + offset,
@@ -293,16 +287,6 @@ class SplashScreen(tk.Toplevel):
             fill="black",
             tags="title_shadow",
         )
-
-        # Foreground text in bold white
-        self.canvas.create_text(
-            x,
-            y,
-            text=main_text,
-            font=title_font,
-            fill="white",
-            tags="title_text",
-        )
         self.canvas.create_text(
             x,
             y + 20,
@@ -310,19 +294,6 @@ class SplashScreen(tk.Toplevel):
             font=sub_font,
             fill="white",
             tags="title_text",
-        )
-
-    def _draw_floor(self):
-        """Draw a thick white horizon line against the void."""
-        horizon = int(self.canvas_size * 0.55)
-        self.canvas.create_line(
-            0,
-            horizon,
-            self.canvas_size,
-            horizon,
-            fill="white",
-            width=3,
-            tags="horizon",
         )
 
     def _project(self, x, y, z):
