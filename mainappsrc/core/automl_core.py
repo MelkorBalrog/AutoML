@@ -63,14 +63,23 @@ from .persistence_wrappers import PersistenceWrappersMixin
 from .service_init_mixin import ServiceInitMixin
 from .page_diagram import PageDiagram
 from gui.utils.node_utils import resolve_original as resolve_node_original
-from mainappsrc.services.app_init import AppInitializationService
-from mainappsrc.services.ui import UISetupService
+from mainappsrc.services import (
+    AppInitializationService,
+    UISetupService,
+    WindowControllersService,
+    VersioningReviewService,
+    ReportingExportService,
+    ManagersFacadeService,
+    NodeCloneServiceInterface,
+    ViewUpdateService,
+    DataAccessQueriesService,
+    user_config_service,
+    StructureTreeOperationsService,
+    config_service,
+    SafetyUIService,
+)
 from collections.abc import Mapping
 from gui.utils.drawing_helper import FTADrawingHelper, fta_drawing_helper
-from mainappsrc.services.windows import WindowControllersService
-from mainappsrc.services.versioning import VersioningReviewService
-from mainappsrc.services.reporting import ReportingExportService
-from mainappsrc.services.managers import ManagersFacadeService
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
     from gui.controls.window_controllers import WindowControllers
@@ -190,8 +199,6 @@ except Exception:  # pragma: no cover
     sys.path.append(os.path.dirname(base))
     from models.fta.fault_tree_node import FaultTreeNode, add_failure_mode as ft_add_failure_mode, refresh_tree as fault_tree_refresh, add_node_of_type as _add_node_of_type
 
-from mainappsrc.services.project_structure import StructureTreeOperationsService
-
 from gui.toolboxes import (
     RequirementsExplorerWindow,
     DiagramElementDialog,
@@ -221,7 +228,6 @@ def load_services() -> dict[str, object]:
 
 SERVICE_MODULES = load_services()
 
-
 def _reload_local_config() -> None:
     config_service.reload_local_config()
 
@@ -244,7 +250,6 @@ from gui.dialogs.edit_node_dialog import EditNodeDialog, DecompositionDialog
 from gui.dialogs.fmea_row_dialog import FMEARowDialog
 from gui.dialogs.req_dialog import ReqDialog
 from gui.dialogs.select_base_event_dialog import SelectBaseEventDialog
-from mainappsrc.services.safety_ui import SafetyUIService
 ##########################################
 # Main Application (Parent Diagram)
 ##########################################
@@ -311,9 +316,7 @@ class AutoMLApp(
         """Delegate scenario classification to analysis service."""
         service = getattr(self, "analysis_utils_service", None)
         if service is None:  # pragma: no cover - fallback for tests
-            from mainappsrc.services.analysis.analysis_utils_service import (
-                AnalysisUtilsService,
-            )
+            from mainappsrc.services import AnalysisUtilsService
 
             service = AnalysisUtilsService(self)
         return service.classify_scenarios()
@@ -322,9 +325,7 @@ class AutoMLApp(
         """Delegate default mechanism loading to analysis service."""
         service = getattr(self, "analysis_utils_service", None)
         if service is None:  # pragma: no cover - fallback for tests
-            from mainappsrc.services.analysis.analysis_utils_service import (
-                AnalysisUtilsService,
-            )
+            from mainappsrc.services import AnalysisUtilsService
 
             service = AnalysisUtilsService(self)
         return service.load_default_mechanisms()
