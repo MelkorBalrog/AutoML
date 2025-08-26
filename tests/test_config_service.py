@@ -19,7 +19,9 @@
 import json
 from pathlib import Path
 
-import mainappsrc.services.config.config_service as cs_module
+import importlib
+
+cs_module = importlib.import_module("mainappsrc.services.config.config_service")
 
 
 def test_reload_local_config_updates_gate_types(tmp_path, monkeypatch):
