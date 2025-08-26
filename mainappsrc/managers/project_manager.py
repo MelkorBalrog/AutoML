@@ -51,6 +51,7 @@ from mainappsrc.models.gsn import GSNModule, GSNDiagram
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 from mainappsrc.services.config import config_service
+from tools.model_loader import model_loader
 
 
 class ProjectManager:
@@ -159,6 +160,7 @@ class ProjectManager:
 
     # ------------------------------------------------------------------
     def _reset_on_load(self) -> None:
+        model_loader.cleanup()
         app = self.app
         if getattr(app, "page_diagram", None) is not None:
             app.close_page_diagram()
@@ -355,6 +357,7 @@ class ProjectManager:
     def apply_model_data(self, data: dict, ensure_root: bool = True) -> None:
         """Load model state from a dictionary."""
 
+        model_loader.cleanup()
         app = self.app
 
         current = list(getattr(app, "enabled_work_products", set()))
@@ -377,8 +380,14 @@ class ProjectManager:
         for rid, req in data.get("global_requirements", {}).items():
             global_requirements[rid] = ensure_requirement_defaults(req)
 
-        app.gsn_modules = [GSNModule.from_dict(m) for m in data.get("gsn_modules", [])]
-        app.gsn_diagrams = [GSNDiagram.from_dict(d) for d in data.get("gsn_diagrams", [])]
+        app.gsn_modules = [
+            model_loader.proxy(f"gsn_module_{i}", lambda m=m: GSNModule.from_dict(m))
+            for i, m in enumerate(data.get("gsn_modules", []))
+        ]
+        app.gsn_diagrams = [
+            model_loader.proxy(f"gsn_diagram_{i}", lambda d=d: GSNDiagram.from_dict(d))
+            for i, d in enumerate(data.get("gsn_diagrams", []))
+        ]
 
         app.safety_mgmt_toolbox = SafetyManagementToolbox.from_dict(
             data.get("safety_mgmt_toolbox", {})
