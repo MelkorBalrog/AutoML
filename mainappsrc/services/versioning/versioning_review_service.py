@@ -15,25 +15,19 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Versioning and review service wrapper."""
 
 from __future__ import annotations
-
-"""Review and versioning helpers separated from the main application."""
 
 from typing import Any
 
 
-class Versioning_Review:
-    """Facade for review and version-related operations.
+class VersioningReviewService:
+    """Delegate review and version operations to :class:`ReviewManager`."""
 
-    This helper wraps :class:`ReviewManager` to keep
-    :class:`AutoMLApp` lean and focused on orchestration.
-    """
-
-    def __init__(self, app: Any) -> None:
+    def __init__(self, app: Any) -> None:  # pragma: no cover - simple container
         self.app = app
 
-    # Delegated review/version operations ---------------------------------
     def add_version(self):
         return self.app.review_manager.add_version()
 
@@ -72,3 +66,6 @@ class Versioning_Review:
 
     def get_review_targets(self):
         return self.app.review_manager.get_review_targets()
+
+
+__all__ = ["VersioningReviewService"]

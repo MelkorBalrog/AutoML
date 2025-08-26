@@ -78,7 +78,7 @@ from gui.controls.window_controllers import WindowControllers
 from mainappsrc.core.top_event_workflows import Top_Event_Workflows
 from mainappsrc.managers.review_manager import ReviewManager
 from mainappsrc.managers.drawing_manager import DrawingManager
-from .versioning_review import Versioning_Review
+from mainappsrc.services.versioning import VersioningReviewService
 from mainappsrc.services.reporting import ReportingExportService
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
