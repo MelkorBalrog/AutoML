@@ -1,5 +1,7 @@
 # Version History
 
+- 0.2.111 - Make splash gear gradient semi-transparent for background visibility.
+- 0.2.110 - Add radial green highlight to gear on splash screen.
 - 0.2.109 - Move version history to dedicated HISTORY.md file.
 - 0.2.108 - Import UndoRedoService during service setup to fix NameError when launching the application.
 - 0.2.107 - Allow importing top-level modules when rewriting legacy mainappsrc paths.
