@@ -20,6 +20,7 @@ import unittest
 import tkinter as tk
 
 from gui.splash_screen import SplashScreen
+from gui.utils import DIALOG_BG_COLOR
 
 
 class SplashScreenTests(unittest.TestCase):
@@ -75,9 +76,9 @@ class SplashScreenTests(unittest.TestCase):
         top_color = self.splash.canvas.itemcget(bg_items[0], "fill")
         mid_color = self.splash.canvas.itemcget(bg_items[gradient_height - 1], "fill")
         bottom_color = self.splash.canvas.itemcget(bg_items[-1], "fill")
-        self.assertEqual(top_color, "#1e1e1e")
+        self.assertEqual(top_color.lower(), DIALOG_BG_COLOR.lower())
         self.assertEqual(mid_color, "#90ee90")
-        self.assertEqual(bottom_color, "#1e1e1e")
+        self.assertEqual(bottom_color.lower(), DIALOG_BG_COLOR.lower())
 
     def test_close_fades_to_invisible(self):
         if not getattr(self.splash, "_alpha_supported", False):
@@ -103,19 +104,11 @@ class SplashScreenTests(unittest.TestCase):
             )
         )
         horizon_color = self.splash.canvas.itemcget(horizon_item, "fill").lower()
-        self.assertEqual(top_color, "#9b59b6")
+        self.assertEqual(top_color, DIALOG_BG_COLOR.lower())
         self.assertEqual(horizon_color, "white")
-
-    def test_top_gradient(self):
+    def test_no_top_gradient(self):
         items = self.splash.canvas.find_withtag("top_gradient")
-        self.assertGreater(len(items), 0)
-        half = len(items) // 2
-        top_color = self.splash.canvas.itemcget(items[0], "fill")
-        mid_color = self.splash.canvas.itemcget(items[half - 1], "fill")
-        bottom_color = self.splash.canvas.itemcget(items[-1], "fill")
-        self.assertEqual(top_color, "#9b59b6")
-        self.assertEqual(mid_color, "#569cd6")
-        self.assertEqual(bottom_color, "#1e1e1e")
+        self.assertEqual(len(items), 0)
 
 
 if __name__ == "__main__":
