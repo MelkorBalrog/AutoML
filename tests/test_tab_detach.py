@@ -159,3 +159,33 @@ class TestTabDetach:
         assert isinstance(new_nb, ClosableNotebook)
         assert new_nb.tabs() == (str(frame),)
         root.destroy()
+
+    def test_pack_fallback_reparents_tab(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class FailingNotebook(ClosableNotebook):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self._fail = True
+
+            def add(self, child, **kw):  # pragma: no cover - exercised via _move_tab
+                if self._fail:
+                    self._fail = False
+                    raise tk.TclError("force fallback")
+                return super().add(child, **kw)
+
+        target = FailingNotebook(root)
+        target.pack()
+
+        assert nb._move_tab(str(frame), target)
+        assert frame.master is target
+        assert target.tabs() == (str(frame),)
+        root.destroy()
