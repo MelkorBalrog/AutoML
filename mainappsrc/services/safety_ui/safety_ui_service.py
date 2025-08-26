@@ -16,8 +16,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Service providing safety-related user-interface helpers."""
 
-VERSION = "0.2.117"
+from __future__ import annotations
 
-__all__ = ["VERSION"]
+from ...ui.safety_ui import SafetyUIMixin
+
+
+class SafetyUIService(SafetyUIMixin):
+    """Facade exposing :class:`SafetyUIMixin` via delegation."""
+
+    def __init__(self, app: object) -> None:
+        self.app = app
+
+    def __getattr__(self, name):  # pragma: no cover - simple delegation
+        return getattr(self.app, name)
+
+
+__all__ = ["SafetyUIService"]

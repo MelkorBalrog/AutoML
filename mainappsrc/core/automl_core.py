@@ -280,14 +280,12 @@ from gui.dialogs.edit_node_dialog import EditNodeDialog, DecompositionDialog
 from gui.dialogs.fmea_row_dialog import FMEARowDialog
 from gui.dialogs.req_dialog import ReqDialog
 from gui.dialogs.select_base_event_dialog import SelectBaseEventDialog
-from mainappsrc.ui.safety_ui import SafetyUIMixin
-
+from mainappsrc.services.safety_ui import SafetyUIService
 ##########################################
 # Main Application (Parent Diagram)
 ##########################################
 class AutoMLApp(
     ServiceInitMixin,
-    SafetyUIMixin,
     EventHandlersMixin,
     PersistenceWrappersMixin,
 ):
@@ -296,6 +294,7 @@ class AutoMLApp(
     _instance: Optional["AutoMLApp"] = None
     validation_consistency: "ValidationConsistencyService"
     managers: "ManagersFacadeService"
+    safety_ui_service: "SafetyUIService"
 
     #: Maximum number of characters displayed for a notebook tab title. Longer
     #: titles are truncated with an ellipsis to avoid giant tabs that overflow
@@ -384,23 +383,32 @@ class AutoMLApp(
         """Delegate missing attributes to UI helper services.
 
         ``UISetupService`` bundles several UI-related helpers that were
-        previously mixed into :class:`AutoMLApp`.  Attribute lookups fall back
-        first to the service itself and then to the composed
-        :class:`AppLifecycleUI` instance so existing code continues to work
-        without modification.
+        previously mixed into :class:`AutoMLApp`. Attribute lookups fall back
+        first to the service itself, then to the ``SafetyUIService``, and
+        finally to the composed :class:`AppLifecycleUI` instance so existing
+        code continues to work without modification.
         """
 
-        service = self.__dict__.get("ui_service")
-        if service and (
-            name in service.__dict__
-            or any(name in cls.__dict__ for cls in service.__class__.mro())
+        ui_service = self.__dict__.get("ui_service")
+        if ui_service and (
+            name in ui_service.__dict__
+            or any(name in cls.__dict__ for cls in ui_service.__class__.mro())
         ):
-            return getattr(service, name)
-        ui = getattr(service, "lifecycle_ui", None)
-        if ui and (
-            name in ui.__dict__ or any(name in cls.__dict__ for cls in ui.__class__.mro())
+            return getattr(ui_service, name)
+        safety_service = self.__dict__.get("safety_ui_service")
+        if safety_service and (
+            name in safety_service.__dict__
+            or any(name in cls.__dict__ for cls in safety_service.__class__.mro())
         ):
-            return getattr(ui, name)
+            return getattr(safety_service, name)
+        lifecycle_ui = getattr(ui_service, "lifecycle_ui", None)
+        if not lifecycle_ui:
+            lifecycle_ui = self.__dict__.get("lifecycle_ui")
+        if lifecycle_ui and (
+            name in lifecycle_ui.__dict__
+            or any(name in cls.__dict__ for cls in lifecycle_ui.__class__.mro())
+        ):
+            return getattr(lifecycle_ui, name)
         raise AttributeError(f"{type(self).__name__!r} object has no attribute {name!r}")
 
     def __init__(self, root):
