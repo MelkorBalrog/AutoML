@@ -58,6 +58,14 @@ class SplashScreenTests(unittest.TestCase):
         for t in text_items:
             self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "white")
 
+    def test_environment_features_present(self):
+        sun_items = self.splash.canvas.find_withtag("sun")
+        glow_items = self.splash.canvas.find_withtag("horizon_glow")
+        light_items = self.splash.canvas.find_withtag("floor_light")
+        self.assertGreater(len(sun_items), 0)
+        self.assertGreater(len(glow_items), 0)
+        self.assertGreater(len(light_items), 0)
+
     def test_close_fades_to_invisible(self):
         if not getattr(self.splash, "_alpha_supported", False):
             self.skipTest("alpha not supported")
