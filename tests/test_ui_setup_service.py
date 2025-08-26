@@ -16,8 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Unit tests for :class:`UISetupService`."""
 
-VERSION = "0.2.98"
+import tkinter as tk
+import pytest
 
-__all__ = ["VERSION"]
+from mainappsrc.services.ui import UISetupService
+from mainappsrc.core.app_lifecycle_ui import AppLifecycleUI
+
+
+class _DummyApp:
+    pass
+
+
+def test_ui_setup_service_initializes_icons():
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        pytest.skip("Tk not available")
+    app = _DummyApp()
+    service = UISetupService(app, root)
+    service.initialize(root)
+    try:
+        assert isinstance(service.lifecycle_ui, AppLifecycleUI)
+        assert hasattr(service, "pkg_icon")
+    finally:
+        root.destroy()

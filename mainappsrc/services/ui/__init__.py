@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""UI-related service package."""
 
-VERSION = "0.2.98"
+from .ui_setup_service import UISetupService
 
-__all__ = ["VERSION"]
+__all__ = ["UISetupService"]
