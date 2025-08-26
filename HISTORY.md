@@ -1,4 +1,5 @@
 # Version History
+- 0.2.128 - Expose requirement pattern regeneration through config utils for legacy callers.
 - 0.2.127 - Use native Tk reparenting when detaching tabs to keep windows alive.
 - 0.2.126 - Preserve detached tabs by retaining references to floating windows.
 - 0.2.125 - Guard configuration import against external `config` modules in frozen executables.
