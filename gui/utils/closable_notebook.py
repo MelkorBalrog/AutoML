@@ -122,6 +122,7 @@ class ClosableNotebook(ttk.Notebook):
         self._drag_root: tk.Misc | None = None
         self._drag_root_motion: str | None = None
         self._drag_root_release: str | None = None
+        self._floating_windows: list[tk.Toplevel] = []
 
         self.bind("<ButtonPress-1>", self._on_press, True)
         self.bind("<B1-Motion>", self._on_motion)
@@ -334,61 +335,60 @@ class ClosableNotebook(ttk.Notebook):
         self._reset_drag()
 
     def _move_tab(self, tab_id: str, target: "ClosableNotebook") -> bool:
+        """Move *tab_id* to *target* notebook.
+
+        The previous implementation relied solely on the various
+        ``tk::unsupported::reparent`` commands which are unavailable on some
+        platforms, causing the tab to snap back to its source and the floating
+        window to vanish immediately.  First try Tk's native ability to add an
+        existing child to another notebook which works on standard builds.  If
+        that fails fall back to the explicit reparent commands.  When all
+        options fail the tab is reinserted into the original notebook so the
+        widget remains accessible.
+        """
+
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
         self.forget(tab_id)
-        # Reparent the tab's child widget to the target notebook before adding.
-        # ``tk::unsupported::reparent`` is available on most Tk builds but the
-        # exact command name differs across platforms.  Try the known variants
-        # and ignore any errors so that platforms without the command still
-        # proceed.  Some Windows builds expose the command as
-        # ``ReparentWindow`` instead.  ``tk::unsupported::reparent`` expects
-        # platform specific arguments, sometimes window path names and other
-        # times the identifier returned by ``winfo_id``.  Try every combination
-        # and silently continue if the command is unavailable.
-        reparented = False
-        toplevel = target.winfo_toplevel()
-        # Some Tk builds require the new parent to be the containing toplevel
-        # instead of the widget itself.  Try both the notebook and its
-        # toplevel using window path names and numeric identifiers.
-        for cmd in (
-            ("::tk::unsupported::reparent", child.winfo_id(), target.winfo_id()),
-            ("::tk::unsupported::reparent", child._w, target._w),
-            ("::tk::unsupported::reparent", child.winfo_id(), toplevel.winfo_id()),
-            ("::tk::unsupported::reparent", child._w, toplevel._w),
-            ("tk", "unsupported", "reparent", child.winfo_id(), target.winfo_id()),
-            ("tk", "unsupported", "reparent", child._w, target._w),
-            ("tk", "unsupported", "reparent", child.winfo_id(), toplevel.winfo_id()),
-            ("tk", "unsupported", "reparent", child._w, toplevel._w),
-            ("::tk::unsupported::ReparentWindow", child.winfo_id(), target.winfo_id()),
-            ("::tk::unsupported::ReparentWindow", child._w, target._w),
-            ("::tk::unsupported::ReparentWindow", child.winfo_id(), toplevel.winfo_id()),
-            ("::tk::unsupported::ReparentWindow", child._w, toplevel._w),
-            ("tk", "unsupported", "ReparentWindow", child.winfo_id(), target.winfo_id()),
-            ("tk", "unsupported", "ReparentWindow", child._w, target._w),
-            ("tk", "unsupported", "ReparentWindow", child.winfo_id(), toplevel.winfo_id()),
-            ("tk", "unsupported", "ReparentWindow", child._w, toplevel._w),
-        ):
-            try:
-                child.tk.call(*cmd)
-                reparented = True
-                break
-            except tk.TclError:
-                continue
-        if reparented:
-            child.master = target  # keep Python's widget hierarchy in sync
+
+        try:
             target.add(child, text=text)
             target.select(child)
-        else:
-            # If reparenting is unsupported we simply abort the move.
-            # Re-insert the tab into its original notebook so the widget
-            # remains accessible instead of raising a TclError.
-            self.add(child, text=text)
-            self.select(child)
-            return False
+            moved = True
+        except tk.TclError:
+            moved = False
+
+        if not moved:
+            toplevel = target.winfo_toplevel()
+            for cmd in (
+                ("::tk::unsupported::reparent", child.winfo_id(), target.winfo_id()),
+                ("::tk::unsupported::reparent", child._w, target._w),
+                ("::tk::unsupported::reparent", child.winfo_id(), toplevel.winfo_id()),
+                ("::tk::unsupported::reparent", child._w, toplevel._w),
+                ("tk", "unsupported", "reparent", child.winfo_id(), target.winfo_id()),
+                ("tk", "unsupported", "reparent", child._w, target._w),
+                ("tk", "unsupported", "reparent", child.winfo_id(), toplevel.winfo_id()),
+                ("tk", "unsupported", "reparent", child._w, toplevel._w),
+                ("::tk::unsupported::ReparentWindow", child.winfo_id(), target.winfo_id()),
+                ("::tk::unsupported::ReparentWindow", child._w, target._w),
+                ("::tk::unsupported::ReparentWindow", child.winfo_id(), toplevel.winfo_id()),
+                ("::tk::unsupported::ReparentWindow", child._w, toplevel._w),
+                ("tk", "unsupported", "ReparentWindow", child.winfo_id(), target.winfo_id()),
+                ("tk", "unsupported", "ReparentWindow", child._w, target._w),
+                ("tk", "unsupported", "ReparentWindow", child.winfo_id(), toplevel.winfo_id()),
+                ("tk", "unsupported", "ReparentWindow", child._w, toplevel._w),
+            ):
+                try:
+                    child.tk.call(*cmd)
+                    target.add(child, text=text)
+                    target.select(child)
+                    moved = True
+                    break
+                except tk.TclError:
+                    continue
         if isinstance(self.master, tk.Toplevel) and not self.tabs():
             self.master.destroy()
-        return True
+        return moved
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
@@ -396,6 +396,13 @@ class ClosableNotebook(ttk.Notebook):
         height = self.winfo_height() or 200
         win = tk.Toplevel(self)
         win.geometry(f"{width}x{height}+{x}+{y}")
+        self._floating_windows.append(win)
+        win.bind(
+            "<Destroy>",
+            lambda _e, w=win: self._floating_windows.remove(w)
+            if w in self._floating_windows
+            else None,
+        )
         nb = ClosableNotebook(win)
         nb.pack(expand=True, fill="both")
         # ``tk::unsupported::reparent`` requires the target widget to be
@@ -403,8 +410,7 @@ class ClosableNotebook(ttk.Notebook):
         # attempting to move the tab so that reparenting commands have a valid
         # window to target.
         win.update_idletasks()
-        if not self._move_tab(tab_id, nb):
-            win.destroy()
+        self._move_tab(tab_id, nb)
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
