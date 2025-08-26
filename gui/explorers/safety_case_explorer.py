@@ -157,14 +157,17 @@ class SafetyCaseExplorer(tk.Frame):
             inputs = toolbox.analysis_inputs(
                 "Safety & Security Case", reviewed=reviewed, approved=approved
             )
-            if "GSN Argumentation" in inputs:
+            if "GSN Argumentation" not in inputs:
+                return []
+            doc_visible = getattr(toolbox, "document_visible", None)
+            if doc_visible:
+                phases = getattr(toolbox, "doc_phases", {}).get("GSN Argumentation", {})
                 diagrams = [
                     d
                     for d in diagrams
-                    if toolbox.document_visible("GSN Argumentation", d.root.user_name)
+                    if doc_visible("GSN Argumentation", d.root.user_name)
+                    or d.root.user_name not in phases
                 ]
-            else:
-                diagrams = []
         return diagrams
 
     # ------------------------------------------------------------------

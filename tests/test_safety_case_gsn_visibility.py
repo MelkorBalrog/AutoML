@@ -50,7 +50,6 @@ def _setup(rel=None):
         SafetyWorkProduct("Gov", "GSN Argumentation", ""),
         SafetyWorkProduct("Gov", "Safety & Security Case", ""),
     ]
-    toolbox.doc_phases = {"GSN Argumentation": {"Diag": "P1"}}
     toolbox.active_module = "P1"
 
     root = GSNNode("Diag", "Goal")
@@ -114,7 +113,6 @@ def test_gsn_diagram_visibility_respects_active_phase():
         SafetyWorkProduct("Gov2", "GSN Argumentation", ""),
         SafetyWorkProduct("Gov2", "Safety & Security Case", ""),
     ]
-    toolbox.doc_phases = {"GSN Argumentation": {"Diag": "P1"}}
     toolbox.active_module = "P1"
 
     root = GSNNode("Diag", "Goal")
