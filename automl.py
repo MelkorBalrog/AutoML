@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
@@ -16,8 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Lowercase wrapper for the AutoML launcher."""
 
-VERSION = "0.2.109"
+from AutoML import *  # re-export launcher utilities
 
-__all__ = ["VERSION"]
+__all__ = [name for name in globals() if not name.startswith('_')]
