@@ -16,8 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Lowercase launcher module alias.
 
-VERSION = "0.2.107"
+The test-suite imports :mod:`automl` using a lowercase name, whereas the
+project's primary entry point is the capitalised ``AutoML.py`` script.
+This module simply re-exports everything from :mod:`AutoML` so external
+code can rely on the conventional lowercase module name without
+duplicating implementation.
+"""
 
-__all__ = ["VERSION"]
+from AutoML import *  # noqa: F401,F403
+
