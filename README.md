@@ -1,4 +1,4 @@
-version: 0.2.106
+version: 0.2.108
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,9 +1644,11 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.106 - Introduce NodeCloneServiceInterface and refactor core to use it.
-- 0.2.105 - Introduce SyncingAndIdsService and integrate into core.
-- 0.2.104 - Move node utilities from core to gui.utils for centralized access.
+- 0.2.108 - Import UndoRedoService during service setup to fix NameError when launching the application.
+- 0.2.107 - Allow importing top-level modules when rewriting legacy mainappsrc paths.
+- 0.2.106 - Move clipboard, project properties and undo managers into managers package.
+- 0.2.105 - Fix missing mechanism library references in analysis utilities and prevent thread monitor shutdown error.
+- 0.2.104 - Render orange AutoML splash title at 1.5x subtitle size.
 - 0.2.103 - Render white AutoML splash title using subtitle font at quadruple size.
 - 0.2.102 - Fix splash font name retrieval to avoid startup error.
 - 0.2.101 - Ensure AutoML splash title font matches subtitle and store ratio for testing.

@@ -15,29 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Service wrapper for :mod:`mainappsrc.managers.undo_manager`."""
+"""Lowercase compatibility wrapper for :mod:`AutoML`.
 
-from __future__ import annotations
+This thin module re-exports the public interface of the main
+:mod:`AutoML` launcher using a lowercase name so imports remain
+consistent on case-sensitive systems.
+"""
 
-from typing import Any
+from AutoML import *  # noqa: F401,F403
 
-from mainappsrc.managers.undo_manager import UndoRedoManager
-
-
-class UndoRedoService:
-    """Expose :class:`UndoRedoManager` as a service.
-
-    This thin wrapper enables dependency injection of the undo/redo
-    functionality and provides a stable service façade for the
-    application. Attribute access is delegated to the underlying manager
-    so existing calls continue to work unchanged.
-    """
-
-    def __init__(self, app: Any) -> None:  # pragma: no cover - simple container
-        self._manager = UndoRedoManager(app)
-
-    def __getattr__(self, name: str):  # pragma: no cover - delegation
-        return getattr(self._manager, name)
-
-
-__all__ = ["UndoRedoService"]
+__all__ = [name for name in globals() if not name.startswith("_")]
