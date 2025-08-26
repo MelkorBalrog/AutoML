@@ -1,0 +1,25 @@
+# Author: Miguel Marina <karel.capek.robotics@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Copyright (C) 2025 Capek System Safety & Robotic Solutions
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+"""Compatibility wrapper exposing the :mod:`AutoML` launcher as a package."""
+
+from importlib import import_module
+
+_launcher = import_module("AutoML")
+__all__ = [name for name in dir(_launcher) if not name.startswith("_")]
+globals().update({name: getattr(_launcher, name) for name in __all__})

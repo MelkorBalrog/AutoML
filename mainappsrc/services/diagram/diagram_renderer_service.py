@@ -59,6 +59,13 @@ class DiagramRendererService:
         return resolve_original(node)
 
     # ------------------------------------------------------------------
+    # Visibility helpers
+    # ------------------------------------------------------------------
+    def iter_visible_nodes(self, canvas, root_event):
+        """Yield nodes visible in the current viewport."""
+        return self._renderer.iter_visible_nodes(canvas, root_event)
+
+    # ------------------------------------------------------------------
     # Export helpers delegated to DiagramExportSubApp
     # ------------------------------------------------------------------
     def save_diagram_png(self):  # pragma: no cover - GUI export
