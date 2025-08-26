@@ -122,6 +122,7 @@ class ClosableNotebook(ttk.Notebook):
         self._drag_root: tk.Misc | None = None
         self._drag_root_motion: str | None = None
         self._drag_root_release: str | None = None
+        self._floating_windows: list[tk.Toplevel] = []
 
         self.bind("<ButtonPress-1>", self._on_press, True)
         self.bind("<B1-Motion>", self._on_motion)
@@ -396,6 +397,13 @@ class ClosableNotebook(ttk.Notebook):
         height = self.winfo_height() or 200
         win = tk.Toplevel(self)
         win.geometry(f"{width}x{height}+{x}+{y}")
+        self._floating_windows.append(win)
+        win.bind(
+            "<Destroy>",
+            lambda _e, w=win: self._floating_windows.remove(w)
+            if w in self._floating_windows
+            else None,
+        )
         nb = ClosableNotebook(win)
         nb.pack(expand=True, fill="both")
         # ``tk::unsupported::reparent`` requires the target widget to be
