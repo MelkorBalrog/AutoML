@@ -1,4 +1,4 @@
-version: 0.2.103
+version: 0.2.104
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.104 - Move WindowControllers into GUI controls package.
 - 0.2.103 - Render white AutoML splash title using subtitle font at quadruple size.
 - 0.2.102 - Fix splash font name retrieval to avoid startup error.
 - 0.2.101 - Ensure AutoML splash title font matches subtitle and store ratio for testing.
