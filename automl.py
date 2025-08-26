@@ -15,10 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Lowercase launcher wrapper for AutoML."""
 
-"""Compatibility wrapper for :mod:`AutoML` launcher module."""
-
-from __future__ import annotations
-
-# Re-export everything from the canonical launcher
 from AutoML import *  # noqa: F401,F403
