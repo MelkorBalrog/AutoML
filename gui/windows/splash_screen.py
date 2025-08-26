@@ -194,7 +194,7 @@ class SplashScreen(tk.Toplevel):
         self.shadow.lower(self)
 
     def _draw_gradient(self):
-        """Draw a multi-color background gradient."""
+        """Draw a multi-colour gradient with a translucent night overlay."""
         # Color stops: violet sky -> magenta -> light green horizon -> dark ground
         stops = [
             (0.0, (138, 43, 226)),   # violet
@@ -203,6 +203,7 @@ class SplashScreen(tk.Toplevel):
             (1.0, (0, 100, 0)),      # dark green ground
         ]
         steps = self.canvas_size
+        night_height = int(self.canvas_size * 0.3)
         for i in range(steps):
             ratio = i / steps
             # Find two surrounding color stops
@@ -216,6 +217,12 @@ class SplashScreen(tk.Toplevel):
             r = int(left_col[0] + (right_col[0] - left_col[0]) * local)
             g = int(left_col[1] + (right_col[1] - left_col[1]) * local)
             b = int(left_col[2] + (right_col[2] - left_col[2]) * local)
+            if i < night_height:
+                # Apply 50% black at the top, fading to 0% at night_height
+                overlay = 0.5 * (1 - i / night_height)
+                r = int(r * (1 - overlay))
+                g = int(g * (1 - overlay))
+                b = int(b * (1 - overlay))
             color = f"#{r:02x}{g:02x}{b:02x}"
             self.canvas.create_line(0, i, self.canvas_size, i, fill=color)
 

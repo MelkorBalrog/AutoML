@@ -74,6 +74,17 @@ class SplashScreenTests(unittest.TestCase):
         self.assertAlmostEqual(float(self.splash.attributes("-alpha")), 0.0)
         self.assertTrue(self._closed)
 
+    def test_night_sky_gradient(self):
+        top_item = min(self.splash.canvas.find_overlapping(0, 0, self.splash.canvas_size, 0))
+        top_color = self.splash.canvas.itemcget(top_item, "fill").lower()
+        mid_y = int(self.splash.canvas_size * 0.3)
+        mid_item = min(
+            self.splash.canvas.find_overlapping(0, mid_y, self.splash.canvas_size, mid_y)
+        )
+        mid_color = self.splash.canvas.itemcget(mid_item, "fill").lower()
+        self.assertEqual(top_color, "#451571")
+        self.assertEqual(mid_color, "#ff00ff")
+
 
 if __name__ == "__main__":
     unittest.main()
