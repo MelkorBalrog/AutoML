@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Services for report generation and export."""
 
-"""Project version information."""
+from .reporting_export_service import ReportingExportService
 
-VERSION = "0.2.113"
-
-__all__ = ["VERSION"]
+__all__ = ["ReportingExportService"]
