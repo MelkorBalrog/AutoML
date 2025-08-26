@@ -68,6 +68,7 @@ class SplashScreen(tk.Toplevel):
         self.canvas.pack()
         self._draw_gradient()
         self._draw_floor()
+        self._draw_horizon_glow()
         self._center()
         # Initialize cube geometry
         self.angle = 0.0
@@ -188,6 +189,26 @@ class SplashScreen(tk.Toplevel):
             b = int(left_col[2] + (right_col[2] - left_col[2]) * local)
             color = f"#{r:02x}{g:02x}{b:02x}"
             self.canvas.create_line(0, i, self.canvas_size, i, fill=color)
+        self._draw_sun()
+
+    def _draw_sun(self) -> None:
+        """Render a soft radial glow to simulate sunlight."""
+        cx = self.canvas_size * 0.75
+        cy = self.canvas_size * 0.25
+        max_r = 40
+        for r in range(max_r, 0, -4):
+            ratio = r / max_r
+            color = f"#{255:02x}{int(255 * ratio):02x}{int(200 * ratio):02x}"
+            self.canvas.create_oval(
+                cx - r,
+                cy - r,
+                cx + r,
+                cy + r,
+                fill=color,
+                outline="",
+                stipple="gray50",
+                tags="sky_light",
+            )
     def _draw_cloud(self):
         """Draw a small turquoise-magenta-white cloud on the sky."""
         cx, cy = 80, 80
@@ -271,6 +292,38 @@ class SplashScreen(tk.Toplevel):
             color = f"#{r:02x}{g:02x}{b:02x}"
             y = horizon + i
             self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="floor")
+        self._draw_floor_shadows(horizon)
+
+    def _draw_horizon_glow(self) -> None:
+        """Overlay a gentle light band along the horizon."""
+        horizon = int(self.canvas_size * 0.55)
+        for i in range(10):
+            shade = 255 - i * 15
+            color = f"#{shade:02x}{shade:02x}{shade:02x}"
+            y = horizon - 5 + i
+            self.canvas.create_line(
+                0,
+                y,
+                self.canvas_size,
+                y,
+                fill=color,
+                tags="horizon",
+                stipple="gray75",
+            )
+
+    def _draw_floor_shadows(self, horizon: int) -> None:
+        """Darken the floor toward the edges for added depth."""
+        for radius in range(self.canvas_size, 0, -30):
+            self.canvas.create_oval(
+                -radius,
+                horizon,
+                self.canvas_size + radius,
+                self.canvas_size + radius,
+                outline="",
+                fill="black",
+                stipple="gray75",
+                tags="floor",
+            )
 
     def _project(self, x, y, z):
         """Project 3D point onto 2D canvas."""
