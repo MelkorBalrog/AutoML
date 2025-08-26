@@ -77,6 +77,7 @@ from mainappsrc.services import (
     StructureTreeOperationsService,
     config_service,
     SafetyUIService,
+    SERVICE_CLASSES,
 )
 from collections.abc import Mapping
 from gui.utils.drawing_helper import FTADrawingHelper, fta_drawing_helper
@@ -381,6 +382,8 @@ class AutoMLApp(
         self.scenario_libraries = []
         self.mechanism_libraries = []
         self.selected_mechanism_libraries = []
+        # Expose list of available service classes for introspection
+        self.services = SERVICE_CLASSES
         self.setup_services()
         self.init_service = AppInitializationService(self)
         self.init_service.initialize()

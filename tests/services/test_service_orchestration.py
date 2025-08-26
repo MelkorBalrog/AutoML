@@ -20,7 +20,9 @@
 from __future__ import annotations
 
 from mainappsrc.automl_core import AutoMLApp
-from mainappsrc.services import user_config_service
+from mainappsrc import services
+
+user_config_service = services.user_config_service
 
 
 class TestAnalysisServices:

@@ -124,8 +124,12 @@ _SERVICE_ATTRS: Dict[str, Tuple[str, str]] = {
         "EditorsService",
     ),
 }
+# Public sequence of all registered service attribute names
+SERVICE_CLASSES = tuple(_SERVICE_ATTRS.keys())
+# Backward compatibility alias for older code expecting SERVICE_MODULES
+SERVICE_MODULES = SERVICE_CLASSES
 
-__all__ = list(_SERVICE_ATTRS.keys())
+__all__ = list(SERVICE_CLASSES)
 
 
 def __getattr__(name: str) -> Any:  # pragma: no cover - simple delegation
