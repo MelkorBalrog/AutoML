@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Compatibility wrapper for :mod:`mainappsrc.core.automl_core`.
 
-"""Project version information."""
-
-VERSION = "0.2.81"
-
-__all__ = ["VERSION"]
+This module re-exports all public names so legacy imports continue to work.
+"""
+from mainappsrc.core.automl_core import *  # noqa: F401,F403

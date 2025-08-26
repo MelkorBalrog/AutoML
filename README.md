@@ -1,4 +1,4 @@
-version: 0.2.78
+version: 0.2.81
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,8 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.81 - Show GSN diagrams as inputs when governance conditions are met and provide compatibility wrapper for ``page_diagram``.
+- 0.2.80 - Enforce active-phase governance relations for safety case inputs.
 - 0.2.79 - Ensure tools package is available for bundled executable by injecting project root into ``sys.path``.
 - 0.2.78 - Open Requirements Matrix in workspace tab and enforce fixed-size dialogs.
 - 0.2.77 - Coerce PDF export path to string to support Windows paths.

@@ -15,9 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Compatibility wrapper for :mod:`mainappsrc.core.page_diagram`.
 
-"""Project version information."""
-
-VERSION = "0.2.81"
-
-__all__ = ["VERSION"]
+Exposes the :class:`PageDiagram` API at the historic module location to keep
+imports working across the codebase and test suite.
+"""
+from mainappsrc.core.page_diagram import *  # noqa: F401,F403
+from mainappsrc.core.page_diagram import fta_drawing_helper  # noqa: F401
