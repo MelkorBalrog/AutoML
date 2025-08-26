@@ -17,8 +17,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import importlib
-
-from tools.splash_launcher import SplashLauncher
+import sys
+from types import ModuleType
+import types
 
 
 class TestSplashLauncher:
