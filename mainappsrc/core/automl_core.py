@@ -259,8 +259,8 @@ from gui.toolboxes import (
 from pathlib import Path
 from gui.dialogs.user_info_dialog import UserInfoDialog
 
-from . import config_utils
-from .config_utils import _reload_local_config
+import gui.utils.config_utils as config_utils
+from gui.utils.config_utils import _reload_local_config
 
 # Expose configuration helpers and global state
 _CONFIG_PATH = config_utils._CONFIG_PATH

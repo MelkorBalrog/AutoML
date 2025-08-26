@@ -35,7 +35,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from gui.styles.style_manager import StyleManager
 from gui.utils.drawing_helper import fta_drawing_helper
-from .config_utils import AutoML_Helper, GATE_NODE_TYPES
+from gui.utils.config_utils import AutoML_Helper, GATE_NODE_TYPES
 
 
 class DiagramRenderer:
