@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Application initialisation services."""
 
-"""Project version information."""
+from .app_initialization_service import AppInitializationService
 
-VERSION = "0.2.97"
-
-__all__ = ["VERSION"]
+__all__ = ["AppInitializationService"]

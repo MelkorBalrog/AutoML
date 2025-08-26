@@ -15,9 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Service layer for application modules."""
 
-"""Project version information."""
-
-VERSION = "0.2.97"
-
-__all__ = ["VERSION"]
+__all__ = []

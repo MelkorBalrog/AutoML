@@ -68,7 +68,7 @@ from .icon_setup_mixin import IconSetupMixin
 from .style_setup_mixin import StyleSetupMixin
 from .page_diagram import PageDiagram
 from .node_utils import resolve_original as resolve_node_original
-from .app_initializer import AppInitializer
+from mainappsrc.services.app_init import AppInitializationService
 from analysis.mechanisms import (
     DiagnosticMechanism,
     MechanismLibrary,
@@ -271,7 +271,6 @@ from gui.dialogs.user_info_dialog import UserInfoDialog
 
 from . import config_utils
 from .config_utils import _reload_local_config
-from .project_properties_manager import ProjectPropertiesManager
 
 # Expose configuration helpers and global state
 _CONFIG_PATH = config_utils._CONFIG_PATH
@@ -416,7 +415,10 @@ class AutoMLApp(
         self.lifecycle_ui._init_nav_button_style()
         self.setup_services()
         self.setup_icons()
-        AppInitializer(self).initialize()
+        self.init_service = AppInitializationService(self)
+        self.init_service.initialize()
+        self.project_properties_manager = self.init_service.project_properties_manager
+        self.diagram_clipboard = self.init_service.diagram_clipboard_manager
 
         menubar = tk.Menu(root)
         file_menu = tk.Menu(menubar, tearoff=0)
