@@ -40,6 +40,7 @@ else:
     _ROOT = Path(__file__).resolve().parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
+import tools  # noqa: F401  # ensure package is bundled
 from tools.crash_report_logger import install_best
 from tools.memory_manager import manager as memory_manager
 from tools.splash_launcher import SplashLauncher
