@@ -16,13 +16,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Lowercase wrapper module for :mod:`AutoML`.
 
-This adapter allows importing the launcher on case-sensitive file systems
-where the original script is named ``AutoML.py``.  The tests expect a
-module named ``automl`` so we re-export everything from the main script.
-"""
+"""Lowercase wrapper for the AutoML launcher."""
 
-from AutoML import *  # noqa: F401,F403 - re-export public API
+from AutoML import *  # re-export launcher utilities
 
-__all__ = [name for name in globals().keys() if not name.startswith('_')]
+__all__ = [name for name in globals() if not name.startswith('_')]
