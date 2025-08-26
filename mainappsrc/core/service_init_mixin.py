@@ -44,6 +44,7 @@ from mainappsrc.services.analysis.analysis_utils_service import AnalysisUtilsSer
 from mainappsrc.services.safety_analysis import SafetyAnalysisService
 from mainappsrc.services.data_access import DataAccessQueriesService
 from mainappsrc.services.validation import ValidationConsistencyService
+from mainappsrc.services.safety_ui import SafetyUIService
 
 
 class ServiceInitMixin:
@@ -118,3 +119,4 @@ class ServiceInitMixin:
         self.editors_service = EditorsService(self)
         self.analysis_utils_service = AnalysisUtilsService(self)
         self.probability_reliability = self.analysis_utils_service.probability_reliability
+        self.safety_ui_service = SafetyUIService(self)

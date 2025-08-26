@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Safety UI service package."""
 
-VERSION = "0.2.117"
+from .safety_ui_service import SafetyUIService
 
-__all__ = ["VERSION"]
+__all__ = ["SafetyUIService"]
