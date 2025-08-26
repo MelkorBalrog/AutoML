@@ -15,46 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Compatibility wrapper exposing launcher utilities under a stable module name."""
 
-from importlib import util
-from pathlib import Path
+"""Compatibility wrapper exposing :mod:`AutoML` as ``automl``."""
 
-_spec = util.spec_from_file_location("automl_launcher", Path(__file__).with_name("AutoML.py"))
-_launcher = util.module_from_spec(_spec)
-_spec.loader.exec_module(_launcher)  # type: ignore[attr-defined]
-
-GS_PATH = _launcher.GS_PATH
-REQUIRED_PACKAGES = _launcher.REQUIRED_PACKAGES
-memory_manager = _launcher.memory_manager
-importlib = _launcher.importlib
-subprocess = _launcher.subprocess
-os = _launcher.os
-
-
-def ensure_ghostscript() -> None:
-    """Delegate to launcher while honoring patched globals."""
-    _launcher.GS_PATH = GS_PATH
-    _launcher.os = os
-    _launcher.subprocess = subprocess
-    _launcher.ensure_ghostscript()
-
-
-def ensure_packages() -> None:
-    """Delegate to launcher while honoring patched globals."""
-    _launcher.REQUIRED_PACKAGES = REQUIRED_PACKAGES
-    _launcher.importlib = importlib
-    _launcher.subprocess = subprocess
-    _launcher.memory_manager = memory_manager
-    _launcher.ensure_packages()
-
-__all__ = [
-    "ensure_ghostscript",
-    "ensure_packages",
-    "GS_PATH",
-    "REQUIRED_PACKAGES",
-    "memory_manager",
-    "importlib",
-    "subprocess",
-    "os",
-]
+from AutoML import *  # noqa: F401,F403

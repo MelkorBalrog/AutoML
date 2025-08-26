@@ -16,25 +16,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Tests for the :mod:`mainappsrc.services.editing.editors_service` module."""
+"""Tests for the syncing service wrapper."""
 
 from __future__ import annotations
 
-from mainappsrc.services.editing.editors_service import EditorsService
-from mainappsrc.core import editors
+from mainappsrc.services.syncing import SyncingAndIdsService
+from mainappsrc.core import syncing_and_ids
 
 
-def test_editors_service_delegates(monkeypatch):
-    """EditorsService forwards attribute access to underlying Editors instance."""
+def test_syncing_service_delegates(monkeypatch):
+    """Service should forward attribute access to underlying implementation."""
 
     called = {}
 
-    def dummy(self):
-        called["hit"] = True
-        return 42
+    def dummy(self, value):
+        called["hit"] = value
+        return 123
 
-    monkeypatch.setattr(editors.Editors, "dummy", dummy, raising=False)
+    monkeypatch.setattr(syncing_and_ids.Syncing_And_IDs, "dummy", dummy, raising=False)
 
-    service = EditorsService(object())
-    assert service.dummy() == 42
-    assert called["hit"]
+    service = SyncingAndIdsService(object())
+    assert service.dummy(5) == 123
+    assert called["hit"] == 5
+
