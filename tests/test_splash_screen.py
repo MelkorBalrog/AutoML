@@ -61,9 +61,9 @@ class SplashScreenTests(unittest.TestCase):
         for s in shadow_items:
             self.assertEqual(self.splash.canvas.itemcget(s, "fill"), "white")
 
-    def test_star_field_present(self):
+    def test_no_star_field(self):
         star_items = self.splash.canvas.find_withtag("star")
-        self.assertGreater(len(star_items), 0)
+        self.assertEqual(len(star_items), 0)
 
     def test_close_fades_to_invisible(self):
         if not getattr(self.splash, "_alpha_supported", False):
@@ -77,16 +77,12 @@ class SplashScreenTests(unittest.TestCase):
         self.assertAlmostEqual(float(self.splash.attributes("-alpha")), 0.0)
         self.assertTrue(self._closed)
 
-    def test_night_sky_gradient(self):
-        top_item = min(self.splash.canvas.find_overlapping(0, 0, self.splash.canvas_size, 0))
-        top_color = self.splash.canvas.itemcget(top_item, "fill").lower()
-        mid_y = int(self.splash.canvas_size * 0.3)
-        mid_item = min(
-            self.splash.canvas.find_overlapping(0, mid_y, self.splash.canvas_size, mid_y)
-        )
-        mid_color = self.splash.canvas.itemcget(mid_item, "fill").lower()
-        self.assertEqual(top_color, "#451571")
-        self.assertEqual(mid_color, "#ff00ff")
+    def test_void_background_and_horizon(self):
+        self.assertEqual(self.splash.canvas["bg"], "black")
+        horizon_items = self.splash.canvas.find_withtag("horizon")
+        self.assertEqual(len(horizon_items), 1)
+        horizon_color = self.splash.canvas.itemcget(horizon_items[0], "fill")
+        self.assertEqual(horizon_color, "white")
 
 
 if __name__ == "__main__":
