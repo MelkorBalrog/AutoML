@@ -235,8 +235,9 @@ class SplashScreen(tk.Toplevel):
         y = self.canvas_size - 40
         main_text = "AUTOML"
         sub_text = "Automotive Modeling Language"
-        title_size = 26
-        sub_font = ("ITC Stone Serif SemiBold", 12)
+        sub_size = 12
+        title_size = sub_size * 2
+        sub_font = ("ITC Stone Serif SemiBold", sub_size)
         offset = 1
 
         try:
@@ -244,27 +245,36 @@ class SplashScreen(tk.Toplevel):
         except OSError:
             font = ImageFont.load_default()
 
-        bbox = font.getbbox(main_text)
-        text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        gradient = Image.new("RGBA", (text_w, text_h))
-        draw = ImageDraw.Draw(gradient)
+        ascent, descent = font.getmetrics()
+        text_h = ascent + descent
+        total_w = int(font.getlength(main_text))
+        gradient = Image.new("RGBA", (total_w, text_h))
         start = (255, 255, 255)
         end = (255, 140, 0)
-        for xi in range(text_w):
-            t = xi / max(text_w - 1, 1)
-            r = int(start[0] * (1 - t) + end[0] * t)
-            g = int(start[1] * (1 - t) + end[1] * t)
-            b = int(start[2] * (1 - t) + end[2] * t)
-            draw.line([(xi, 0), (xi, text_h)], fill=(r, g, b))
-        mask = Image.new("L", (text_w, text_h), 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.text((-bbox[0], -bbox[1]), main_text, font=font, fill=255)
-        gradient.putalpha(mask)
+        x_pos = 0
+        for ch in main_text:
+            char_w = int(font.getlength(ch))
+            char_grad = Image.new("RGBA", (char_w, text_h))
+            char_draw = ImageDraw.Draw(char_grad)
+            for xi in range(char_w):
+                t = xi / max(char_w - 1, 1)
+                r = int(start[0] * (1 - t) + end[0] * t)
+                g = int(start[1] * (1 - t) + end[1] * t)
+                b = int(start[2] * (1 - t) + end[2] * t)
+                char_draw.line([(xi, 0), (xi, text_h)], fill=(r, g, b))
+            mask = Image.new("L", (char_w, text_h), 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.text((0, 0), ch, font=font, fill=255)
+            char_grad.putalpha(mask)
+            gradient.paste(char_grad, (x_pos, 0), char_grad)
+            x_pos += char_w
         self._title_pil = gradient
 
-        shadow = Image.new("RGBA", (text_w + offset, text_h + offset), (0, 0, 0, 0))
+        shadow = Image.new(
+            "RGBA", (total_w + offset, text_h + offset), (0, 0, 0, 0)
+        )
         shadow_draw = ImageDraw.Draw(shadow)
-        shadow_draw.text((offset - bbox[0], offset - bbox[1]), main_text, font=font, fill=(0, 0, 0, 255))
+        shadow_draw.text((offset, 0), main_text, font=font, fill=(0, 0, 0, 255))
         self._title_shadow_img = ImageTk.PhotoImage(shadow)
         self.canvas.create_image(x, y, image=self._title_shadow_img, tags="title_shadow")
 

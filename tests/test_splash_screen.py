@@ -18,6 +18,7 @@
 
 import unittest
 import tkinter as tk
+from PIL import ImageFont
 
 from gui.splash_screen import SplashScreen
 from gui.utils import DIALOG_BG_COLOR
@@ -67,10 +68,18 @@ class SplashScreenTests(unittest.TestCase):
 
     def test_title_gradient(self):
         img = self.splash._title_pil
-        left = img.getpixel((0, img.height // 2))
-        right = img.getpixel((img.width - 1, img.height // 2))
-        self.assertEqual(left[:3], (255, 255, 255))
-        self.assertEqual(right[:3], (255, 140, 0))
+        try:
+            font = ImageFont.truetype("ITC Stone Serif SemiBold", 24)
+        except OSError:
+            font = ImageFont.load_default()
+        first_width = int(font.getlength("A"))
+        mid_y = img.height // 2
+        # start of first letter is white
+        self.assertEqual(img.getpixel((0, mid_y))[:3], (255, 255, 255))
+        # end of first letter is orange
+        self.assertEqual(img.getpixel((first_width - 1, mid_y))[:3], (255, 140, 0))
+        # next letter restarts gradient to white
+        self.assertEqual(img.getpixel((first_width, mid_y))[:3], (255, 255, 255))
 
     def test_background_gradient(self):
         bg_items = self.splash.canvas.find_withtag("void_bg")
