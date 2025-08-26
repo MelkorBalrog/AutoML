@@ -65,13 +65,6 @@ from .page_diagram import PageDiagram
 from gui.utils.node_utils import resolve_original as resolve_node_original
 from mainappsrc.services.app_init import AppInitializationService
 from mainappsrc.services.ui import UISetupService
-from analysis.mechanisms import (
-    DiagnosticMechanism,
-    MechanismLibrary,
-    ANNEX_D_MECHANISMS,
-    PAS_8800_MECHANISMS,
-)
-from pathlib import Path
 from collections.abc import Mapping
 from gui.utils.drawing_helper import FTADrawingHelper, fta_drawing_helper
 from mainappsrc.services.windows import WindowControllersService
@@ -86,58 +79,7 @@ if TYPE_CHECKING:  # pragma: no cover - type hints only
 from mainappsrc.services.node_clone import NodeCloneServiceInterface
 from mainappsrc.services.view import ViewUpdateService
 from mainappsrc.services.data_access import DataAccessQueriesService
-from analysis.user_config import (
-    load_user_config,
-    save_user_config,
-    set_current_user,
-    load_all_users,
-    set_last_user,
-    CURRENT_USER_NAME,
-    CURRENT_USER_EMAIL,
-)
-from analysis.risk_assessment import (
-    DERIVED_MATURITY_TABLE,
-    ASSURANCE_AGGREGATION_AND,
-    AND_DECOMPOSITION_TABLE,
-    OR_DECOMPOSITION_TABLE,
-    boolify,
-    AutoMLHelper,
-)
-from analysis.models import (
-    MissionProfile,
-    ReliabilityComponent,
-    ReliabilityAnalysis,
-    HazopEntry,
-    HaraEntry,
-    HazopDoc,
-    HaraDoc,
-    StpaEntry,
-    StpaDoc,
-    FI2TCDoc,
-    TC2FIDoc,
-    DamageScenario,
-    ThreatScenario,
-    AttackPath,
-    FunctionThreat,
-    ThreatEntry,
-    ThreatDoc,
-    QUALIFICATIONS,
-    COMPONENT_ATTR_TEMPLATES,
-    RELIABILITY_MODELS,
-    component_fit_map,
-    ASIL_LEVEL_OPTIONS,
-    ASIL_ORDER,
-    ASIL_TARGETS,
-    ASIL_TABLE,
-    ASIL_DECOMP_SCHEMES,
-    calc_asil,
-    global_requirements,
-    ensure_requirement_defaults,
-    REQUIREMENT_TYPE_OPTIONS,
-    REQUIREMENT_WORK_PRODUCTS,
-    CAL_LEVEL_OPTIONS,
-    CybersecurityGoal,
-)
+from mainappsrc.services.config.user_config_service import user_config_service
 from gui.utils.safety_case_table import SafetyCaseTable
 from gui.windows.architecture import (
     UseCaseDiagramWindow,
@@ -180,7 +122,6 @@ else:  # pragma: no cover - script context
         PMHF_TARGETS,
     )
 
-builtins.REQUIREMENT_WORK_PRODUCTS = REQUIREMENT_WORK_PRODUCTS
 builtins.SafetyCaseTable = SafetyCaseTable
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -256,7 +197,6 @@ from gui.toolboxes import (
 )
 
 
-from pathlib import Path
 from mainappsrc.services.config import config_service
 
 
@@ -271,6 +211,8 @@ _PATTERN_PATH = config_service.pattern_path
 _REPORT_TEMPLATE_PATH = config_service.report_template_path
 unique_node_id_counter = config_service.unique_node_id_counter
 AutoML_Helper = config_service.automl_helper
+REQUIREMENT_WORK_PRODUCTS = config_service.requirement_work_products
+builtins.REQUIREMENT_WORK_PRODUCTS = REQUIREMENT_WORK_PRODUCTS
 import uuid
 
 ##########################################
@@ -2846,8 +2788,8 @@ class AutoMLApp(
 
         global AutoML_Helper, unique_node_id_counter
         SysMLRepository.reset_instance()
-        AutoML_Helper = config_service.automl_helper = AutoMLHelper()
-        unique_node_id_counter = config_service.unique_node_id_counter = 1
+        AutoML_Helper = config_service.reset_automl_helper()
+        unique_node_id_counter = config_service.unique_node_id_counter
 
         self.top_events = []
         self.cta_events = []
@@ -3049,8 +2991,8 @@ class AutoMLApp(
 def load_user_data() -> tuple[dict, tuple[str, str]]:
     """Load cached users and last user config concurrently."""
     with ThreadPoolExecutor() as executor:
-        users_future = executor.submit(load_all_users)
-        config_future = executor.submit(load_user_config)
+        users_future = executor.submit(user_config_service.load_all_users)
+        config_future = executor.submit(user_config_service.load_user_config)
         return users_future.result(), config_future.result()
 
 
@@ -3068,18 +3010,18 @@ def _launch_app() -> None:
                 info = WindowControllersService.prompt_user_info(root, "", "")
                 if info:
                     name, email = info
-                    save_user_config(name, email)
+                    user_config_service.save_user_config(name, email)
             else:
                 email = users.get(name, email)
-                set_last_user(name)
+                user_config_service.set_last_user(name)
     else:
         info = WindowControllersService.prompt_user_info(root, last_name, last_email)
         if info:
             name, email = info
-            save_user_config(name, email)
-    set_current_user(name, email)
+            user_config_service.save_user_config(name, email)
+    user_config_service.set_current_user(name, email)
     global AutoML_Helper
-    AutoML_Helper = config_service.automl_helper = AutoMLHelper()
+    AutoML_Helper = config_service.reset_automl_helper()
     root.deiconify()
     try:
         root.state("zoomed")
