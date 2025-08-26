@@ -79,6 +79,7 @@ from mainappsrc.services import (
     SafetyUIService,
     SERVICE_CLASSES,
 )
+SERVICE_MODULES = SERVICE_CLASSES
 from collections.abc import Mapping
 from gui.utils.drawing_helper import FTADrawingHelper, fta_drawing_helper
 

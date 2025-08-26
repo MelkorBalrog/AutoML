@@ -1,4 +1,5 @@
 # Version History
+- 0.2.123 - Define local service registry alias for backwards compatibility.
 - 0.2.122 - Expose service registry constants and integrate all services into core.
 - 0.2.121 - Lazily load services to avoid circular imports and expose user configuration service.
 - 0.2.120 - Integrate all services into central registry and unify core imports.
