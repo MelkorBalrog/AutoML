@@ -44,6 +44,7 @@ import tools  # noqa: F401  # ensure package is bundled
 from tools.crash_report_logger import install_best
 from tools.memory_manager import manager as memory_manager
 from tools.splash_launcher import SplashLauncher
+from tools.trash_eater import manager_eater
 from mainappsrc.version import VERSION
 from mainappsrc.core.automl_core import (
     AutoMLApp,
@@ -234,6 +235,7 @@ def _bootstrap() -> object:
     for path in (str(mainappsrc_path), str(base_path)):
         if path not in sys.path:
             sys.path.insert(0, path)
+    manager_eater.start()
     return importlib.import_module("mainappsrc.automl_core")
 
 
@@ -241,6 +243,7 @@ def main() -> None:
     """Entry point used by both source and bundled executions."""
     SplashLauncher(loader=_bootstrap, post_delay=5000).launch()
     memory_manager.cleanup()
+    manager_eater.stop()
 
 if __name__ == "__main__":
     main()

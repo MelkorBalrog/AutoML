@@ -23,6 +23,8 @@ from __future__ import annotations
 import threading
 from typing import Callable, Optional
 
+from .thread_manager import manager as thread_manager
+
 try:  # pragma: no cover - psutil may not be installed
     import psutil
 except Exception:  # pragma: no cover - optional dependency
@@ -87,14 +89,15 @@ class TrashEater:
         if self._thread and self._thread.is_alive():
             return
         self._stop.clear()
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
+        self._thread = thread_manager.register("trash_eater", self._run, daemon=True)
 
     def stop(self) -> None:
         """Stop background monitoring thread."""
         self._stop.set()
-        if self._thread:
-            self._thread.join()
+        thread = thread_manager.unregister("trash_eater")
+        if thread:
+            thread.join()
+        self._thread = None
 
 
 # Shared default instance for convenience
