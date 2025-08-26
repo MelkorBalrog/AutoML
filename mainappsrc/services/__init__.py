@@ -70,10 +70,6 @@ _SERVICE_ATTRS: Dict[str, Tuple[str, str]] = {
         "mainappsrc.services.data_access.data_access_queries_service",
         "DataAccessQueriesService",
     ),
-    "LazyModelLoader": (
-        "mainappsrc.services.lazy_model_loader",
-        "LazyModelLoader",
-    ),
     # Configuration services
     "config_service": (
         "mainappsrc.services.config.config_service",
