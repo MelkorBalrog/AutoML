@@ -1644,10 +1644,10 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.102 - Fix splash font name retrieval to avoid startup error.
-- 0.2.101 - Ensure AutoML splash title font matches subtitle and store ratio for testing.
-- 0.2.100 - Use subtitle font for AutoML splash title and size it at double the subtitle.
-- 0.2.99 - Double AutoML splash title size for improved visibility.
+- 0.2.102 - Introduce SafetyAnalysisService wrapping FTA/FMEA/FMDA helpers and metrics.
+- 0.2.101 - Introduce AnalysisUtilsService wrapping probability and analysis utilities.
+- 0.2.100 - Wrap legacy editor helpers into EditorsService and refactor core usage.
+- 0.2.99 - Introduce ViewUpdateService for centralised view refreshing.
 - 0.2.98 - Render large orange AutoML title with black border.
 - 0.2.97 - Enlarge AutoML title and apply per-letter white-to-orange gradient.
 - 0.2.96 - Enlarge AutoML title with white-to-orange gradient.
