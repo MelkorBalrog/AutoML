@@ -41,7 +41,7 @@ from mainappsrc.subapps.fta_subapp import FTASubApp
 from mainappsrc.core.fmea_service import FMEAService
 from mainappsrc.managers.fmeda_manager import FMEDAManager
 from gui.windows.fault_prioritization import SelectFaultDialog
-from . import config_utils
+import gui.utils.config_utils as config_utils
 
 
 class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):

@@ -33,7 +33,8 @@ import importlib
 AutoML = importlib.import_module("mainappsrc.core.automl_core")
 AutoMLApp = AutoML.AutoMLApp
 FaultTreeNode = AutoML.FaultTreeNode
-PageDiagram = AutoML.PageDiagram
+import mainappsrc.core.page_diagram as page_module
+PageDiagram = page_module.PageDiagram
 
 import pytest
 
@@ -79,7 +80,8 @@ def _make_page_diagram(mode):
     canvas = Canvas(mode)
     root = FaultTreeNode("", "Top Event")
     root.x = root.y = 0
-    AutoML.tkFont = types.SimpleNamespace(Font=lambda *a, **k: object())
+    page_module.tkFont = types.SimpleNamespace(Font=lambda *a, **k: object())
+    page_module.fta_drawing_helper = types.SimpleNamespace()
     return PageDiagram(app, root, canvas)
 
 
@@ -136,6 +138,13 @@ def test_top_level_menu_gating():
     }
 
     app.diagram_mode = "CTA"
+    app.enable_fta_actions = lambda *a, **k: None
+    app.enable_cta_actions = lambda *a, **k: None
+    app.enable_paa_actions = lambda *a, **k: None
+    app.cta_manager = types.SimpleNamespace(enable_actions=lambda *a, **k: None)
+    app.validation_consistency = types.SimpleNamespace(
+        enable_paa_actions=lambda *a, **k: None
+    )
     app._update_analysis_menus()
     tk = AutoML.tk
     assert all(state == tk.DISABLED for state in app.fta_menu.states.values())
@@ -155,6 +164,7 @@ def test_invalid_node_addition(monkeypatch):
     app.selected_node = parent
     app.analysis_tree = types.SimpleNamespace(selection=lambda: ())
     app.update_views = lambda: None
+    app.undo_manager = types.SimpleNamespace(push_undo_state=lambda *a, **k: None)
     app.diagram_mode = "CTA"
 
     warnings = []

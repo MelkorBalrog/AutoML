@@ -28,7 +28,6 @@ _submodule_map = {
     # Core modules (dependencies first)
     "page_diagram": "core.page_diagram",
     "event_dispatcher": "core.event_dispatcher",
-    "window_controllers": "core.window_controllers",
     "diagram_renderer": "core.diagram_renderer",
     # UI helpers migrated from core
     "app_lifecycle_ui": "ui.app_lifecycle_ui",
@@ -74,7 +73,7 @@ for old, new in _submodule_map.items():
 from .core.automl_core import AutoMLApp
 from .core.page_diagram import PageDiagram
 from .managers.fmeda_manager import FMEDAManager
-from .core.diagram_renderer import DiagramRenderer
+from .services.diagram import DiagramRendererService
 import importlib as _importlib
 
 # Avoid importing the main AutoML launcher during package initialisation
@@ -88,4 +87,10 @@ if AutoML is None:  # pragma: no cover - import only when needed externally
     except Exception:  # pragma: no cover - safety net for optional dependency
         AutoML = None
 
-__all__ = ["AutoMLApp", "PageDiagram", "FMEDAManager", "DiagramRenderer", "AutoML"]
+__all__ = [
+    "AutoMLApp",
+    "PageDiagram",
+    "FMEDAManager",
+    "DiagramRendererService",
+    "AutoML",
+]

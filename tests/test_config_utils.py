@@ -19,7 +19,7 @@
 import json
 from pathlib import Path
 
-from mainappsrc.core import config_utils
+import gui.utils.config_utils as config_utils
 
 
 def test_reload_local_config_updates_gate_types(tmp_path, monkeypatch):
