@@ -1644,7 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.104 - Move WindowControllers into GUI controls package.
+- 0.2.104 - Move style mixins to ``gui.styles`` package.
 - 0.2.103 - Render white AutoML splash title using subtitle font at quadruple size.
 - 0.2.102 - Fix splash font name retrieval to avoid startup error.
 - 0.2.101 - Ensure AutoML splash title font matches subtitle and store ratio for testing.

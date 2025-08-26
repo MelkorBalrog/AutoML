@@ -16,13 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Compatibility wrapper exposing the AutoML launcher as ``automl``.
+"""Lowercase wrapper for :mod:`AutoML` launcher.
 
-This module re-exports all public objects from :mod:`AutoML` so tests and
-user scripts can ``import automl`` regardless of filename casing.
+This module simply re-exports everything from :mod:`AutoML` to provide a
+case-insensitive import for environments or tests that expect a lowercase
+module name.
 """
 
 from AutoML import *  # noqa: F401,F403
 
-__all__ = [name for name in globals() if not name.startswith("_")]
-
+__all__ = []  # populate from AutoML
+try:
+    from AutoML import __all__ as _all
+    __all__ = _all  # type: ignore[assignment]
+except Exception:  # pragma: no cover - fallback if AutoML lacks __all__
+    pass

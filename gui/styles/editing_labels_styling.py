@@ -34,7 +34,7 @@ from tkinter import simpledialog
 
 from gui.controls import messagebox
 from gui.dialogs.dialog_utils import askstring_fixed
-from gui.styles.style_manager import StyleManager
+from .style_manager import StyleManager
 from gui.utils.icon_factory import create_icon
 from gui.dialogs.edit_node_dialog import EditNodeDialog
 
