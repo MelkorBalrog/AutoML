@@ -26,63 +26,271 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from gui.closable_notebook import ClosableNotebook
 
 
-def test_tab_detach_and_reattach():
-    try:
-        root = tk.Tk()
-    except tk.TclError:
-        pytest.skip("Tk not available")
-    nb = ClosableNotebook(root)
-    frame = ttk.Frame(nb)
-    nb.add(frame, text="Tab1")
-    nb.update_idletasks()
+class TestTabDetachBasics:
+    def test_tab_detach_and_reattach(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
 
-    class Event: ...
+        class Event: ...
 
-    press = Event(); press.x = 5; press.y = 5
-    nb._on_tab_press(press)
-    nb._dragging = True
-    release = Event()
-    release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
-    release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
-    nb._on_tab_release(release)
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
 
-    assert len(nb.tabs()) == 0
-    new_nb = frame.master
-    assert isinstance(new_nb, ClosableNotebook)
+        assert len(nb.tabs()) == 0
+        assert len(nb._floating_windows) == 1
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_frame is frame
 
-    press2 = Event(); press2.x = 5; press2.y = 5
-    new_nb._on_tab_press(press2)
-    new_nb._dragging = True
-    release2 = Event()
-    release2.x_root = nb.winfo_rootx() + 10
-    release2.y_root = nb.winfo_rooty() + 10
-    new_nb._on_tab_release(release2)
+        press2 = Event(); press2.x = 5; press2.y = 5
+        new_nb._on_tab_press(press2)
+        new_nb._dragging = True
+        release2 = Event()
+        release2.x_root = nb.winfo_rootx() + 10
+        release2.y_root = nb.winfo_rooty() + 10
+        new_nb._on_tab_release(release2)
 
-    assert len(nb.tabs()) == 1
-    assert frame.master is nb
-    root.destroy()
+        assert len(nb.tabs()) == 1
+        assert new_frame.master is nb
+        root.destroy()
 
+    def test_tab_detach_without_motion(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
 
-def test_tab_detach_without_motion():
-    try:
-        root = tk.Tk()
-    except tk.TclError:
-        pytest.skip("Tk not available")
-    nb = ClosableNotebook(root)
-    frame = ttk.Frame(nb)
-    nb.add(frame, text="Tab1")
-    nb.update_idletasks()
+        class Event: ...
 
-    class Event: ...
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        release.x = nb.winfo_width() + 40
+        release.y = nb.winfo_height() + 40
+        nb._on_tab_release(release)
 
-    press = Event(); press.x = 5; press.y = 5
-    nb._on_tab_press(press)
-    release = Event()
-    release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
-    release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
-    release.x = nb.winfo_width() + 40
-    release.y = nb.winfo_height() + 40
-    nb._on_tab_release(release)
+        assert len(nb.tabs()) == 0
+        root.destroy()
 
-    assert len(nb.tabs()) == 0
-    root.destroy()
+class TestFloatingWindowBehavior:
+    def test_detached_window_kept_alive(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        assert len(nb._floating_windows) == 1
+        win = nb._floating_windows[0]
+        assert win.winfo_exists()
+        root.destroy()
+
+    def test_tab_stays_detached(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_frame.master is new_nb
+        root.destroy()
+
+    def test_detached_window_shows_content(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        assert len(new_nb.tabs()) == 1
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert isinstance(new_frame, ttk.Frame)
+        root.destroy()
+
+    def test_detach_moves_widget(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_frame is frame
+        root.destroy()
+
+class TestCloning:
+    def test_clone_handles_required_args(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+
+        class RequiredButton(ttk.Button):
+            def __init__(self, master, text):
+                super().__init__(master, text=text)
+
+        btn = RequiredButton(nb, text="ok")
+        nb.add(btn, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_btn = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_btn.cget("text") == "ok"
+        root.destroy()
+
+    def test_clone_handles_attribute_args(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+
+        class AttrWidget(ttk.Frame):
+            def __init__(self, master, text):
+                super().__init__(master)
+                self._text = text
+
+        widget = AttrWidget(nb, text="hello")
+        nb.add(widget, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_widget = new_nb.nametowidget(new_nb.tabs()[0])
+        assert getattr(new_widget, "_text", None) == "hello"
+        root.destroy()
+
+    def test_clone_copies_entry_text(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        entry = ttk.Entry(frame)
+        entry.insert(0, "value")
+        entry.pack()
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        new_entry = next(w for w in new_frame.winfo_children() if isinstance(w, ttk.Entry))
+        assert new_entry.get() == "value"
+        root.destroy()

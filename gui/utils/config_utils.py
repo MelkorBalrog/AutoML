@@ -21,6 +21,9 @@ from __future__ import annotations
 """Compatibility layer exposing :mod:`ConfigService` globals."""
 
 from mainappsrc.services.config import config_service
+from analysis.requirement_rule_generator import (
+    regenerate_requirement_patterns as _regen_patterns,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -44,6 +47,11 @@ def _reload_local_config() -> None:
     config_service.reload_local_config()
 
 
+def regenerate_requirement_patterns() -> None:
+    """Regenerate requirement patterns via the analysis service."""
+    _regen_patterns()
+
+
 # Global Unique ID counter and helper instance
 unique_node_id_counter = config_service.unique_node_id_counter
 AutoML_Helper = config_service.automl_helper
@@ -52,6 +60,7 @@ __all__ = [
     "_reload_local_config",
     "unique_node_id_counter",
     "AutoML_Helper",
+    "regenerate_requirement_patterns",
     "GATE_NODE_TYPES",
     "_CONFIG_PATH",
     "_PATTERN_PATH",

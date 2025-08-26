@@ -1,4 +1,21 @@
 # Version History
+- 0.2.139 - Clone widget state so detached tabs keep their data.
+- 0.2.138 - Reduce tab-detachment cyclomatic complexity and ignore master when cloning widgets.
+- 0.2.137 - Capture attribute-based widget arguments when cloning tabs and clean up failed detachment windows.
+- 0.2.136 - Copy required widget options when cloning tabs so custom controls detach without errors.
+- 0.2.135 - Move tab widgets instead of cloning to prevent empty detached windows and ensure only one floating window per drag.
+- 0.2.134 - Clone tab contents into brand-new windows so dragged tabs stay
+            detached without relying on platform reparenting.
+- 0.2.133 - Keep detached tabs in new windows even when reparenting fails by
+            packing the tab content into the floating window instead of
+            snapping back.
+- 0.2.132 - Reparent tabs using geometry-manager fallback to keep detached windows on platforms lacking reparent commands.
+- 0.2.131 - Fix splash launcher circular import and add package entry point for Python execution.
+- 0.2.130 - Ensure detached windows display tab content and restore tabs when detachment fails.
+- 0.2.129 - Remove snap-back fallback when detaching tabs so floating windows persist.
+- 0.2.128 - Expose requirement pattern regeneration through config utils for legacy callers.
+- 0.2.127 - Use native Tk reparenting when detaching tabs to keep windows alive.
+- 0.2.126 - Preserve detached tabs by retaining references to floating windows.
 - 0.2.125 - Guard configuration import against external `config` modules in frozen executables.
 - 0.2.124 - Import global requirements into core and add lazy service registry with context-managed cleanup.
 - 0.2.123 - Define local service registry alias for backwards compatibility.
