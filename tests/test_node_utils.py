@@ -17,9 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Tests for :mod:`mainappsrc.core.node_utils`."""
+"""Tests for :mod:`gui.utils.node_utils`."""
 
-from mainappsrc.core.node_utils import resolve_original
+from gui.utils.node_utils import resolve_original
 
 
 class DummyNode:

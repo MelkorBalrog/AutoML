@@ -60,6 +60,8 @@ from pathlib import Path
 from .event_handlers import EventHandlersMixin
 from .persistence_wrappers import PersistenceWrappersMixin
 from .service_init_mixin import ServiceInitMixin
+from .page_diagram import PageDiagram
+from gui.utils.node_utils import resolve_original as resolve_node_original
 from mainappsrc.services.app_init import AppInitializationService
 from mainappsrc.services.ui import UISetupService
 from analysis.mechanisms import (
