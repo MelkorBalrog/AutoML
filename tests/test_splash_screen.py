@@ -55,12 +55,22 @@ class SplashScreenTests(unittest.TestCase):
         text_items = self.splash.canvas.find_withtag("title_text")
         self.assertEqual(len(shadow_items), 2)
         self.assertEqual(len(text_items), 2)
-        fills = {self.splash.canvas.itemcget(t, "fill") for t in text_items}
-        self.assertIn("black", fills)
-        self.assertIn("white", fills)
-        shadow_fills = {self.splash.canvas.itemcget(s, "fill") for s in shadow_items}
-        self.assertIn("black", shadow_fills)
-        self.assertIn("white", shadow_fills)
+        image_items = [t for t in text_items if self.splash.canvas.type(t) == "image"]
+        text_nodes = [t for t in text_items if self.splash.canvas.type(t) == "text"]
+        self.assertEqual(len(image_items), 1)
+        self.assertEqual(len(text_nodes), 1)
+        self.assertEqual(self.splash.canvas.itemcget(text_nodes[0], "fill"), "white")
+        shadow_text = [s for s in shadow_items if self.splash.canvas.type(s) == "text"]
+        self.assertEqual(
+            self.splash.canvas.itemcget(shadow_text[0], "fill"), "black"
+        )
+
+    def test_title_gradient(self):
+        img = self.splash._title_pil
+        left = img.getpixel((0, img.height // 2))
+        right = img.getpixel((img.width - 1, img.height // 2))
+        self.assertEqual(left[:3], (255, 255, 255))
+        self.assertEqual(right[:3], (255, 140, 0))
 
     def test_background_gradient(self):
         bg_items = self.splash.canvas.find_withtag("void_bg")

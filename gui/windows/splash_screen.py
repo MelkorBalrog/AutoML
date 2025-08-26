@@ -19,7 +19,7 @@
 import tkinter as tk
 import math
 import random
-from PIL import Image, ImageDraw, ImageTk
+from PIL import Image, ImageDraw, ImageTk, ImageFont
 
 
 class SplashScreen(tk.Toplevel):
@@ -230,25 +230,48 @@ class SplashScreen(tk.Toplevel):
         self.canvas.create_image(0, 0, anchor="nw", image=self._bg_photo, tags="void_bg")
 
     def _draw_title(self) -> None:
-        """Render AutoML title in black and subtitle in white."""
+        """Render gradient AutoML title and white subtitle."""
         x = self.canvas_size / 2
         y = self.canvas_size - 40
-        main_text = "AutoML"
+        main_text = "AUTOML"
         sub_text = "Automotive Modeling Language"
-        title_font = ("ITC Stone Serif SemiBold", 14)
+        title_size = 26
         sub_font = ("ITC Stone Serif SemiBold", 12)
         offset = 1
 
-        # White shadow for black main text
-        self.canvas.create_text(
-            x + offset,
-            y + offset,
-            text=main_text,
-            font=title_font,
-            fill="white",
-            tags="title_shadow",
-        )
-        # Black shadow for white subtitle
+        try:
+            font = ImageFont.truetype("ITC Stone Serif SemiBold", title_size)
+        except OSError:
+            font = ImageFont.load_default()
+
+        bbox = font.getbbox(main_text)
+        text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        gradient = Image.new("RGBA", (text_w, text_h))
+        draw = ImageDraw.Draw(gradient)
+        start = (255, 255, 255)
+        end = (255, 140, 0)
+        for xi in range(text_w):
+            t = xi / max(text_w - 1, 1)
+            r = int(start[0] * (1 - t) + end[0] * t)
+            g = int(start[1] * (1 - t) + end[1] * t)
+            b = int(start[2] * (1 - t) + end[2] * t)
+            draw.line([(xi, 0), (xi, text_h)], fill=(r, g, b))
+        mask = Image.new("L", (text_w, text_h), 0)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.text((-bbox[0], -bbox[1]), main_text, font=font, fill=255)
+        gradient.putalpha(mask)
+        self._title_pil = gradient
+
+        shadow = Image.new("RGBA", (text_w + offset, text_h + offset), (0, 0, 0, 0))
+        shadow_draw = ImageDraw.Draw(shadow)
+        shadow_draw.text((offset - bbox[0], offset - bbox[1]), main_text, font=font, fill=(0, 0, 0, 255))
+        self._title_shadow_img = ImageTk.PhotoImage(shadow)
+        self.canvas.create_image(x, y, image=self._title_shadow_img, tags="title_shadow")
+
+        self._title_img = ImageTk.PhotoImage(gradient)
+        self.canvas.create_image(x, y, image=self._title_img, tags="title_text")
+
+        # Subtitle with white text and black shadow
         self.canvas.create_text(
             x + offset,
             y + 20 + offset,
@@ -256,15 +279,6 @@ class SplashScreen(tk.Toplevel):
             font=sub_font,
             fill="black",
             tags="title_shadow",
-        )
-
-        self.canvas.create_text(
-            x,
-            y,
-            text=main_text,
-            font=title_font,
-            fill="black",
-            tags="title_text",
         )
         self.canvas.create_text(
             x,
