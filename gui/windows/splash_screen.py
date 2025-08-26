@@ -67,10 +67,7 @@ class SplashScreen(tk.Toplevel):
         )
         self.canvas.pack()
         self._draw_gradient()
-        self._draw_horizon_glow()
-        self._draw_sun()
         self._draw_floor()
-        self._draw_floor_light()
         self._center()
         # Initialize cube geometry
         self.angle = 0.0
@@ -167,13 +164,13 @@ class SplashScreen(tk.Toplevel):
         self.shadow.lower(self)
 
     def _draw_gradient(self):
-        """Draw a sky-to-ground gradient with warm horizon."""
-        # Color stops: deep blue sky -> light blue -> warm horizon -> dark ground
+        """Draw a multi-color background gradient."""
+        # Color stops: violet sky -> magenta -> light green horizon -> dark ground
         stops = [
-            (0.0, (10, 10, 80)),      # deep blue
-            (0.4, (70, 130, 180)),    # sky blue
-            (0.55, (255, 214, 170)),  # warm horizon
-            (1.0, (0, 100, 0)),       # ground
+            (0.0, (138, 43, 226)),   # violet
+            (0.3, (255, 0, 255)),    # magenta
+            (0.55, (144, 238, 144)), # light green
+            (1.0, (0, 100, 0)),      # dark green ground
         ]
         steps = self.canvas_size
         for i in range(steps):
@@ -190,40 +187,7 @@ class SplashScreen(tk.Toplevel):
             g = int(left_col[1] + (right_col[1] - left_col[1]) * local)
             b = int(left_col[2] + (right_col[2] - left_col[2]) * local)
             color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(0, i, self.canvas_size, i, fill=color, tags="sky")
-
-    def _draw_horizon_glow(self) -> None:
-        """Render a soft band of light across the horizon."""
-        horizon = int(self.canvas_size * 0.55)
-        band = 30
-        for i in range(band):
-            ratio = i / band
-            r = 255
-            g = int(233 - 80 * ratio)
-            b = int(200 - 120 * ratio)
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            y = horizon - band // 2 + i
-            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="horizon_glow")
-
-    def _draw_sun(self) -> None:
-        """Draw a glowing sun centered on the horizon."""
-        cx = self.canvas_size / 2
-        cy = int(self.canvas_size * 0.55)
-        for radius, colour, stipple in [
-            (50, "#fffacd", "gray25"),
-            (35, "#ffe066", "gray25"),
-            (20, "#ffd700", ""),
-        ]:
-            self.canvas.create_oval(
-                cx - radius,
-                cy - radius,
-                cx + radius,
-                cy + radius,
-                fill=colour,
-                outline="",
-                stipple=stipple,
-                tags="sun",
-            )
+            self.canvas.create_line(0, i, self.canvas_size, i, fill=color)
     def _draw_cloud(self):
         """Draw a small turquoise-magenta-white cloud on the sky."""
         cx, cy = 80, 80
@@ -307,22 +271,6 @@ class SplashScreen(tk.Toplevel):
             color = f"#{r:02x}{g:02x}{b:02x}"
             y = horizon + i
             self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="floor")
-
-    def _draw_floor_light(self) -> None:
-        """Add a soft highlight to the ground."""
-        cx = self.canvas_size / 2
-        cy = int(self.canvas_size * 0.55) + 40
-        for radius, stipple in [(120, "gray75"), (80, "gray50")]:
-            self.canvas.create_oval(
-                cx - radius,
-                cy - radius / 2,
-                cx + radius,
-                cy + radius / 2,
-                fill="#ffffe0",
-                outline="",
-                stipple=stipple,
-                tags="floor_light",
-            )
 
     def _project(self, x, y, z):
         """Project 3D point onto 2D canvas."""
