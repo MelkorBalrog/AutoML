@@ -352,7 +352,6 @@ class ClosableNotebook(ttk.Notebook):
         self.forget(tab_id)
 
         try:
-            child.master = target
             target.add(child, text=text)
             target.select(child)
             moved = True
@@ -381,22 +380,15 @@ class ClosableNotebook(ttk.Notebook):
             ):
                 try:
                     child.tk.call(*cmd)
-                    child.master = target
                     target.add(child, text=text)
                     target.select(child)
                     moved = True
                     break
                 except tk.TclError:
                     continue
-
-        if not moved:
-            self.add(child, text=text)
-            self.select(child)
-            return False
-
         if isinstance(self.master, tk.Toplevel) and not self.tabs():
             self.master.destroy()
-        return True
+        return moved
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
@@ -418,8 +410,7 @@ class ClosableNotebook(ttk.Notebook):
         # attempting to move the tab so that reparenting commands have a valid
         # window to target.
         win.update_idletasks()
-        if not self._move_tab(tab_id, nb):
-            win.destroy()
+        self._move_tab(tab_id, nb)
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
