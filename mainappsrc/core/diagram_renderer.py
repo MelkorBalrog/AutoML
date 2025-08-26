@@ -48,18 +48,35 @@ class DiagramRenderer:
     # Basic node and subtree drawing
     # ------------------------------------------------------------------
     def draw_subtree_with_filter(self, canvas: tk.Canvas, root_event, visible_nodes: Iterable) -> None:
-        self.draw_connections_subtree(canvas, root_event, set())
+        visible_nodes = list(visible_nodes)
+        visible_ids = {n.unique_id for n in visible_nodes}
+        self.draw_connections_subtree(canvas, root_event, set(), visible_ids)
         for n in visible_nodes:
             self.draw_node_on_canvas_pdf(canvas, n)
 
     def draw_subtree(self, canvas: tk.Canvas, root_event) -> None:
         canvas.delete("all")
-        self.draw_connections_subtree(canvas, root_event, set())
-        for n in self.app.get_all_nodes(root_event):
+        visible_nodes = list(self.iter_visible_nodes(canvas, root_event))
+        visible_ids = {n.unique_id for n in visible_nodes}
+        self.draw_connections_subtree(canvas, root_event, set(), visible_ids)
+        for n in visible_nodes:
             self.draw_node_on_canvas_pdf(canvas, n)
         canvas.config(scrollregion=canvas.bbox("all"))
 
-    def draw_connections_subtree(self, canvas: tk.Canvas, node, drawn_ids: Set[int]) -> None:
+    def iter_visible_nodes(self, canvas: tk.Canvas, root_event) -> Iterable:
+        """Yield nodes that fall within the current canvas viewport."""
+        x0 = canvas.canvasx(0)
+        y0 = canvas.canvasy(0)
+        x1 = canvas.canvasx(canvas.winfo_width())
+        y1 = canvas.canvasy(canvas.winfo_height())
+        padding = 50 * self.app.zoom
+        for n in self.app.get_all_nodes(root_event):
+            eff_x = n.x * self.app.zoom
+            eff_y = n.y * self.app.zoom
+            if x0 - padding <= eff_x <= x1 + padding and y0 - padding <= eff_y <= y1 + padding:
+                yield n
+
+    def draw_connections_subtree(self, canvas: tk.Canvas, node, drawn_ids: Set[int], visible_ids: Set[int] | None = None) -> None:
         if id(node) in drawn_ids:
             return
         drawn_ids.add(id(node))
@@ -69,16 +86,17 @@ class DiagramRenderer:
         parent_bottom = (node.x * self.app.zoom, node.y * self.app.zoom + 40 * self.app.zoom)
         N = len(node.children)
         for i, child in enumerate(node.children):
-            parent_conn = (
-                node.x * self.app.zoom - region_width / 2 + (i + 0.5) * (region_width / N),
-                parent_bottom[1],
-            )
-            child_top = (child.x * self.app.zoom, child.y * self.app.zoom - 45 * self.app.zoom)
-            fta_drawing_helper.draw_90_connection(
-                canvas, parent_conn, child_top, outline_color="dimgray", line_width=1
-            )
+            if visible_ids is None or node.unique_id in visible_ids or child.unique_id in visible_ids:
+                parent_conn = (
+                    node.x * self.app.zoom - region_width / 2 + (i + 0.5) * (region_width / N),
+                    parent_bottom[1],
+                )
+                child_top = (child.x * self.app.zoom, child.y * self.app.zoom - 45 * self.app.zoom)
+                fta_drawing_helper.draw_90_connection(
+                    canvas, parent_conn, child_top, outline_color="dimgray", line_width=1
+                )
         for child in node.children:
-            self.draw_connections_subtree(canvas, child, drawn_ids)
+            self.draw_connections_subtree(canvas, child, drawn_ids, visible_ids)
 
     def draw_node_on_canvas_pdf(self, canvas: tk.Canvas, node) -> None:
         # For cloned nodes, use the original's values.
