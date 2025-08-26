@@ -156,7 +156,7 @@ from analysis.scenario_description import template_phrases
 from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
 from tools.crash_report_logger import install_best, watchdog_best
 from tools.thread_manager import manager as thread_manager
-from mainappsrc.core.editing_labels_styling import Editing_Labels_Styling
+from gui.styles.editing_labels_styling import Editing_Labels_Styling
 import copy
 import tkinter.font as tkFont
 import builtins

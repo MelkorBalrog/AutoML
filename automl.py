@@ -16,8 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Lowercase wrapper for :mod:`AutoML` launcher.
 
-VERSION = "0.2.104"
+This module simply re-exports everything from :mod:`AutoML` to provide a
+case-insensitive import for environments or tests that expect a lowercase
+module name.
+"""
 
-__all__ = ["VERSION"]
+from AutoML import *  # noqa: F401,F403
+
+__all__ = []  # populate from AutoML
+try:
+    from AutoML import __all__ as _all
+    __all__ = _all  # type: ignore[assignment]
+except Exception:  # pragma: no cover - fallback if AutoML lacks __all__
+    pass
