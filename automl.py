@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
@@ -15,9 +16,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Lowercase wrapper module for :mod:`AutoML`.
 
-"""Project version information."""
+This adapter allows importing the launcher on case-sensitive file systems
+where the original script is named ``AutoML.py``.  The tests expect a
+module named ``automl`` so we re-export everything from the main script.
+"""
 
-VERSION = "0.2.109"
+from AutoML import *  # noqa: F401,F403 - re-export public API
 
-__all__ = ["VERSION"]
+__all__ = [name for name in globals().keys() if not name.startswith('_')]
