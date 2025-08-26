@@ -18,10 +18,8 @@
 
 import unittest
 import tkinter as tk
-from PIL import ImageFont
 
 from gui.splash_screen import SplashScreen
-from gui.utils import DIALOG_BG_COLOR
 
 
 class SplashScreenTests(unittest.TestCase):
@@ -56,32 +54,18 @@ class SplashScreenTests(unittest.TestCase):
         text_items = self.splash.canvas.find_withtag("title_text")
         self.assertEqual(len(shadow_items), 2)
         self.assertEqual(len(text_items), 2)
-        image_items = [t for t in text_items if self.splash.canvas.type(t) == "image"]
-        text_nodes = [t for t in text_items if self.splash.canvas.type(t) == "text"]
-        self.assertEqual(len(image_items), 1)
-        self.assertEqual(len(text_nodes), 1)
-        self.assertEqual(self.splash.canvas.itemcget(text_nodes[0], "fill"), "white")
-        shadow_text = [s for s in shadow_items if self.splash.canvas.type(s) == "text"]
-        self.assertEqual(
-            self.splash.canvas.itemcget(shadow_text[0], "fill"), "black"
-        )
-
-    def test_title_orange_with_black_border(self):
-        img = self.splash._title_pil
-        colors = {
-            img.getpixel((x, y))[:3]
-            for x in range(img.width)
-            for y in range(img.height)
-            if img.getpixel((x, y))[3] > 0
-        }
-        self.assertIn((255, 140, 0), colors)
-        self.assertIn((0, 0, 0), colors)
+        for item in text_items:
+            self.assertEqual(self.splash.canvas.type(item), "text")
+            self.assertEqual(self.splash.canvas.itemcget(item, "fill"), "white")
+        for item in shadow_items:
+            self.assertEqual(self.splash.canvas.type(item), "text")
+            self.assertEqual(self.splash.canvas.itemcget(item, "fill"), "black")
 
     def test_title_font_matches_subtitle(self):
         self.assertEqual(self.splash._title_font_name, self.splash._sub_font_name)
 
-    def test_title_size_is_double(self):
-        self.assertEqual(self.splash._title_size, 24)
+    def test_title_size_is_quadruple(self):
+        self.assertEqual(self.splash._title_size, self.splash._sub_size * 4)
 
     def test_background_gradient(self):
         bg_items = self.splash.canvas.find_withtag("void_bg")

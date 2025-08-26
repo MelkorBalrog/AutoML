@@ -15,9 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Compatibility wrapper exposing the main AutoML module as ``automl``."""
 
-"""Project version information."""
+from AutoML import *  # noqa: F401,F403
 
-VERSION = "0.2.103"
-
-__all__ = ["VERSION"]
+if __name__ == "__main__":
+    from AutoML import main
+    main()

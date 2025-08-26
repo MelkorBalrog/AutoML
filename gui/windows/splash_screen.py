@@ -230,59 +230,53 @@ class SplashScreen(tk.Toplevel):
         self.canvas.create_image(0, 0, anchor="nw", image=self._bg_photo, tags="void_bg")
 
     def _draw_title(self) -> None:
-        """Render orange AutoML title with black border and white subtitle."""
+        """Render white AutoML title and subtitle with black shadows."""
         x = self.canvas_size / 2
         y = self.canvas_size - 40
-        main_text = "AUTOML"
+        main_text = "AutoML"
         sub_text = "Automotive Modeling Language"
         sub_size = 12
-        title_size = sub_size * 2
-        sub_font_name = "DejaVu Serif"
-        sub_font = (sub_font_name, sub_size)
+        title_size = sub_size * 4
         offset = 1
+        self._sub_size = sub_size
         self._title_size = title_size
-        self._sub_font_name = sub_font_name
 
-        try:
-            font = ImageFont.truetype("DejaVuSerif.ttf", title_size)
-        except OSError:
+        font = None
+        font_name = ""
+        for candidate in ("DejaVuSerif.ttf", "DejaVuSerif-Bold.ttf"):
             try:
-                font = ImageFont.truetype("DejaVuSerif-Bold.ttf", title_size)
+                font = ImageFont.truetype(candidate, title_size)
+                font_name = font.getname()[0]
+                break
             except OSError:
-                font = ImageFont.load_default()
-        self._title_font_name = getattr(font, "getname", lambda: ("",))()[0]
+                continue
+        if font is None:
+            font_name = "Helvetica"
 
-        bbox = font.getbbox(main_text, stroke_width=1)
-        width, height = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        draw.text(
-            (-bbox[0], -bbox[1]),
-            main_text,
-            font=font,
-            fill=(255, 140, 0),
-            stroke_width=1,
-            stroke_fill="black",
+        self._title_font_name = font_name
+        self._sub_font_name = font_name
+        title_font = (font_name, title_size)
+        sub_font = (font_name, sub_size)
+
+        # Title with shadow
+        self.canvas.create_text(
+            x + offset,
+            y + offset,
+            text=main_text,
+            font=title_font,
+            fill="black",
+            tags="title_shadow",
         )
-        self._title_pil = img
-
-        shadow = Image.new("RGBA", (width + offset, height + offset), (0, 0, 0, 0))
-        shadow_draw = ImageDraw.Draw(shadow)
-        shadow_draw.text(
-            (offset - bbox[0], -bbox[1]),
-            main_text,
-            font=font,
-            fill=(0, 0, 0, 255),
-            stroke_width=1,
-            stroke_fill=(0, 0, 0, 255),
+        self.canvas.create_text(
+            x,
+            y,
+            text=main_text,
+            font=title_font,
+            fill="white",
+            tags="title_text",
         )
-        self._title_shadow_img = ImageTk.PhotoImage(shadow)
-        self.canvas.create_image(x, y, image=self._title_shadow_img, tags="title_shadow")
 
-        self._title_img = ImageTk.PhotoImage(img)
-        self.canvas.create_image(x, y, image=self._title_img, tags="title_text")
-
-        # Subtitle with white text and black shadow
+        # Subtitle with shadow
         self.canvas.create_text(
             x + offset,
             y + 20 + offset,
