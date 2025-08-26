@@ -81,7 +81,7 @@ class SplashScreenTests(unittest.TestCase):
         self.assertEqual(self.splash._title_font_name, self.splash._sub_font_name)
 
     def test_title_size_is_double(self):
-        self.assertEqual(self.splash._title_size, 24)
+        self.assertEqual(self.splash._title_size, self.splash._sub_size * 2)
 
     def test_background_gradient(self):
         bg_items = self.splash.canvas.find_withtag("void_bg")

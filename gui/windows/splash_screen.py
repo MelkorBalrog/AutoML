@@ -237,20 +237,25 @@ class SplashScreen(tk.Toplevel):
         sub_text = "Automotive Modeling Language"
         sub_size = 12
         title_size = sub_size * 2
-        sub_font_name = "DejaVu Serif"
-        sub_font = (sub_font_name, sub_size)
         offset = 1
+        self._sub_size = sub_size
         self._title_size = title_size
-        self._sub_font_name = sub_font_name
 
-        try:
-            font = ImageFont.truetype("DejaVuSerif.ttf", title_size)
-        except OSError:
+        font = None
+        for candidate in ("DejaVuSerif.ttf", "DejaVuSerif-Bold.ttf"):
             try:
-                font = ImageFont.truetype("DejaVuSerif-Bold.ttf", title_size)
+                font = ImageFont.truetype(candidate, title_size)
+                break
             except OSError:
-                font = ImageFont.load_default()
-        self._title_font_name = getattr(font, "getname", lambda: ("",))()[0]
+                continue
+        if font is None:
+            font = ImageFont.load_default()
+
+        get_name = getattr(font, "getname", None)
+        self._title_font_name = get_name()[0] if callable(get_name) else ""
+        sub_font_name = self._title_font_name
+        sub_font = (sub_font_name, sub_size)
+        self._sub_font_name = sub_font_name
 
         bbox = font.getbbox(main_text, stroke_width=1)
         width, height = bbox[2] - bbox[0], bbox[3] - bbox[1]
