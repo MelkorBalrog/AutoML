@@ -41,8 +41,6 @@ from gui.utils.tooltip import ToolTip
 from gui.styles.style_manager import StyleManager
 from gui.toolboxes.review_toolbox import ReviewData, ReviewParticipant, ReviewComment
 from functools import partial
-# Governance helper class
-from mainappsrc.managers.paa_manager import PrototypeAssuranceManager
 from gui.toolboxes.safety_management_toolbox import SafetyManagementToolbox
 from gui.explorers.safety_case_explorer import SafetyCaseExplorer
 from gui.windows.gsn_diagram_window import GSN_WINDOWS
@@ -59,16 +57,14 @@ from gui.dialogs.user_select_dialog import UserSelectDialog
 from gui.dialogs.decomposition_dialog import DecompositionDialog
 from dataclasses import asdict
 from pathlib import Path
-from .ui_setup import UISetupMixin
 from .event_handlers import EventHandlersMixin
 from .persistence_wrappers import PersistenceWrappersMixin
 from .analysis_utils import AnalysisUtilsMixin
 from .service_init_mixin import ServiceInitMixin
-from .icon_setup_mixin import IconSetupMixin
-from .style_setup_mixin import StyleSetupMixin
 from .page_diagram import PageDiagram
 from .node_utils import resolve_original as resolve_node_original
-from .app_initializer import AppInitializer
+from mainappsrc.services.app_init import AppInitializationService
+from mainappsrc.services.ui import UISetupService
 from analysis.mechanisms import (
     DiagnosticMechanism,
     MechanismLibrary,
@@ -271,7 +267,6 @@ from gui.dialogs.user_info_dialog import UserInfoDialog
 
 from . import config_utils
 from .config_utils import _reload_local_config
-from .project_properties_manager import ProjectPropertiesManager
 
 # Expose configuration helpers and global state
 _CONFIG_PATH = config_utils._CONFIG_PATH
@@ -295,11 +290,8 @@ from .safety_ui import SafetyUIMixin
 # Main Application (Parent Diagram)
 ##########################################
 class AutoMLApp(
-    StyleSetupMixin,
     ServiceInitMixin,
-    IconSetupMixin,
     SafetyUIMixin,
-    UISetupMixin,
     EventHandlersMixin,
     PersistenceWrappersMixin,
     AnalysisUtilsMixin,
@@ -368,21 +360,24 @@ class AutoMLApp(
         return self._top_event_workflows
 
     def __getattr__(self, name):  # pragma: no cover - simple delegation
-        """Delegate missing attributes to the lifecycle UI helper.
+        """Delegate missing attributes to UI helper services.
 
-        ``AppLifecycleUI`` now hosts a number of UI-centric helpers that were
-        previously methods on :class:`AutoMLApp`.  Existing code (and tests)
-        still expect these helpers to be accessible directly from the main
-        application instance.  This ``__getattr__`` implementation forwards
-        such attribute lookups to ``self.lifecycle_ui`` when the attribute
-        exists there, preserving backwards compatibility without replicating
-        numerous wrapper methods.
+        ``UISetupService`` bundles several UI-related helpers that were
+        previously mixed into :class:`AutoMLApp`.  Attribute lookups fall back
+        first to the service itself and then to the composed
+        :class:`AppLifecycleUI` instance so existing code continues to work
+        without modification.
         """
 
-        ui = self.__dict__.get("lifecycle_ui")
+        service = self.__dict__.get("ui_service")
+        if service and (
+            name in service.__dict__
+            or any(name in cls.__dict__ for cls in service.__class__.mro())
+        ):
+            return getattr(service, name)
+        ui = getattr(service, "lifecycle_ui", None)
         if ui and (
-            name in ui.__dict__
-            or any(name in cls.__dict__ for cls in ui.__class__.mro())
+            name in ui.__dict__ or any(name in cls.__dict__ for cls in ui.__class__.mro())
         ):
             return getattr(ui, name)
         raise AttributeError(f"{type(self).__name__!r} object has no attribute {name!r}")
@@ -390,8 +385,9 @@ class AutoMLApp(
     def __init__(self, root):
         AutoMLApp._instance = self
         self.root = root
-        self.setup_style(root)
-        self.lifecycle_ui = AppLifecycleUI(self, root)
+        self.ui_service = UISetupService(self, root)
+        self.ui_service.initialize(root)
+        self.lifecycle_ui = self.ui_service.lifecycle_ui
         self.labels_styling = Editing_Labels_Styling(self)
         self.top_events = []
         self.cta_events = []
@@ -413,10 +409,11 @@ class AutoMLApp(
         self.zoom = 1.0
         self.rc_dragged = False
         self.diagram_font = tkFont.Font(family="Arial", size=int(8 * self.zoom))
-        self.lifecycle_ui._init_nav_button_style()
         self.setup_services()
-        self.setup_icons()
-        AppInitializer(self).initialize()
+        self.init_service = AppInitializationService(self)
+        self.init_service.initialize()
+        self.project_properties_manager = self.init_service.project_properties_manager
+        self.diagram_clipboard = self.init_service.diagram_clipboard_manager
 
         menubar = tk.Menu(root)
         file_menu = tk.Menu(menubar, tearoff=0)
@@ -2347,45 +2344,13 @@ class AutoMLApp(
         """Initialize a CTA diagram and its top-level event."""
         self.cta_manager.create_diagram()
 
-    def enable_fta_actions(self, enabled: bool) -> None:
-        """Enable or disable FTA-related menu actions."""
-        mode = getattr(self, "diagram_mode", "FTA")
-        if hasattr(self, "fta_menu"):
-            state = tk.NORMAL if enabled else tk.DISABLED
-            for key in (
-                "add_gate",
-                "add_basic_event",
-                "add_gate_from_failure_mode",
-                "add_fault_event",
-            ):
-                self.fta_menu.entryconfig(self._fta_menu_indices[key], state=state)
-                
-    def enable_paa_actions(self, enabled: bool) -> None:
-        """Delegate to :class:`Pages_and_PAA` to toggle PAA actions."""
-        self.pages_and_paa.enable_paa_actions(enabled)
-                
-    def _update_analysis_menus(self,mode=None):
+    def _update_analysis_menus(self, mode=None):
         """Enable or disable node-adding menu items based on diagram mode."""
         if mode is None:
             mode = getattr(self, "diagram_mode", "FTA")
         self.enable_fta_actions(mode == "FTA")
         self.cta_manager.enable_actions(mode == "CTA")
         self.validation_consistency.enable_paa_actions(mode == "PAA")
-
-    def _create_paa_tab(self) -> None:
-        """Delegate PAA tab creation to helper."""
-        self.pages_and_paa._create_paa_tab()
-
-    def create_paa_diagram(self) -> None:
-        """Delegate PAA diagram setup to helper."""
-        self.pages_and_paa.create_paa_diagram()
-
-    @property
-    def paa_manager(self) -> PrototypeAssuranceManager:
-        """Lazily create and return the PAA manager."""
-        if not hasattr(self, "_paa_manager"):
-            self._paa_manager = PrototypeAssuranceManager(self)
-        return self._paa_manager
 
     @property
     def pages_and_paa(self):
@@ -2396,23 +2361,8 @@ class AutoMLApp(
             self._pages_and_paa = Pages_and_PAA(self)
         return self._pages_and_paa
 
-    def _reset_fta_state(self):
-        """Clear references to the FTA tab and its canvas."""
-        self.canvas_tab = None
-        self.canvas_frame = None
-        self.canvas = None
-        self.hbar = None
-        self.vbar = None
-        self.page_diagram = None
-
     def ensure_fta_tab(self):  # pragma: no cover - delegation
         return self.validation_consistency.ensure_fta_tab()
-
-    def _format_diag_title(self, diag) -> str:
-        """Return SysML style title for a diagram tab."""
-        if diag.name:
-            return f"\N{LEFT-POINTING DOUBLE ANGLE QUOTATION MARK}{diag.diag_type}\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK} {diag.name}"
-        return f"\N{LEFT-POINTING DOUBLE ANGLE QUOTATION MARK}{diag.diag_type}\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}"
 
     def open_use_case_diagram(self):
         self.window_controllers.open_use_case_diagram()
