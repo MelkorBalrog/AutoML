@@ -427,6 +427,7 @@ class SplashScreen(tk.Toplevel):
         steps = 25
         start = (255, 255, 255)
         end = (204, 255, 204)  # low green
+        alpha_hex = "80"  # 50% transparency
         for step in range(steps, 0, -1):
             ratio = step / steps
             r_inner = inner * ratio
@@ -441,7 +442,7 @@ class SplashScreen(tk.Toplevel):
             cr = int(start[0] * (1 - ratio) + end[0] * ratio)
             cg = int(start[1] * (1 - ratio) + end[1] * ratio)
             cb = int(start[2] * (1 - ratio) + end[2] * ratio)
-            colour = f"#{cr:02x}{cg:02x}{cb:02x}"
+            colour = f"#{cr:02x}{cg:02x}{cb:02x}{alpha_hex}"
             self.canvas.create_polygon(
                 pts, outline="", fill=colour, tags="gear_fill"
             )
@@ -453,7 +454,7 @@ class SplashScreen(tk.Toplevel):
             cy - 1,
             cx + 1,
             cy + 1,
-            fill="#ffffff",
+            fill="#ffffff80",
             outline="",
             tags="gear_fill",
         )
