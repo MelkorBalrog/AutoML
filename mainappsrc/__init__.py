@@ -76,7 +76,11 @@ _submodule_map = {
 }
 
 for old, new in _submodule_map.items():
-    sys.modules[f"{__name__}.{old}"] = importlib.import_module(f".{new}", __name__)
+    try:
+        module = importlib.import_module(f".{new}", __name__)
+    except ModuleNotFoundError:
+        module = importlib.import_module(new)
+    sys.modules[f"{__name__}.{old}"] = module
 
 from .core.automl_core import AutoMLApp
 from .core.page_diagram import PageDiagram
