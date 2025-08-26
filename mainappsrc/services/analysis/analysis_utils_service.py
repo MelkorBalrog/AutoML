@@ -29,10 +29,18 @@ class AnalysisUtilsService(AnalysisUtilsMixin):
     def __init__(self, app: object) -> None:
         self.app = app
         # Mirror collections used by the mixin so service methods operate on
-        # the application's data structures.
-        self.scenario_libraries = app.scenario_libraries
-        self.mechanism_libraries = app.mechanism_libraries
-        self.selected_mechanism_libraries = app.selected_mechanism_libraries
+        # the application's data structures.  Default to empty lists if the
+        # application has not initialised them yet.
+        self.scenario_libraries = getattr(app, "scenario_libraries", [])
+        self.mechanism_libraries = getattr(app, "mechanism_libraries", [])
+        self.selected_mechanism_libraries = getattr(
+            app, "selected_mechanism_libraries", []
+        )
+        # Ensure the application gains these attributes when absent so later
+        # initialisation steps operate on the same list objects.
+        setattr(app, "scenario_libraries", self.scenario_libraries)
+        setattr(app, "mechanism_libraries", self.mechanism_libraries)
+        setattr(app, "selected_mechanism_libraries", self.selected_mechanism_libraries)
         self.probability_reliability = Probability_Reliability(app)
 
     # ------------------------------------------------------------------

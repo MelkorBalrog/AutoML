@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
