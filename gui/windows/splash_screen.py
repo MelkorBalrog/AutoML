@@ -194,41 +194,28 @@ class SplashScreen(tk.Toplevel):
         self.shadow.lower(self)
 
     def _draw_gradient(self):
-        """Draw a multi-colour gradient with a translucent night overlay."""
-        # Color stops: violet sky -> magenta -> light green horizon -> dark ground
-        stops = [
-            (0.0, (138, 43, 226)),   # violet
-            (0.3, (255, 0, 255)),    # magenta
-            (0.55, (144, 238, 144)), # light green
-            (1.0, (0, 100, 0)),      # dark green ground
-        ]
-        steps = self.canvas_size
-        night_height = int(self.canvas_size * 0.3)
-        for i in range(steps):
-            ratio = i / steps
-            # Find two surrounding color stops
-            for idx in range(len(stops) - 1):
-                if stops[idx][0] <= ratio <= stops[idx + 1][0]:
-                    left_pos, left_col = stops[idx]
-                    right_pos, right_col = stops[idx + 1]
-                    break
-            # Normalize ratio between the two stops
-            local = (ratio - left_pos) / (right_pos - left_pos)
-            r = int(left_col[0] + (right_col[0] - left_col[0]) * local)
-            g = int(left_col[1] + (right_col[1] - left_col[1]) * local)
-            b = int(left_col[2] + (right_col[2] - left_col[2]) * local)
-            if i < night_height:
-                # Apply 50% black at the top, fading to 0% at night_height
-                overlay = 0.5 * (1 - i / night_height)
-                r = int(r * (1 - overlay))
-                g = int(g * (1 - overlay))
-                b = int(b * (1 - overlay))
+        """Emit a narrow light-green glow from the white horizon."""
+        horizon = int(self.canvas_size * 0.55)
+        gradient_height = int(self.canvas_size * 0.1)
+        start = horizon - gradient_height
+        for y in range(start, horizon):
+            ratio = (y - start) / max(1, gradient_height - 1)
+            r = int(144 * ratio)
+            g = int(238 * ratio)
+            b = int(144 * ratio)
             color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(0, i, self.canvas_size, i, fill=color)
+            self.canvas.create_line(
+                0,
+                y,
+                self.canvas_size,
+                y,
+                fill=color,
+                tags="void_bg",
+            )
 
     def _draw_stars(self) -> None:
-        """Scatter small white stars across the upper sky."""
-        StarField(self.canvas, self.canvas_size, self.canvas_size).draw()
+        """No stars in the void."""
+        return
     def _draw_cloud(self):
         """Draw a small turquoise-magenta-white cloud on the sky."""
         cx, cy = 80, 80
@@ -299,31 +286,16 @@ class SplashScreen(tk.Toplevel):
         )
 
     def _draw_floor(self):
-        """Add subtle white light near horizon and darker shadow toward bottom."""
-        horizon_ratio = 0.55
-        horizon = int(self.canvas_size * horizon_ratio)
-        steps = self.canvas_size - horizon
-        white_strength = 0.15
-        black_strength = 0.25
-        for i in range(steps):
-            ratio = i / steps
-            # base gradient from light to dark green
-            r = int(144 + (0 - 144) * ratio)
-            g = int(238 + (100 - 238) * ratio)
-            b = int(144 + (0 - 144) * ratio)
-            # white glow near horizon
-            w = (1 - ratio) * white_strength
-            r = int(r + (255 - r) * w)
-            g = int(g + (255 - g) * w)
-            b = int(b + (255 - b) * w)
-            # black shadow near bottom
-            sh = ratio * black_strength
-            r = int(r * (1 - sh))
-            g = int(g * (1 - sh))
-            b = int(b * (1 - sh))
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            y = horizon + i
-            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="floor")
+        """Draw a white horizon line against the void."""
+        horizon = int(self.canvas_size * 0.55)
+        self.canvas.create_line(
+            0,
+            horizon,
+            self.canvas_size,
+            horizon,
+            fill="white",
+            tags="horizon",
+        )
 
     def _project(self, x, y, z):
         """Project 3D point onto 2D canvas."""
