@@ -59,6 +59,7 @@ class SplashScreen(tk.Toplevel):
             self._shadow_alpha_target = None
 
         self.canvas_size = 300
+
         self.canvas = tk.Canvas(
             self,
             width=self.canvas_size,
