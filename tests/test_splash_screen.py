@@ -68,6 +68,14 @@ class SplashScreenTests(unittest.TestCase):
             self.splash.canvas.itemcget(horizon_items[0], "fill"), "white"
         )
 
+    def test_void_gradient(self):
+        bg_items = self.splash.canvas.find_withtag("void_bg")
+        self.assertGreater(len(bg_items), 0)
+        top_color = self.splash.canvas.itemcget(bg_items[0], "fill")
+        bottom_color = self.splash.canvas.itemcget(bg_items[-1], "fill")
+        self.assertEqual(top_color, "#90ee90")
+        self.assertEqual(bottom_color, "#000000")
+
     def test_close_fades_to_invisible(self):
         if not getattr(self.splash, "_alpha_supported", False):
             self.skipTest("alpha not supported")
