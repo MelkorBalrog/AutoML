@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Manager facade service package."""
 
-"""Project version information."""
+from .managers_facade_service import ManagersFacadeService
 
-VERSION = "0.2.115"
-
-__all__ = ["VERSION"]
+__all__ = ["ManagersFacadeService"]

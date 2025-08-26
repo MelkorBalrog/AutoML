@@ -26,29 +26,17 @@ from mainappsrc.subapps.project_editor_subapp import ProjectEditorSubApp
 from mainappsrc.subapps.risk_assessment_subapp import RiskAssessmentSubApp
 from mainappsrc.subapps.reliability_subapp import ReliabilitySubApp
 
-from .syncing_and_ids import Syncing_And_IDs
 from mainappsrc.services.undo import UndoRedoService
 from mainappsrc.services.navigation import NavigationInputService
 from mainappsrc.services.syncing import SyncingAndIdsService
 
-from mainappsrc.managers.user_manager import UserManager
-from mainappsrc.managers.project_manager import ProjectManager
-from mainappsrc.managers.cyber_manager import CyberSecurityManager
-from mainappsrc.managers.drawing_manager import DrawingManager
 from mainappsrc.subapps.diagram_export_subapp import DiagramExportSubApp
 from mainappsrc.subapps.use_case_diagram_subapp import UseCaseDiagramSubApp
 from mainappsrc.subapps.activity_diagram_subapp import ActivityDiagramSubApp
 from mainappsrc.subapps.block_diagram_subapp import BlockDiagramSubApp
 from mainappsrc.subapps.internal_block_diagram_subapp import InternalBlockDiagramSubApp
 from mainappsrc.subapps.control_flow_diagram_subapp import ControlFlowDiagramSubApp
-from mainappsrc.managers.sotif_manager import SOTIFManager
-from mainappsrc.managers.cta_manager import ControlTreeManager
-from mainappsrc.managers.requirements_manager import RequirementsManagerSubApp
-from mainappsrc.managers.review_manager import ReviewManager
-from mainappsrc.managers.safety_case_manager import SafetyCaseManager
-from mainappsrc.managers.mission_profile_manager import MissionProfileManager
-from mainappsrc.managers.scenario_library_manager import ScenarioLibraryManager
-from mainappsrc.managers.odd_library_manager import OddLibraryManager
+from mainappsrc.services.managers import ManagersFacadeService
 from mainappsrc.services.versioning import VersioningReviewService
 from mainappsrc.services.reporting import ReportingExportService
 from mainappsrc.services.editing.editors_service import EditorsService
@@ -103,24 +91,26 @@ class ServiceInitMixin:
         ):
             setattr(self, _name, getattr(self.nav_input, _name))
         self.undo_manager = UndoRedoService(self)
-        self.user_manager = UserManager(self)
-        self.project_manager = ProjectManager(self)
-        self.cyber_manager = CyberSecurityManager(self)
+        managers = ManagersFacadeService(self)
+        self.user_manager = managers.user_manager
+        self.project_manager = managers.project_manager
+        self.cyber_manager = managers.cyber_manager
         self.diagram_export_app = DiagramExportSubApp(self)
         self.use_case_diagram_app = UseCaseDiagramSubApp(self)
         self.activity_diagram_app = ActivityDiagramSubApp(self)
         self.block_diagram_app = BlockDiagramSubApp(self)
         self.internal_block_diagram_app = InternalBlockDiagramSubApp(self)
         self.control_flow_diagram_app = ControlFlowDiagramSubApp(self)
-        self.sotif_manager = SOTIFManager(self)
-        self.cta_manager = ControlTreeManager(self)
-        self.requirements_manager = RequirementsManagerSubApp(self)
-        self.review_manager = ReviewManager(self)
-        self.safety_case_manager = SafetyCaseManager(self)
-        self.mission_profile_manager = MissionProfileManager(self)
-        self.scenario_library_manager = ScenarioLibraryManager(self)
-        self.odd_library_manager = OddLibraryManager(self)
-        self.drawing_manager = DrawingManager(self)
+        self.sotif_manager = managers.sotif_manager
+        self.cta_manager = managers.cta_manager
+        self.requirements_manager = managers.requirements_manager
+        self.review_manager = managers.review_manager
+        self.safety_case_manager = managers.safety_case_manager
+        self.mission_profile_manager = managers.mission_profile_manager
+        self.scenario_library_manager = managers.scenario_library_manager
+        self.odd_library_manager = managers.odd_library_manager
+        self.drawing_manager = managers.drawing_manager
+        self.managers = managers
         self.versioning_review = VersioningReviewService(self)
         self.data_access_queries = DataAccessQueriesService(self)
         self.validation_consistency = ValidationConsistencyService(self)

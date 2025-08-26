@@ -76,10 +76,9 @@ from gui.utils.drawing_helper import FTADrawingHelper, fta_drawing_helper
 from mainappsrc.core.event_dispatcher import EventDispatcher
 from gui.controls.window_controllers import WindowControllers
 from mainappsrc.core.top_event_workflows import Top_Event_Workflows
-from mainappsrc.managers.review_manager import ReviewManager
-from mainappsrc.managers.drawing_manager import DrawingManager
 from mainappsrc.services.versioning import VersioningReviewService
 from mainappsrc.services.reporting import ReportingExportService
+from mainappsrc.services.managers import ManagersFacadeService
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
     from mainappsrc.services.validation import ValidationConsistencyService
@@ -163,13 +162,8 @@ from gui.styles.editing_labels_styling import Editing_Labels_Styling
 import copy
 import tkinter.font as tkFont
 import builtins
-from mainappsrc.managers.user_manager import UserManager
-from mainappsrc.managers.project_manager import ProjectManager
 from mainappsrc.managers.product_goal_manager import ProductGoalManager
 from gui.dialogs.project_properties_dialog import ProjectPropertiesDialog
-from mainappsrc.managers.sotif_manager import SOTIFManager
-from mainappsrc.managers.cyber_manager import CyberSecurityManager
-from mainappsrc.managers.cta_manager import ControlTreeManager
 if __package__ and __package__.startswith("AutoML"):
     from AutoML.config.automl_constants import (
         dynamic_recommendations,
@@ -302,6 +296,7 @@ class AutoMLApp(
 
     _instance: Optional["AutoMLApp"] = None
     validation_consistency: "ValidationConsistencyService"
+    managers: "ManagersFacadeService"
 
     #: Maximum number of characters displayed for a notebook tab title. Longer
     #: titles are truncated with an ellipsis to avoid giant tabs that overflow
