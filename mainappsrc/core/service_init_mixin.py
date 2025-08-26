@@ -27,7 +27,7 @@ from mainappsrc.subapps.risk_assessment_subapp import RiskAssessmentSubApp
 from mainappsrc.subapps.reliability_subapp import ReliabilitySubApp
 
 from .syncing_and_ids import Syncing_And_IDs
-from mainappsrc.services.undo import UndoRedoService
+from ..managers.undo_manager import UndoRedoManager
 from mainappsrc.services.navigation import NavigationInputService
 from mainappsrc.services.syncing import SyncingAndIdsService
 

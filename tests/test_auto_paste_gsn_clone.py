@@ -20,7 +20,7 @@ import types
 
 from mainappsrc.models.gsn import GSNNode, GSNDiagram
 from AutoML import AutoMLApp, AutoML_Helper
-from mainappsrc.core.diagram_clipboard_manager import DiagramClipboardManager
+from mainappsrc.managers.diagram_clipboard_manager import DiagramClipboardManager
 from gui.controls import messagebox
 
 

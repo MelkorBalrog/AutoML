@@ -28,7 +28,7 @@ sys.modules.setdefault("PIL.ImageTk", types.ModuleType("PIL.ImageTk"))
 
 from AutoML import AutoMLApp
 import AutoML
-from mainappsrc.core.undo_manager import UndoRedoManager
+from mainappsrc.managers.undo_manager import UndoRedoManager
 
 
 class DummyNotebook:

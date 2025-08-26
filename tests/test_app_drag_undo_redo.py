@@ -19,7 +19,7 @@
 import types
 
 from AutoML import AutoMLApp
-from mainappsrc.core.undo_manager import UndoRedoManager
+from mainappsrc.managers.undo_manager import UndoRedoManager
 
 
 class DummyEvent:

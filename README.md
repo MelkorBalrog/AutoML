@@ -1644,7 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.106 - Introduce `UndoRedoService` wrapper and integrate with core application.
+- 0.2.106 - Move clipboard, project properties and undo managers into managers package.
 - 0.2.105 - Fix missing mechanism library references in analysis utilities and prevent thread monitor shutdown error.
 - 0.2.104 - Render orange AutoML splash title at 1.5x subtitle size.
 - 0.2.103 - Render white AutoML splash title using subtitle font at quadruple size.

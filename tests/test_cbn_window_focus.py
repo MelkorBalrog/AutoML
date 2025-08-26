@@ -20,7 +20,7 @@ import types
 import weakref
 
 from AutoML import AutoMLApp
-from mainappsrc.core.diagram_clipboard_manager import DiagramClipboardManager
+from mainappsrc.managers.diagram_clipboard_manager import DiagramClipboardManager
 from analysis.causal_bayesian_network import CausalBayesianNetworkDoc
 from gui.causal_bayesian_network_window import (
     CausalBayesianNetworkWindow,

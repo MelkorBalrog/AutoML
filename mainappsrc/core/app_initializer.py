@@ -40,8 +40,8 @@ from mainappsrc.managers.product_goal_manager import ProductGoalManager
 from mainappsrc.managers.gsn_manager import GSNManager
 from mainappsrc.core.structure_tree_operations import Structure_Tree_Operations
 from gui.utils.drawing_helper import fta_drawing_helper
-from .project_properties_manager import ProjectPropertiesManager
-from .diagram_clipboard_manager import DiagramClipboardManager
+from ..managers.project_properties_manager import ProjectPropertiesManager
+from ..managers.diagram_clipboard_manager import DiagramClipboardManager
 
 if TYPE_CHECKING:  # pragma: no cover - for type checkers only
     from .automl_core import AutoMLApp
