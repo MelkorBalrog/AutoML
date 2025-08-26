@@ -235,24 +235,32 @@ class SplashScreen(tk.Toplevel):
         y = self.canvas_size - 40
         main_text = "AUTOML"
         sub_text = "Automotive Modeling Language"
+        font_family = "DejaVu Serif"
         sub_size = 12
         title_size = sub_size * 2
         offset = 1
-
-        try:
-            font = ImageFont.truetype("DejaVuSerif.ttf", title_size)
-        except OSError:
-            try:
-                font = ImageFont.truetype("DejaVuSerif-Bold.ttf", title_size)
-            except OSError:
-                font = ImageFont.load_default()
-        font_name = getattr(font, "getname", lambda: ("",))[0]
-
-        self._title_font_name = font_name
-        self._sub_font_name = font_name
         self._title_size = title_size
-        self._subtitle_size = sub_size
-        sub_font = (font_name, sub_size)
+
+        # Load the same font family for both title and subtitle, falling back
+        # to a reasonable default if unavailable.  This guarantees the AutoML
+        # title mirrors the subtitle's typography.
+        font = None
+        font_paths = [
+            f"{font_family.replace(' ', '')}.ttf",
+            f"{font_family.replace(' ', '')}-Bold.ttf",
+        ]
+        for path in font_paths:
+            try:
+                font = ImageFont.truetype(path, title_size)
+                break
+            except OSError:
+                continue
+        if font is None:
+            font = ImageFont.load_default()
+
+        self._title_font_name = getattr(font, "getname", lambda: (font_family,))[0]
+        self._sub_font_name = self._title_font_name
+        sub_font = (self._sub_font_name, sub_size)
 
         bbox = font.getbbox(main_text, stroke_width=1)
         width, height = bbox[2] - bbox[0], bbox[3] - bbox[1]
