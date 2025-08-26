@@ -48,8 +48,9 @@ class TestTabDetach:
         nb._on_tab_release(release)
 
         assert len(nb.tabs()) == 0
-        new_nb = frame.master
-        assert isinstance(new_nb, ClosableNotebook)
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
 
         press2 = Event(); press2.x = 5; press2.y = 5
         new_nb._on_tab_press(press2)
@@ -60,7 +61,7 @@ class TestTabDetach:
         new_nb._on_tab_release(release2)
 
         assert len(nb.tabs()) == 1
-        assert frame.master is nb
+        assert new_frame.master is nb
         root.destroy()
 
     def test_tab_detach_without_motion(self):
@@ -132,7 +133,10 @@ class TestTabDetach:
         release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
         nb._on_tab_release(release)
 
-        assert frame.master is not nb
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_frame.master is new_nb
         root.destroy()
 
     def test_detached_window_shows_content(self):
@@ -155,52 +159,17 @@ class TestTabDetach:
         release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
         nb._on_tab_release(release)
 
-        new_nb = frame.master
-        assert isinstance(new_nb, ClosableNotebook)
-        assert new_nb.tabs() == (str(frame),)
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        assert len(new_nb.tabs()) == 1
         root.destroy()
 
-    def test_pack_fallback_reparents_tab(self):
+    def test_detach_clones_widget(self):
         try:
             root = tk.Tk()
         except tk.TclError:
             pytest.skip("Tk not available")
-
         nb = ClosableNotebook(root)
-        frame = ttk.Frame(nb)
-        nb.add(frame, text="Tab1")
-        nb.update_idletasks()
-
-        class FailingNotebook(ClosableNotebook):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self._fail = True
-
-            def add(self, child, **kw):  # pragma: no cover - exercised via _move_tab
-                if self._fail:
-                    self._fail = False
-                    raise tk.TclError("force fallback")
-                return super().add(child, **kw)
-
-        target = FailingNotebook(root)
-        target.pack()
-
-        assert nb._move_tab(str(frame), target)
-        assert frame.master is target
-        assert target.tabs() == (str(frame),)
-        root.destroy()
-
-    def test_detach_packs_content_when_move_fails(self):
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-
-        class FailingNotebook(ClosableNotebook):
-            def _move_tab(self, *_a, **_kw):  # pragma: no cover - exercised via _detach_tab
-                return False
-
-        nb = FailingNotebook(root)
         frame = ttk.Frame(nb)
         nb.add(frame, text="Tab1")
         nb.update_idletasks()
@@ -215,7 +184,8 @@ class TestTabDetach:
         release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
         nb._on_tab_release(release)
 
-        assert nb._floating_windows
         win = nb._floating_windows[0]
-        assert frame.master is win
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_frame is not frame
         root.destroy()

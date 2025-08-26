@@ -335,79 +335,49 @@ class ClosableNotebook(ttk.Notebook):
         self._reset_drag()
 
     def _move_tab(self, tab_id: str, target: "ClosableNotebook") -> bool:
-        """Move *tab_id* to *target* notebook.
-
-        The previous implementation relied solely on the various
-        ``tk::unsupported::reparent`` commands which are unavailable on some
-        platforms, causing the tab to snap back to its source and the floating
-        window to vanish immediately.  First try Tk's native ability to add an
-        existing child to another notebook which works on standard builds.  If
-        that fails fall back to the explicit reparent commands.  When all
-        options fail the tab is reinserted into the original notebook so the
-        widget remains accessible.
-        """
+        """Move *tab_id* to *target* notebook using Tk's native commands."""
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
         self.forget(tab_id)
-
         try:
             target.add(child, text=text)
             target.select(child)
             moved = True
         except tk.TclError:
+            self.add(child, text=text)
+            self.select(child)
             moved = False
-
-        if not moved:
-            # Try standard geometry-manager reparenting, which is available on
-            # all Tk builds, before falling back to platform specific commands.
-            try:
-                child.pack_forget()
-                child.pack(in_=target)
-                child.pack_forget()
-                target.add(child, text=text)
-                target.select(child)
-                moved = True
-            except tk.TclError:
-                moved = False
-
-        if not moved:
-            toplevel = target.winfo_toplevel()
-            for cmd in (
-                ("::tk::unsupported::reparent", child.winfo_id(), target.winfo_id()),
-                ("::tk::unsupported::reparent", child._w, target._w),
-                ("::tk::unsupported::reparent", child.winfo_id(), toplevel.winfo_id()),
-                ("::tk::unsupported::reparent", child._w, toplevel._w),
-                ("tk", "unsupported", "reparent", child.winfo_id(), target.winfo_id()),
-                ("tk", "unsupported", "reparent", child._w, target._w),
-                ("tk", "unsupported", "reparent", child.winfo_id(), toplevel.winfo_id()),
-                ("tk", "unsupported", "reparent", child._w, toplevel._w),
-                ("::tk::unsupported::ReparentWindow", child.winfo_id(), target.winfo_id()),
-                ("::tk::unsupported::ReparentWindow", child._w, target._w),
-                ("::tk::unsupported::ReparentWindow", child.winfo_id(), toplevel.winfo_id()),
-                ("::tk::unsupported::ReparentWindow", child._w, toplevel._w),
-                ("tk", "unsupported", "ReparentWindow", child.winfo_id(), target.winfo_id()),
-                ("tk", "unsupported", "ReparentWindow", child._w, target._w),
-                ("tk", "unsupported", "ReparentWindow", child.winfo_id(), toplevel.winfo_id()),
-                ("tk", "unsupported", "ReparentWindow", child._w, toplevel._w),
-            ):
-                try:
-                    child.tk.call(*cmd)
-                    target.add(child, text=text)
-                    target.select(child)
-                    moved = True
-                    break
-                except tk.TclError:
-                    continue
         if isinstance(self.master, tk.Toplevel) and not self.tabs():
             self.master.destroy()
         return moved
+
+    def _clone_widget(self, widget: tk.Widget, parent: tk.Widget) -> tk.Widget:
+        """Recursively clone *widget* into *parent*.
+
+        Only standard configuration options are copied.  Widgets without
+        compatible options are skipped to keep the cloning logic minimal.
+        """
+
+        cls = widget.__class__
+        clone = cls(parent)
+        try:
+            for opt in widget.configure():
+                try:
+                    clone.configure({opt: widget.cget(opt)})
+                except tk.TclError:
+                    continue
+        except Exception:
+            pass
+        for child in widget.winfo_children():
+            self._clone_widget(child, clone)
+        return clone
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
-        child = self.nametowidget(tab_id)
+        orig = self.nametowidget(tab_id)
         text = self.tab(tab_id, "text")
         win = tk.Toplevel(self)
         win.geometry(f"{width}x{height}+{x}+{y}")
@@ -420,24 +390,11 @@ class ClosableNotebook(ttk.Notebook):
         )
         nb = ClosableNotebook(win)
         nb.pack(expand=True, fill="both")
-        # ``tk::unsupported::reparent`` requires the target widget to be
-        # realised.  Make sure the toplevel and its notebook both exist before
-        # attempting to move the tab so that reparenting commands have a valid
-        # window to target.
-        win.update_idletasks()
-        if self._move_tab(tab_id, nb):
-            nb.select(child)
-            child.update_idletasks()
-        else:
-            nb.destroy()
-            try:
-                child.pack(in_=win, expand=True, fill="both")
-            except tk.TclError:
-                self.add(child, text=text)
-                self.select(child)
-                if win in self._floating_windows:
-                    self._floating_windows.remove(win)
-                win.destroy()
+        clone = self._clone_widget(orig, nb)
+        self.forget(tab_id)
+        orig.destroy()
+        nb.add(clone, text=text)
+        nb.select(clone)
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
