@@ -59,7 +59,6 @@ class SplashScreen(tk.Toplevel):
             self._shadow_alpha_target = None
 
         self.canvas_size = 300
-
         self.canvas = tk.Canvas(
             self,
             width=self.canvas_size,
@@ -200,7 +199,10 @@ class SplashScreen(tk.Toplevel):
                 (x1, y_top),
             ]
 
-        for xi in sorted(rng.uniform(margin * W * 0.5, W * (0.85 - margin), n_bands_primary)):
+        for xi in sorted(
+            rng.uniform(margin * W * 0.5, W * (0.85 - margin))
+            for _ in range(n_bands_primary)
+        ):
             width = rng.uniform(W * 0.018, W * 0.05)
             skew = rng.uniform(W * 0.12, W * 0.22)
             notch = rng.uniform(W * 0.01, W * 0.03)
@@ -210,7 +212,10 @@ class SplashScreen(tk.Toplevel):
             color = band_base if rng.random() > 0.5 else band_dark
             draw.polygon(poly, fill=color + (int(0.35 * 255),))
 
-        for xi in sorted(rng.uniform(margin * W * 0.35, W * (0.9 - margin), n_bands_secondary)):
+        for xi in sorted(
+            rng.uniform(margin * W * 0.35, W * (0.9 - margin))
+            for _ in range(n_bands_secondary)
+        ):
             width = rng.uniform(W * 0.003, W * 0.012)
             skew = rng.uniform(W * 0.1, W * 0.24)
             notch = rng.uniform(W * 0.004, W * 0.009)
