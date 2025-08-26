@@ -17,15 +17,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import importlib
+import sys
+from types import ModuleType
+import types
 
-from tools.splash_launcher import SplashLauncher
 
+class TestSplashLauncher:
+    """Group SplashLauncher tests."""
 
-def test_launcher_invokes_main(monkeypatch):
-    dummy = importlib.import_module("tests.dummy_module")
-    dummy.called["main"] = False
+    def test_launcher_invokes_main(self, monkeypatch):
+        dummy = importlib.import_module("tests.dummy_module")
+        dummy.called["main"] = False
 
-    launcher = SplashLauncher(module_name="tests.dummy_module")
-    launcher.launch()
+        launcher = SplashLauncher(module_name="tests.dummy_module")
+        launcher.launch()
 
-    assert dummy.called["main"] is True
+        assert dummy.called["main"] is True
