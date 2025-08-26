@@ -86,15 +86,16 @@ class SplashScreen(tk.Toplevel):
             self._shadow_alpha_target = None
 
         self.canvas_size = 300
-        # Black background so colors pop
+        # Deep dark background similar to log area for void effect
         self.canvas = tk.Canvas(
             self,
             width=self.canvas_size,
             height=self.canvas_size,
             highlightthickness=0,
-            bg="black",
+            bg="#1e1e1e",
         )
         self.canvas.pack()
+        self._draw_top_gradient()
         self._draw_gradient()
         self._draw_stars()
         self._draw_floor()
@@ -193,25 +194,51 @@ class SplashScreen(tk.Toplevel):
         self.geometry(f"{w}x{h}+{x}+{y}")
         self.shadow.lower(self)
 
+    def _draw_top_gradient(self) -> None:
+        """Add a small violet-to-blue gradient at the top."""
+        gradient_height = int(self.canvas_size * 0.1)
+        half = gradient_height // 2
+        violet = (0x9B, 0x59, 0xB6)
+        blue = (0x56, 0x9C, 0xD6)
+        dark = (0x1E, 0x1E, 0x1E)
+        for y in range(gradient_height):
+            if y < half:
+                ratio = y / max(1, half - 1)
+                r = int(violet[0] + (blue[0] - violet[0]) * ratio)
+                g = int(violet[1] + (blue[1] - violet[1]) * ratio)
+                b = int(violet[2] + (blue[2] - violet[2]) * ratio)
+            else:
+                ratio = (y - half) / max(1, gradient_height - half - 1)
+                r = int(blue[0] + (dark[0] - blue[0]) * ratio)
+                g = int(blue[1] + (dark[1] - blue[1]) * ratio)
+                b = int(blue[2] + (dark[2] - blue[2]) * ratio)
+            color = f"#{r:02x}{g:02x}{b:02x}"
+            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="top_gradient")
+
     def _draw_gradient(self):
-        """Emit a narrow light-green glow from the white horizon."""
+        """Emit a narrow light-green glow around the white horizon."""
         horizon = int(self.canvas_size * 0.55)
         gradient_height = int(self.canvas_size * 0.1)
         start = horizon - gradient_height
+        dark = (0x1E, 0x1E, 0x1E)
+        glow = (0x90, 0xEE, 0x90)
+        # Upward glow
         for y in range(start, horizon):
             ratio = (y - start) / max(1, gradient_height - 1)
-            r = int(144 * ratio)
-            g = int(238 * ratio)
-            b = int(144 * ratio)
+            r = int(dark[0] + (glow[0] - dark[0]) * ratio)
+            g = int(dark[1] + (glow[1] - dark[1]) * ratio)
+            b = int(dark[2] + (glow[2] - dark[2]) * ratio)
             color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(
-                0,
-                y,
-                self.canvas_size,
-                y,
-                fill=color,
-                tags="void_bg",
-            )
+            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="void_bg")
+        # Downward glow
+        end = horizon + gradient_height
+        for y in range(horizon + 1, end + 1):
+            ratio = (y - horizon) / max(1, gradient_height)
+            r = int(glow[0] + (dark[0] - glow[0]) * ratio)
+            g = int(glow[1] + (dark[1] - glow[1]) * ratio)
+            b = int(glow[2] + (dark[2] - glow[2]) * ratio)
+            color = f"#{r:02x}{g:02x}{b:02x}"
+            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="void_bg")
 
     def _draw_stars(self) -> None:
         """No stars in the void."""
@@ -240,7 +267,7 @@ class SplashScreen(tk.Toplevel):
         )
 
     def _draw_title(self) -> None:
-        """Render project title with a subtle white shadow."""
+        """Render project title in white with a subtle black shadow."""
         x = self.canvas_size / 2
         y = self.canvas_size - 40
         main_text = "Automotive Modeling Language"
@@ -249,13 +276,13 @@ class SplashScreen(tk.Toplevel):
         sub_font = ("Helvetica", 12, "bold")
         offset = 1
 
-        # White shadow drawn slightly offset behind the main text
+        # Black shadow drawn slightly offset behind the main text
         self.canvas.create_text(
             x + offset,
             y + offset,
             text=main_text,
             font=title_font,
-            fill="white",
+            fill="black",
             tags="title_shadow",
         )
         self.canvas.create_text(
@@ -263,17 +290,17 @@ class SplashScreen(tk.Toplevel):
             y + 20 + offset,
             text=sub_text,
             font=sub_font,
-            fill="white",
+            fill="black",
             tags="title_shadow",
         )
 
-        # Foreground text in bold black
+        # Foreground text in bold white
         self.canvas.create_text(
             x,
             y,
             text=main_text,
             font=title_font,
-            fill="black",
+            fill="white",
             tags="title_text",
         )
         self.canvas.create_text(
@@ -281,12 +308,12 @@ class SplashScreen(tk.Toplevel):
             y + 20,
             text=sub_text,
             font=sub_font,
-            fill="black",
+            fill="white",
             tags="title_text",
         )
 
     def _draw_floor(self):
-        """Draw a white horizon line against the void."""
+        """Draw a thick white horizon line against the void."""
         horizon = int(self.canvas_size * 0.55)
         self.canvas.create_line(
             0,
@@ -294,6 +321,7 @@ class SplashScreen(tk.Toplevel):
             self.canvas_size,
             horizon,
             fill="white",
+            width=3,
             tags="horizon",
         )
 

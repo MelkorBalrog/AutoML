@@ -57,9 +57,9 @@ class SplashScreenTests(unittest.TestCase):
         self.assertEqual(len(shadow_items), 2)
         self.assertEqual(len(text_items), 2)
         for t in text_items:
-            self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "black")
+            self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "white")
         for s in shadow_items:
-            self.assertEqual(self.splash.canvas.itemcget(s, "fill"), "white")
+            self.assertEqual(self.splash.canvas.itemcget(s, "fill"), "black")
 
     def test_horizon_line(self):
         horizon_items = self.splash.canvas.find_withtag("horizon")
@@ -71,10 +71,13 @@ class SplashScreenTests(unittest.TestCase):
     def test_void_gradient(self):
         bg_items = self.splash.canvas.find_withtag("void_bg")
         self.assertGreater(len(bg_items), 0)
+        gradient_height = int(self.splash.canvas_size * 0.1)
         top_color = self.splash.canvas.itemcget(bg_items[0], "fill")
+        mid_color = self.splash.canvas.itemcget(bg_items[gradient_height - 1], "fill")
         bottom_color = self.splash.canvas.itemcget(bg_items[-1], "fill")
-        self.assertEqual(top_color, "#000000")
-        self.assertEqual(bottom_color, "#90ee90")
+        self.assertEqual(top_color, "#1e1e1e")
+        self.assertEqual(mid_color, "#90ee90")
+        self.assertEqual(bottom_color, "#1e1e1e")
 
     def test_close_fades_to_invisible(self):
         if not getattr(self.splash, "_alpha_supported", False):
@@ -100,8 +103,19 @@ class SplashScreenTests(unittest.TestCase):
             )
         )
         horizon_color = self.splash.canvas.itemcget(horizon_item, "fill").lower()
-        self.assertEqual(top_color, "black")
+        self.assertEqual(top_color, "#9b59b6")
         self.assertEqual(horizon_color, "white")
+
+    def test_top_gradient(self):
+        items = self.splash.canvas.find_withtag("top_gradient")
+        self.assertGreater(len(items), 0)
+        half = len(items) // 2
+        top_color = self.splash.canvas.itemcget(items[0], "fill")
+        mid_color = self.splash.canvas.itemcget(items[half - 1], "fill")
+        bottom_color = self.splash.canvas.itemcget(items[-1], "fill")
+        self.assertEqual(top_color, "#9b59b6")
+        self.assertEqual(mid_color, "#569cd6")
+        self.assertEqual(bottom_color, "#1e1e1e")
 
 
 if __name__ == "__main__":
