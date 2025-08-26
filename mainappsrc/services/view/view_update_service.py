@@ -15,9 +15,22 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Service wrapping :mod:`view_updater` utilities."""
 
-"""Project version information."""
+from __future__ import annotations
 
-VERSION = "0.2.99"
+from ...core.view_updater import ViewUpdater
 
-__all__ = ["VERSION"]
+
+class ViewUpdateService:
+    """Facade delegating project view refreshes to :class:`ViewUpdater`."""
+
+    def __init__(self, app: object) -> None:
+        self._updater = ViewUpdater(app)
+
+    def update_views(self) -> None:
+        """Refresh project views via the underlying updater."""
+        self._updater.update_views()
+
+
+__all__ = ["ViewUpdateService"]

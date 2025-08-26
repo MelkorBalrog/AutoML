@@ -83,7 +83,7 @@ from .versioning_review import Versioning_Review
 from .validation_consistency import Validation_Consistency
 from .reporting_export import Reporting_Export
 from .node_clone_service import NodeCloneService
-from .view_updater import ViewUpdater
+from mainappsrc.services.view import ViewUpdateService
 from analysis.user_config import (
     load_user_config,
     save_user_config,
@@ -401,7 +401,7 @@ class AutoMLApp(
         self.selected_node = None
         self.clone_offset_counter = {}
         self.node_clone_service = NodeCloneService()
-        self.view_updater = ViewUpdater(self)
+        self.view_update_service = ViewUpdateService(self)
         self._loaded_model_paths = []
         self.root.title("AutoML-Analyzer")
         self.messagebox = messagebox
@@ -1886,7 +1886,7 @@ class AutoMLApp(
 
     def update_views(self):
         """Refresh project views via the dedicated :class:`ViewUpdater`."""
-        self.view_updater.update_views()
+        self.view_update_service.update_views()
 
     def update_basic_event_probabilities(self):
         return self.safety_analysis.update_basic_event_probabilities()

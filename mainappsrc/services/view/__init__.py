@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""View-related services."""
 
-"""Project version information."""
+from .view_update_service import ViewUpdateService
 
-VERSION = "0.2.99"
-
-__all__ = ["VERSION"]
+__all__ = ["ViewUpdateService"]
