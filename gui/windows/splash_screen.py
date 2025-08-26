@@ -417,17 +417,56 @@ class SplashScreen(tk.Toplevel):
     def _draw_gear(self):
         self.canvas.delete("gear")
         self.canvas.delete("gear_glow")
+        self.canvas.delete("gear_fill")
         teeth = 8
         inner = 20
         outer = 30
-        pts = []
         angle = math.radians(self.angle * 2)
+
+        # Radial gradient fill from white at the centre to light green at the teeth
+        steps = 25
+        start = (255, 255, 255)
+        end = (204, 255, 204)  # low green
+        for step in range(steps, 0, -1):
+            ratio = step / steps
+            r_inner = inner * ratio
+            r_outer = outer * ratio
+            pts = []
+            for i in range(teeth * 2):
+                r = r_outer if i % 2 == 0 else r_inner
+                theta = angle + i * math.pi / teeth
+                x = self.canvas_size / 2 + r * math.cos(theta)
+                y = self.canvas_size / 2 + r * math.sin(theta)
+                pts.append((x, y))
+            cr = int(start[0] * (1 - ratio) + end[0] * ratio)
+            cg = int(start[1] * (1 - ratio) + end[1] * ratio)
+            cb = int(start[2] * (1 - ratio) + end[2] * ratio)
+            colour = f"#{cr:02x}{cg:02x}{cb:02x}"
+            self.canvas.create_polygon(
+                pts, outline="", fill=colour, tags="gear_fill"
+            )
+
+        # Ensure a bright spot at the very centre for a shiny appearance
+        cx = cy = self.canvas_size / 2
+        self.canvas.create_oval(
+            cx - 1,
+            cy - 1,
+            cx + 1,
+            cy + 1,
+            fill="#ffffff",
+            outline="",
+            tags="gear_fill",
+        )
+
+        # Points for gear outline and glow
+        pts = []
         for i in range(teeth * 2):
             r = outer if i % 2 == 0 else inner
             theta = angle + i * math.pi / teeth
             x = self.canvas_size / 2 + r * math.cos(theta)
             y = self.canvas_size / 2 + r * math.sin(theta)
             pts.append((x, y))
+
         # Draw expanding outlines for a simple glow effect
         for width, colour in [(6, "#00ffff"), (4, "#66ffff")]:
             self.canvas.create_polygon(
