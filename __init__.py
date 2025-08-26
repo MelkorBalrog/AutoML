@@ -29,7 +29,10 @@ from .mainappsrc.core.automl_core import (
     GATE_NODE_TYPES,
 )
 from .mainappsrc.safety_analysis import SafetyAnalysis_FTA_FMEA
-from config.automl_constants import PMHF_TARGETS
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import PMHF_TARGETS
+else:  # pragma: no cover - script context
+    from config.automl_constants import PMHF_TARGETS
 from analysis.models import HazopDoc
 from gui.dialogs.edit_node_dialog import EditNodeDialog
 from analysis.risk_assessment import AutoMLHelper

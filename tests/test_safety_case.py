@@ -33,7 +33,10 @@ sys.modules.setdefault("PIL.ImageFont", types.ModuleType("PIL.ImageFont"))
 
 from mainappsrc.models.gsn import GSNNode, GSNDiagram
 from AutoML import AutoMLApp
-from config.automl_constants import PMHF_TARGETS
+if __package__ and __package__.startswith("AutoML"):
+    from AutoML.config.automl_constants import PMHF_TARGETS
+else:  # pragma: no cover - script context
+    from config.automl_constants import PMHF_TARGETS
 from analysis.constants import CHECK_MARK
 from mainappsrc.core.undo_manager import UndoRedoManager
 

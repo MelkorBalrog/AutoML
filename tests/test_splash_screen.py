@@ -49,14 +49,24 @@ class SplashScreenTests(unittest.TestCase):
         gear_items = self.splash.canvas.find_withtag("gear")
         self.assertEqual(len(gear_items), 1)
 
-    def test_title_background(self):
+    def test_title_shadow(self):
         bg_items = self.splash.canvas.find_withtag("title_bg")
+        shadow_items = self.splash.canvas.find_withtag("title_shadow")
         text_items = self.splash.canvas.find_withtag("title_text")
-        self.assertEqual(len(bg_items), 1)
+        self.assertEqual(len(bg_items), 0)
+        self.assertEqual(len(shadow_items), 2)
         self.assertEqual(len(text_items), 2)
-        self.assertEqual(self.splash.canvas.itemcget(bg_items[0], "fill"), "black")
         for t in text_items:
-            self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "white")
+            self.assertEqual(self.splash.canvas.itemcget(t, "fill"), "black")
+        for s in shadow_items:
+            self.assertEqual(self.splash.canvas.itemcget(s, "fill"), "white")
+
+    def test_horizon_line(self):
+        horizon_items = self.splash.canvas.find_withtag("horizon")
+        self.assertEqual(len(horizon_items), 1)
+        self.assertEqual(
+            self.splash.canvas.itemcget(horizon_items[0], "fill"), "white"
+        )
 
     def test_close_fades_to_invisible(self):
         if not getattr(self.splash, "_alpha_supported", False):
@@ -69,6 +79,21 @@ class SplashScreenTests(unittest.TestCase):
             self.splash._fade_out()
         self.assertAlmostEqual(float(self.splash.attributes("-alpha")), 0.0)
         self.assertTrue(self._closed)
+
+    def test_void_background(self):
+        top_item = min(
+            self.splash.canvas.find_overlapping(0, 0, self.splash.canvas_size, 0)
+        )
+        top_color = self.splash.canvas.itemcget(top_item, "fill").lower()
+        horizon_y = int(self.splash.canvas_size * 0.55)
+        horizon_item = min(
+            self.splash.canvas.find_overlapping(
+                0, horizon_y, self.splash.canvas_size, horizon_y
+            )
+        )
+        horizon_color = self.splash.canvas.itemcget(horizon_item, "fill").lower()
+        self.assertEqual(top_color, "black")
+        self.assertEqual(horizon_color, "white")
 
 
 if __name__ == "__main__":

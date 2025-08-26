@@ -18,6 +18,35 @@
 
 import tkinter as tk
 import math
+import random
+from dataclasses import dataclass
+
+
+@dataclass
+class StarField:
+    """Render a simple star field on a Tkinter canvas."""
+
+    canvas: tk.Canvas
+    width: int
+    height: int
+    star_count: int = 50
+
+    def draw(self) -> None:
+        """Draw randomly positioned stars across the sky region."""
+        sky_limit = int(self.height * 0.55)
+        for _ in range(self.star_count):
+            x = random.randint(0, self.width)
+            y = random.randint(0, sky_limit)
+            size = random.choice((1, 2))
+            self.canvas.create_oval(
+                x,
+                y,
+                x + size,
+                y + size,
+                fill="white",
+                outline="",
+                tags="star",
+            )
 
 
 class SplashScreen(tk.Toplevel):
@@ -67,6 +96,7 @@ class SplashScreen(tk.Toplevel):
         )
         self.canvas.pack()
         self._draw_gradient()
+        self._draw_stars()
         self._draw_floor()
         self._center()
         # Initialize cube geometry
@@ -164,30 +194,20 @@ class SplashScreen(tk.Toplevel):
         self.shadow.lower(self)
 
     def _draw_gradient(self):
-        """Draw a multi-color background gradient."""
-        # Color stops: violet sky -> magenta -> light green horizon -> dark ground
-        stops = [
-            (0.0, (138, 43, 226)),   # violet
-            (0.3, (255, 0, 255)),    # magenta
-            (0.55, (144, 238, 144)), # light green
-            (1.0, (0, 100, 0)),      # dark green ground
-        ]
-        steps = self.canvas_size
-        for i in range(steps):
-            ratio = i / steps
-            # Find two surrounding color stops
-            for idx in range(len(stops) - 1):
-                if stops[idx][0] <= ratio <= stops[idx + 1][0]:
-                    left_pos, left_col = stops[idx]
-                    right_pos, right_col = stops[idx + 1]
-                    break
-            # Normalize ratio between the two stops
-            local = (ratio - left_pos) / (right_pos - left_pos)
-            r = int(left_col[0] + (right_col[0] - left_col[0]) * local)
-            g = int(left_col[1] + (right_col[1] - left_col[1]) * local)
-            b = int(left_col[2] + (right_col[2] - left_col[2]) * local)
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(0, i, self.canvas_size, i, fill=color)
+        """Fill the background with pure black for a void effect."""
+        self.canvas.create_rectangle(
+            0,
+            0,
+            self.canvas_size,
+            self.canvas_size,
+            fill="black",
+            outline="",
+            tags="void_bg",
+        )
+
+    def _draw_stars(self) -> None:
+        """No stars in the void."""
+        return
     def _draw_cloud(self):
         """Draw a small turquoise-magenta-white cloud on the sky."""
         cx, cy = 80, 80
@@ -212,65 +232,62 @@ class SplashScreen(tk.Toplevel):
         )
 
     def _draw_title(self) -> None:
-        """Render project title in white on a black shadow background."""
+        """Render project title with a subtle white shadow."""
         x = self.canvas_size / 2
         y = self.canvas_size - 40
         main_text = "Automotive Modeling Language"
         sub_text = "by Karel Capek Robotics"
-        title_font = ("Helvetica", 12, "bold")
-        sub_font = ("Helvetica", 10)
+        title_font = ("Helvetica", 14, "bold")
+        sub_font = ("Helvetica", 12, "bold")
+        offset = 1
 
-        text_ids = [
-            self.canvas.create_text(
-                x,
-                y,
-                text=main_text,
-                font=title_font,
-                fill="white",
-                tags="title_text",
-            ),
-            self.canvas.create_text(
-                x,
-                y + 20,
-                text=sub_text,
-                font=sub_font,
-                fill="white",
-                tags="title_text",
-            ),
-        ]
-        bbox = self.canvas.bbox(*text_ids)
-        bg_id = self.canvas.create_rectangle(
-            bbox, fill="black", outline="", tags="title_bg"
+        # White shadow drawn slightly offset behind the main text
+        self.canvas.create_text(
+            x + offset,
+            y + offset,
+            text=main_text,
+            font=title_font,
+            fill="white",
+            tags="title_shadow",
         )
-        for t_id in text_ids:
-            self.canvas.tag_raise(t_id, bg_id)
+        self.canvas.create_text(
+            x + offset,
+            y + 20 + offset,
+            text=sub_text,
+            font=sub_font,
+            fill="white",
+            tags="title_shadow",
+        )
+
+        # Foreground text in bold black
+        self.canvas.create_text(
+            x,
+            y,
+            text=main_text,
+            font=title_font,
+            fill="black",
+            tags="title_text",
+        )
+        self.canvas.create_text(
+            x,
+            y + 20,
+            text=sub_text,
+            font=sub_font,
+            fill="black",
+            tags="title_text",
+        )
 
     def _draw_floor(self):
-        """Add subtle white light near horizon and darker shadow toward bottom."""
-        horizon_ratio = 0.55
-        horizon = int(self.canvas_size * horizon_ratio)
-        steps = self.canvas_size - horizon
-        white_strength = 0.15
-        black_strength = 0.25
-        for i in range(steps):
-            ratio = i / steps
-            # base gradient from light to dark green
-            r = int(144 + (0 - 144) * ratio)
-            g = int(238 + (100 - 238) * ratio)
-            b = int(144 + (0 - 144) * ratio)
-            # white glow near horizon
-            w = (1 - ratio) * white_strength
-            r = int(r + (255 - r) * w)
-            g = int(g + (255 - g) * w)
-            b = int(b + (255 - b) * w)
-            # black shadow near bottom
-            sh = ratio * black_strength
-            r = int(r * (1 - sh))
-            g = int(g * (1 - sh))
-            b = int(b * (1 - sh))
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            y = horizon + i
-            self.canvas.create_line(0, y, self.canvas_size, y, fill=color, tags="floor")
+        """Draw a white horizon line against the void."""
+        horizon = int(self.canvas_size * 0.55)
+        self.canvas.create_line(
+            0,
+            horizon,
+            self.canvas_size,
+            horizon,
+            fill="white",
+            tags="horizon",
+        )
 
     def _project(self, x, y, z):
         """Project 3D point onto 2D canvas."""

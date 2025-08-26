@@ -1699,6 +1699,7 @@ and run the build again if you hit this issue.
 - 0.2.36 - Delegate add/get/show/link/refresh/collect routines to safety analysis facade.
 - 0.2.35 - Wrap update routines within safety analysis facade.
 - 0.2.34 - Centralise safety analysis helpers into facade and delegate from core.
+- 0.2.87 - Render star field on splash screen for cosmic backdrop.
 - 0.2.33 - Extract dialog classes into dedicated modules and update mixins.
 - 0.2.32 - Refactor core initialization into mixins for style, services, and icons.
 - 0.2.31 - Provide requirements editor export placeholder to prevent export error.

@@ -231,7 +231,10 @@ class GSNDiagram:
             te_name = getattr(te, "user_name", "") or f"SG {getattr(te, 'unique_id', '')}"
             if te_name == name:
                 if spi_type == "FUSA":
-                    from config.automl_constants import PMHF_TARGETS  # avoid circular import at module load
+                    if __package__ and __package__.startswith("AutoML"):
+                        from AutoML.config.automl_constants import PMHF_TARGETS  # avoid circular import at module load
+                    else:  # pragma: no cover - script context
+                        from config.automl_constants import PMHF_TARGETS  # avoid circular import at module load
                     asil = getattr(te, "safety_goal_asil", "")
                     return PMHF_TARGETS.get(asil, None)
                 return getattr(te, "validation_target", None)
