@@ -1,4 +1,4 @@
-version: 0.2.83
+version: 0.2.84
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,6 +1644,7 @@ and run the build again if you hit this issue.
 
 
 ## Version History
+- 0.2.84 - Bundle tools package in executable to fix missing module at runtime.
 - 0.2.83 - Fix PyInstaller data path for core module and update documentation.
 - 0.2.82 - Preserve governance folder structure when saving and loading projects.
 - 0.2.81 - Show GSN diagrams as inputs when governance conditions are met and provide compatibility wrapper for ``page_diagram``.
