@@ -66,20 +66,16 @@ class SplashScreenTests(unittest.TestCase):
             self.splash.canvas.itemcget(shadow_text[0], "fill"), "black"
         )
 
-    def test_title_gradient(self):
+    def test_title_orange_with_black_border(self):
         img = self.splash._title_pil
-        try:
-            font = ImageFont.truetype("ITC Stone Serif SemiBold", 24)
-        except OSError:
-            font = ImageFont.load_default()
-        first_width = int(font.getlength("A"))
-        mid_y = img.height // 2
-        # start of first letter is white
-        self.assertEqual(img.getpixel((0, mid_y))[:3], (255, 255, 255))
-        # end of first letter is orange
-        self.assertEqual(img.getpixel((first_width - 1, mid_y))[:3], (255, 140, 0))
-        # next letter restarts gradient to white
-        self.assertEqual(img.getpixel((first_width, mid_y))[:3], (255, 255, 255))
+        colors = {
+            img.getpixel((x, y))[:3]
+            for x in range(img.width)
+            for y in range(img.height)
+            if img.getpixel((x, y))[3] > 0
+        }
+        self.assertIn((255, 140, 0), colors)
+        self.assertIn((0, 0, 0), colors)
 
     def test_background_gradient(self):
         bg_items = self.splash.canvas.find_withtag("void_bg")
