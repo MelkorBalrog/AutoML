@@ -15,13 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Service wrapper for :mod:`mainappsrc.core.undo_manager`."""
+"""Service wrapper for :mod:`mainappsrc.managers.undo_manager`."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from mainappsrc.core.undo_manager import UndoRedoManager
+from mainappsrc.managers.undo_manager import UndoRedoManager
 
 
 class UndoRedoService:
