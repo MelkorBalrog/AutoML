@@ -16,15 +16,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import ast
-from pathlib import Path
+"""Tests for the :mod:`mainappsrc.services.editing.editors_service` module."""
+
+from __future__ import annotations
+
+from mainappsrc.services.editing.editors_service import EditorsService
+from mainappsrc.core import editors
 
 
-def test_ui_setup_mixin_defines_setup_style():
-    tree = ast.parse(Path("mainappsrc/ui/ui_setup.py").read_text())
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name == "UISetupMixin":
-            if any(isinstance(n, ast.FunctionDef) and n.name == "setup_style" for n in node.body):
-                return
-            break
-    raise AssertionError("UISetupMixin.setup_style is not defined")
+def test_editors_service_delegates(monkeypatch):
+    """EditorsService forwards attribute access to underlying Editors instance."""
+
+    called = {}
+
+    def dummy(self):
+        called["hit"] = True
+        return 42
+
+    monkeypatch.setattr(editors.Editors, "dummy", dummy)
+
+    service = EditorsService(object())
+    assert service.dummy() == 42
+    assert called["hit"]

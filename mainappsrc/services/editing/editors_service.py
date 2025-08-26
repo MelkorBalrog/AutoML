@@ -16,15 +16,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import ast
-from pathlib import Path
+"""Service wrapper for editor dialogs and tables."""
+
+from __future__ import annotations
+
+from mainappsrc.core.editors import Editors
 
 
-def test_ui_setup_mixin_defines_setup_style():
-    tree = ast.parse(Path("mainappsrc/ui/ui_setup.py").read_text())
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name == "UISetupMixin":
-            if any(isinstance(n, ast.FunctionDef) and n.name == "setup_style" for n in node.body):
-                return
-            break
-    raise AssertionError("UISetupMixin.setup_style is not defined")
+class EditorsService:
+    """Facade exposing :class:`~mainappsrc.core.editors.Editors` as a service.
+
+    The legacy :class:`Editors` class contains a collection of UI-heavy helper
+    methods.  This service wraps an instance of that class and delegates attribute
+    access to preserve behaviour while enabling dependency injection and future
+    refactoring.
+    """
+
+    def __init__(self, app: object) -> None:
+        self._impl = Editors(app)
+
+    def __getattr__(self, name: str):
+        return getattr(self._impl, name)
+
+
+__all__ = ["EditorsService"]

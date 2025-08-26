@@ -17,23 +17,37 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
+import types
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from mainappsrc.ui.ui_setup import UISetupMixin
+from mainappsrc.services.navigation import NavigationInputService
+from mainappsrc.core.open_windows_features import Open_Windows_Features
+from mainappsrc.core.navigation_selection_input import Navigation_Selection_Input
 
 
-def test_enable_paa_actions_includes_gate():
-    called = []
+def test_service_delegates_to_open_windows(monkeypatch):
+    called = {}
 
-    class DummyMenu:
-        def entryconfig(self, index, state):
-            called.append(index)
+    def fake_open(self):
+        called["flag"] = True
 
-    obj = type("O", (UISetupMixin,), {})()
-    obj.paa_menu = DummyMenu()
-    obj._paa_menu_indices = {"add_confidence": 0, "add_robustness": 1, "add_gate": 2}
-    obj.enable_paa_actions(True)
+    monkeypatch.setattr(Open_Windows_Features, "open_reliability_window", fake_open)
 
-    assert 2 in called
+    svc = NavigationInputService(types.SimpleNamespace())
+    svc.open_reliability_window()
+    assert called["flag"] is True
+
+
+def test_service_delegates_to_navigation(monkeypatch):
+    called = {}
+
+    def fake_back(self):
+        called["flag"] = True
+
+    monkeypatch.setattr(Navigation_Selection_Input, "go_back", fake_back)
+
+    svc = NavigationInputService(types.SimpleNamespace())
+    svc.go_back()
+    assert called["flag"] is True

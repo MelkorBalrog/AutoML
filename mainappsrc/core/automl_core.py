@@ -59,10 +59,7 @@ from dataclasses import asdict
 from pathlib import Path
 from .event_handlers import EventHandlersMixin
 from .persistence_wrappers import PersistenceWrappersMixin
-from .analysis_utils import AnalysisUtilsMixin
 from .service_init_mixin import ServiceInitMixin
-from .page_diagram import PageDiagram
-from .node_utils import resolve_original as resolve_node_original
 from mainappsrc.services.app_init import AppInitializationService
 from mainappsrc.services.ui import UISetupService
 from analysis.mechanisms import (
@@ -153,9 +150,8 @@ from gui.windows.architecture import (
 )
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 from .undo_manager import UndoRedoManager
-from analysis.fmeda_utils import compute_fmeda_metrics
 from analysis.scenario_description import template_phrases
-from mainappsrc.core.app_lifecycle_ui import AppLifecycleUI
+from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
 from tools.crash_report_logger import install_best, watchdog_best
 from tools.thread_manager import manager as thread_manager
 from mainappsrc.core.editing_labels_styling import Editing_Labels_Styling
@@ -239,10 +235,8 @@ from analysis.utils import (
 from analysis.safety_management import SafetyManagementToolbox, ACTIVE_TOOLBOX
 from analysis.causal_bayesian_network import CausalBayesianNetwork, CausalBayesianNetworkDoc
 try:  # pragma: no cover - support direct module import
-    from .probability_reliability import Probability_Reliability
     from .version import VERSION
 except Exception:  # pragma: no cover
-    from mainappsrc.core.probability_reliability import Probability_Reliability
     from mainappsrc.version import VERSION
 try:  # pragma: no cover
     from .models.fta.fault_tree_node import FaultTreeNode, add_failure_mode as ft_add_failure_mode, refresh_tree as fault_tree_refresh, add_node_of_type as _add_node_of_type
@@ -284,7 +278,7 @@ from gui.dialogs.edit_node_dialog import EditNodeDialog, DecompositionDialog
 from gui.dialogs.fmea_row_dialog import FMEARowDialog
 from gui.dialogs.req_dialog import ReqDialog
 from gui.dialogs.select_base_event_dialog import SelectBaseEventDialog
-from .safety_ui import SafetyUIMixin
+from mainappsrc.ui.safety_ui import SafetyUIMixin
 
 ##########################################
 # Main Application (Parent Diagram)
@@ -294,7 +288,6 @@ class AutoMLApp(
     SafetyUIMixin,
     EventHandlersMixin,
     PersistenceWrappersMixin,
-    AnalysisUtilsMixin,
 ):
     """Main application window for AutoML Analyzer."""
 
@@ -346,6 +339,28 @@ class AutoMLApp(
     # corresponding menu items.
     for _wp in REQUIREMENT_WORK_PRODUCTS:
         WORK_PRODUCT_PARENTS.setdefault(_wp, "Requirements")
+
+    def classify_scenarios(self):
+        """Delegate scenario classification to analysis service."""
+        service = getattr(self, "analysis_utils_service", None)
+        if service is None:  # pragma: no cover - fallback for tests
+            from mainappsrc.services.analysis.analysis_utils_service import (
+                AnalysisUtilsService,
+            )
+
+            service = AnalysisUtilsService(self)
+        return service.classify_scenarios()
+
+    def load_default_mechanisms(self):
+        """Delegate default mechanism loading to analysis service."""
+        service = getattr(self, "analysis_utils_service", None)
+        if service is None:  # pragma: no cover - fallback for tests
+            from mainappsrc.services.analysis.analysis_utils_service import (
+                AnalysisUtilsService,
+            )
+
+            service = AnalysisUtilsService(self)
+        return service.load_default_mechanisms()
 
     @property
     def window_controllers(self) -> WindowControllers:
@@ -1155,7 +1170,7 @@ class AutoMLApp(
         return self.lifecycle_ui.open_metrics_tab(*args, **kwargs)
 
     def open_management_window(self, *args, **kwargs):
-        return self.open_windows_features.open_management_window(*args, **kwargs)
+        return self.nav_input.open_management_window(*args, **kwargs)
 
     def _register_close(self, *args, **kwargs):
         return self.lifecycle_ui._register_close(*args, **kwargs)
@@ -1524,7 +1539,7 @@ class AutoMLApp(
         return self.safety_analysis.calculate_fmeda_metrics(events)
 
     def compute_fmeda_metrics(self, events):
-        """Delegate detailed FMEDA metric computation to the facade."""
+        """Delegate detailed FMEDA metric computation to the safety analysis service."""
         return self.safety_analysis.compute_fmeda_metrics(events)
 
     def sync_hara_to_safety_goals(self):
@@ -1545,43 +1560,43 @@ class AutoMLApp(
         ProjectPropertiesDialog(self).show()
 
     def create_diagram_image(self):  # pragma: no cover - delegation
-        return self.diagram_renderer.create_diagram_image()
+        return self.diagram_service.create_diagram_image()
 
     def get_page_nodes(self, node):
         return self.data_access_queries.get_page_nodes(node)
 
     def capture_page_diagram(self, page_node):  # pragma: no cover - delegation
-        return self.diagram_renderer.capture_page_diagram(page_node)
+        return self.diagram_service.capture_page_diagram(page_node)
 
     def capture_event_diagram(self, *args, **kwargs):  # pragma: no cover - delegation
-        return self.diagram_renderer.capture_event_diagram(*args, **kwargs)
+        return self.diagram_service.capture_event_diagram(*args, **kwargs)
 
     def capture_gsn_diagram(self, diagram):
-        return self.diagram_renderer.capture_gsn_diagram(diagram)
+        return self.diagram_service.capture_gsn_diagram(diagram)
 
     def capture_sysml_diagram(self, diagram):
-        return self.diagram_renderer.capture_sysml_diagram(diagram)
+        return self.diagram_service.capture_sysml_diagram(diagram)
 
     def capture_cbn_diagram(self, doc):
-        return self.diagram_renderer.capture_cbn_diagram(doc)
+        return self.diagram_service.capture_cbn_diagram(doc)
     
     def draw_subtree_with_filter(self, canvas, root_event, visible_nodes):
-        return self.diagram_renderer.draw_subtree_with_filter(canvas, root_event, visible_nodes)
+        return self.diagram_service.draw_subtree_with_filter(canvas, root_event, visible_nodes)
 
     def draw_subtree(self, canvas, root_event):
-        return self.diagram_renderer.draw_subtree(canvas, root_event)
+        return self.diagram_service.draw_subtree(canvas, root_event)
 
     def draw_connections_subtree(self, canvas, node, drawn_ids):
-        return self.diagram_renderer.draw_connections_subtree(canvas, node, drawn_ids)
+        return self.diagram_service.draw_connections_subtree(canvas, node, drawn_ids)
 
     def draw_node_on_canvas_pdf(self, canvas, node):
-        return self.diagram_renderer.draw_node_on_canvas_pdf(canvas, node)
+        return self.diagram_service.draw_node_on_canvas_pdf(canvas, node)
 
     def rename_selected_tree_item(self):
         self.tree_app.rename_selected_tree_item(self)
 
     def save_diagram_png(self):  # pragma: no cover - delegation
-        return self.diagram_renderer.save_diagram_png()
+        return self.diagram_service.save_diagram_png()
 
     def on_treeview_click(self, event):
         return self.nav_input.on_treeview_click(event)
@@ -1667,7 +1682,7 @@ class AutoMLApp(
 
         for idx, diag in enumerate(self.management_diagrams):
             if getattr(diag, "name", "") == name or getattr(diag, "diag_id", "") == name:
-                self.open_windows_features.open_management_window(idx)
+                self.nav_input.open_management_window(idx)
                 return
 
         for diag in getattr(self, "all_gsn_diagrams", []):
@@ -1754,10 +1769,10 @@ class AutoMLApp(
         return self.structure_tree_operations.move_subtree(node, dx, dy)
 
     def zoom_in(self):  # pragma: no cover - delegation
-        return self.diagram_renderer.zoom_in()
+        return self.diagram_service.zoom_in()
 
     def zoom_out(self):  # pragma: no cover - delegation
-        return self.diagram_renderer.zoom_out()
+        return self.diagram_service.zoom_out()
 
 
     # ------------------------------------------------------------------
@@ -1939,16 +1954,16 @@ class AutoMLApp(
         return self.structure_tree_operations.insert_node_in_tree(parent_item, node)
 
     def redraw_canvas(self):
-        return self.diagram_renderer.redraw_canvas()
+        return self.diagram_service.redraw_canvas()
 
     def create_diagram_image_without_grid(self):
-        return self.diagram_renderer.create_diagram_image_without_grid()
+        return self.diagram_service.create_diagram_image_without_grid()
 
     def draw_connections(self, node, drawn_ids=set()):
-        return self.diagram_renderer.draw_connections(node, drawn_ids)
+        return self.diagram_service.draw_connections(node, drawn_ids)
 
     def draw_node(self, node):
-        return self.diagram_renderer.draw_node(node)
+        return self.diagram_service.draw_node(node)
 
     def find_node_by_id(self, node, unique_id, visited=None):
         return self.structure_tree_operations.find_node_by_id(node, unique_id, visited)
@@ -1994,19 +2009,19 @@ class AutoMLApp(
         return self.probability_reliability.calculate_pmfh()
 
     def show_requirements_matrix(self):
-        return self.editors.show_requirements_matrix()
+        return self.editors_service.show_requirements_matrix()
 
     def show_item_definition_editor(self):
-        return self.editors.show_item_definition_editor()
+        return self.editors_service.show_item_definition_editor()
 
     def show_safety_concept_editor(self):
-        return self.editors.show_safety_concept_editor()
+        return self.editors_service.show_safety_concept_editor()
 
     def show_requirements_editor(self):
-        return self.editors.show_requirements_editor()
+        return self.editors_service.show_requirements_editor()
 
     def _show_fmea_table_impl(self, fmea=None, fmeda=False):
-        return self.editors._show_fmea_table_impl(fmea, fmeda)
+        return self.editors_service._show_fmea_table_impl(fmea, fmeda)
 
     def export_fmea_to_csv(self, fmea, path):
         return self.safety_analysis.export_fmea_to_csv(fmea, path)
@@ -2092,7 +2107,7 @@ class AutoMLApp(
         return self.mission_profile_manager.manage_mission_profiles()
 
     def manage_mechanism_libraries(self):
-        return self.open_windows_features.manage_mechanism_libraries()
+        return self.nav_input.manage_mechanism_libraries()
 
     def manage_scenario_libraries(self):
         return self.scenario_library_manager.manage_scenario_libraries()
@@ -2101,34 +2116,34 @@ class AutoMLApp(
         return self.odd_library_manager.manage_odd_libraries()
 
     def open_reliability_window(self):
-        return self.open_windows_features.open_reliability_window()
+        return self.nav_input.open_reliability_window()
 
     def open_fmeda_window(self):
-        return self.open_windows_features.open_fmeda_window()
+        return self.nav_input.open_fmeda_window()
 
     def open_hazop_window(self):
-        return self.open_windows_features.open_hazop_window()
+        return self.nav_input.open_hazop_window()
 
     def open_risk_assessment_window(self):
-        return self.open_windows_features.open_risk_assessment_window()
+        return self.nav_input.open_risk_assessment_window()
 
     def open_stpa_window(self):
-        return self.open_windows_features.open_stpa_window()
+        return self.nav_input.open_stpa_window()
 
     def open_threat_window(self):
-        return self.open_windows_features.open_threat_window()
+        return self.nav_input.open_threat_window()
 
     def open_fi2tc_window(self):
-        return self.open_windows_features.open_fi2tc_window()
+        return self.nav_input.open_fi2tc_window()
 
     def open_tc2fi_window(self):
-        return self.open_windows_features.open_tc2fi_window()
+        return self.nav_input.open_tc2fi_window()
 
     def open_fault_prioritization_window(self):
-        return self.open_windows_features.open_fault_prioritization_window()
+        return self.nav_input.open_fault_prioritization_window()
 
     def open_safety_management_toolbox(self, show_diagrams: bool = True):
-        return self.open_windows_features.open_safety_management_toolbox(show_diagrams)
+        return self.nav_input.open_safety_management_toolbox(show_diagrams)
 
     def open_diagram_rules_toolbox(self):
         """Open editor for diagram rule configuration."""
@@ -2392,13 +2407,13 @@ class AutoMLApp(
         self.window_controllers.open_page_diagram(node, push_history)
 
     def manage_architecture(self):
-        return self.open_windows_features.manage_architecture()
+        return self.nav_input.manage_architecture()
 
     def manage_gsn(self):
         self.gsn_manager.manage_gsn()
 
     def manage_safety_management(self):
-        return self.open_windows_features.manage_safety_management()
+        return self.nav_input.manage_safety_management()
 
     def manage_safety_cases(self):
         return self.safety_case_manager.manage_safety_cases()
@@ -2871,31 +2886,31 @@ class AutoMLApp(
     def build_html_report(self):
         return self.reporting_export.build_html_report()
     def resolve_original(self, node):
-        return resolve_node_original(node)
+        return self.diagram_service.resolve_original(node)
 
     def go_back(self):
         return self.nav_input.go_back()
 
     def draw_page_subtree(self, page_root):
-        return self.diagram_renderer.draw_page_subtree(page_root)
+        return self.diagram_service.draw_page_subtree(page_root)
 
     def draw_page_grid(self):
-        return self.diagram_renderer.draw_page_grid()
+        return self.diagram_service.draw_page_grid()
 
     def draw_page_connections_subtree(self, node, visited_ids):
-        return self.diagram_renderer.draw_page_connections_subtree(node, visited_ids)
+        return self.diagram_service.draw_page_connections_subtree(node, visited_ids)
 
     def draw_page_nodes_subtree(self, node):
-        return self.diagram_renderer.draw_page_nodes_subtree(node)
+        return self.diagram_service.draw_page_nodes_subtree(node)
 
     def draw_node_on_page_canvas(self, *args, **kwargs):
-        return self.diagram_renderer.draw_node_on_page_canvas(*args, **kwargs)
+        return self.diagram_service.draw_node_on_page_canvas(*args, **kwargs)
 
     def on_ctrl_mousewheel_page(self, event):
         return self.nav_input.on_ctrl_mousewheel_page(event)
 
     def close_page_diagram(self):
-        return self.diagram_renderer.close_page_diagram()
+        return self.diagram_service.close_page_diagram()
 
     # --- Review Toolbox Methods ---
     def start_peer_review(self):
@@ -2920,7 +2935,7 @@ class AutoMLApp(
         return self.versioning_review.review_is_closed_for(review)
 
     def capture_diff_diagram(self, top_event):  # pragma: no cover - delegation
-        return self.diagram_renderer.capture_diff_diagram(top_event)
+        return self.diagram_service.capture_diff_diagram(top_event)
 
     # --- End Review Toolbox Methods ---
 

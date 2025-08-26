@@ -16,30 +16,36 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Service orchestrating user-interface setup helpers."""
+"""Tests for :class:`DiagramRendererService`."""
 
 from __future__ import annotations
 
-from ...ui.ui_setup import UISetupMixin
-from ...core.style_setup_mixin import StyleSetupMixin
-from ...core.icon_setup_mixin import IconSetupMixin
-from ...ui.app_lifecycle_ui import AppLifecycleUI
+from unittest.mock import MagicMock
+
+from mainappsrc.services.diagram import DiagramRendererService
 
 
-class UISetupService(UISetupMixin, StyleSetupMixin, IconSetupMixin):
-    """Facade coordinating UI setup and lifecycle utilities."""
-
-    def __init__(self, app: object, root) -> None:
-        self.app = app
-        self.lifecycle_ui = AppLifecycleUI(app, root)
-
-    def __getattr__(self, name):  # pragma: no cover - simple delegation
-        return getattr(self.app, name)
-
-    def initialize(self, root) -> None:
-        """Run style and icon setup."""
-        self.setup_style(root)
-        self.setup_icons()
+class DummyApp:
+    def __init__(self):
+        self.diagram_export_app = MagicMock()
 
 
-__all__ = ["UISetupService"]
+class DummyNode:
+    def __init__(self, primary=None):
+        self.is_primary_instance = primary is None
+        self.original = primary or self
+
+
+def test_resolve_original_returns_primary():
+    app = DummyApp()
+    service = DiagramRendererService(app)
+    base = DummyNode()
+    clone = DummyNode(primary=base)
+    assert service.resolve_original(clone) is base
+
+
+def test_save_diagram_png_delegates():
+    app = DummyApp()
+    service = DiagramRendererService(app)
+    service.save_diagram_png()
+    assert app.diagram_export_app.save_diagram_png.called
