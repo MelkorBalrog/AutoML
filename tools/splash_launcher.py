@@ -33,7 +33,12 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for bundled executabl
     AUTHOR = "Miguel Marina"
     AUTHOR_EMAIL = "karel.capek.robotics@gmail.com"
     AUTHOR_LINKEDIN = "https://www.linkedin.com/in/progman32/"
-from gui.windows.splash_screen import SplashScreen
+
+# Guard against external ``gui`` packages shadowing the application's module
+_prefix = "AutoML." if __package__ and __package__.startswith("AutoML") else ""
+SplashScreen = importlib.import_module(
+    f"{_prefix}gui.windows.splash_screen"
+).SplashScreen
 from mainappsrc.version import VERSION
 
 
