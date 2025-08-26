@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Compatibility wrapper exporting :mod:`AutoML` as a package."""
+"""UI-related service package."""
 
-from AutoML import *  # noqa: F401,F403
+from .ui_setup_service import UISetupService
+
+__all__ = ["UISetupService"]
