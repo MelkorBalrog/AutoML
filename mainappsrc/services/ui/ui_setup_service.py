@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 from ...ui.ui_setup import UISetupMixin
-from ...core.style_setup_mixin import StyleSetupMixin
+from gui.styles.style_setup_mixin import StyleSetupMixin
 from ...core.icon_setup_mixin import IconSetupMixin
 from ...ui.app_lifecycle_ui import AppLifecycleUI
 

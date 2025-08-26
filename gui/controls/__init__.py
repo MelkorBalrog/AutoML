@@ -33,7 +33,7 @@ import importlib
 
 from . import button_utils, mac_button_style
 
-__all__ = ["button_utils", "mac_button_style", "messagebox"]
+__all__ = ["button_utils", "mac_button_style", "messagebox", "window_controllers"]
 
 
 def __getattr__(name: str) -> ModuleType:
@@ -47,4 +47,6 @@ def __getattr__(name: str) -> ModuleType:
 
     if name == "messagebox":
         return importlib.import_module(f"{__name__}.messagebox")
+    if name == "window_controllers":
+        return importlib.import_module(f"{__name__}.window_controllers")
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from ...core.analysis_utils import AnalysisUtilsMixin
+from gui.utils.analysis_utils import AnalysisUtilsMixin
 from ...core.probability_reliability import Probability_Reliability
 
 

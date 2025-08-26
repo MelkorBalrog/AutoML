@@ -60,6 +60,8 @@ from pathlib import Path
 from .event_handlers import EventHandlersMixin
 from .persistence_wrappers import PersistenceWrappersMixin
 from .service_init_mixin import ServiceInitMixin
+from .page_diagram import PageDiagram
+from gui.utils.node_utils import resolve_original as resolve_node_original
 from mainappsrc.services.app_init import AppInitializationService
 from mainappsrc.services.ui import UISetupService
 from analysis.mechanisms import (
@@ -72,7 +74,7 @@ from pathlib import Path
 from collections.abc import Mapping
 from gui.utils.drawing_helper import FTADrawingHelper, fta_drawing_helper
 from mainappsrc.core.event_dispatcher import EventDispatcher
-from mainappsrc.core.window_controllers import WindowControllers
+from gui.controls.window_controllers import WindowControllers
 from mainappsrc.core.top_event_workflows import Top_Event_Workflows
 from mainappsrc.managers.review_manager import ReviewManager
 from mainappsrc.managers.drawing_manager import DrawingManager
@@ -154,7 +156,7 @@ from analysis.scenario_description import template_phrases
 from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
 from tools.crash_report_logger import install_best, watchdog_best
 from tools.thread_manager import manager as thread_manager
-from mainappsrc.core.editing_labels_styling import Editing_Labels_Styling
+from gui.styles.editing_labels_styling import Editing_Labels_Styling
 import copy
 import tkinter.font as tkFont
 import builtins
@@ -259,8 +261,8 @@ from gui.toolboxes import (
 from pathlib import Path
 from gui.dialogs.user_info_dialog import UserInfoDialog
 
-from . import config_utils
-from .config_utils import _reload_local_config
+import gui.utils.config_utils as config_utils
+from gui.utils.config_utils import _reload_local_config
 
 # Expose configuration helpers and global state
 _CONFIG_PATH = config_utils._CONFIG_PATH

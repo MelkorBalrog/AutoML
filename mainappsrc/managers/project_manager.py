@@ -50,7 +50,7 @@ from analysis.safety_management import SafetyManagementToolbox
 from mainappsrc.models.gsn import GSNModule, GSNDiagram
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
-from mainappsrc.core import config_utils
+import gui.utils.config_utils as config_utils
 
 
 class ProjectManager:

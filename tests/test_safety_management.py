@@ -37,7 +37,7 @@ sys.modules.setdefault("PIL.ImageDraw", PIL_stub.ImageDraw)
 sys.modules.setdefault("PIL.ImageFont", PIL_stub.ImageFont)
 
 from AutoML import AutoMLApp
-from mainappsrc.window_controllers import WindowControllers
+from gui.controls.window_controllers import WindowControllers
 import AutoML
 from analysis.safety_management import (
     SafetyManagementToolbox,
