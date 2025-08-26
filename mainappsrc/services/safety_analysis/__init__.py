@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Safety analysis services."""
 
-"""Project version information."""
+from .safety_analysis_service import SafetyAnalysisService
 
-VERSION = "0.2.102"
-
-__all__ = ["VERSION"]
+__all__ = ["SafetyAnalysisService"]

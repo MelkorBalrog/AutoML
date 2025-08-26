@@ -152,7 +152,6 @@ from gui.windows.architecture import (
 )
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 from .undo_manager import UndoRedoManager
-from analysis.fmeda_utils import compute_fmeda_metrics
 from analysis.scenario_description import template_phrases
 from mainappsrc.core.app_lifecycle_ui import AppLifecycleUI
 from tools.crash_report_logger import install_best, watchdog_best
@@ -1542,7 +1541,7 @@ class AutoMLApp(
         return self.safety_analysis.calculate_fmeda_metrics(events)
 
     def compute_fmeda_metrics(self, events):
-        """Delegate detailed FMEDA metric computation to the facade."""
+        """Delegate detailed FMEDA metric computation to the safety analysis service."""
         return self.safety_analysis.compute_fmeda_metrics(events)
 
     def sync_hara_to_safety_goals(self):
