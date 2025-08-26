@@ -1,4 +1,4 @@
-version: 0.2.105
+version: 0.2.106
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -1644,8 +1644,9 @@ and run the build again if you hit this issue.
 
 
 ## Version History
-- 0.2.105 - Introduce SyncingAndIdsService and integrate into core.
-- 0.2.104 - Move node utilities from core to gui.utils for centralized access.
+- 0.2.106 - Introduce `UndoRedoService` wrapper and integrate with core application.
+- 0.2.105 - Fix missing mechanism library references in analysis utilities and prevent thread monitor shutdown error.
+- 0.2.104 - Render orange AutoML splash title at 1.5x subtitle size.
 - 0.2.103 - Render white AutoML splash title using subtitle font at quadruple size.
 - 0.2.102 - Fix splash font name retrieval to avoid startup error.
 - 0.2.101 - Ensure AutoML splash title font matches subtitle and store ratio for testing.
