@@ -28,10 +28,13 @@ notebook re-attaches it to that notebook.
 
 
 import inspect
+import logging
 import typing as t
 import tkinter as tk
 import weakref
 from tkinter import ttk
+
+logger = logging.getLogger(__name__)
 
 
 # Widget types whose text is only available through ``cget`` even when the
@@ -453,7 +456,10 @@ class ClosableNotebook(ttk.Notebook):
         if not isinstance(widget.master, ttk.Notebook):
             self._copy_widget_layout(widget, clone)
         for child in self._ordered_children(widget):
-            self._clone_widget(child, clone, mapping)
+            try:
+                self._clone_widget(child, clone, mapping)
+            except Exception as exc:
+                logger.warning("Failed to clone child %s: %s", child, exc)
         return clone, mapping
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
@@ -789,8 +795,9 @@ class ClosableNotebook(ttk.Notebook):
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
-                self._ensure_fills(new_widget)
-                self._raise_widgets(new_widget)
+                for cloned in mapping.values():
+                    self._ensure_fills(cloned)
+                    self._raise_widgets(cloned)
                 self._reassign_widget_references(mapping)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)

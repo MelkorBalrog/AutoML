@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.164 - Cancel after callbacks referencing destroyed widgets during tab
+- 0.2.164 - Log failed widget clones and ensure every cloned control fills and
+          raises in detached windows.
+          - Cancel after callbacks referencing destroyed widgets during tab
           detachment and verify no invalid command messages remain.
           - Guard capsule button events after detachment.
           - Cancel after callbacks on duplicate widgets prior to destruction.
