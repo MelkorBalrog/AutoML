@@ -1068,6 +1068,8 @@ class ClosableNotebook(ttk.Notebook):
         inverse = {clone: orig for orig, clone in mapping.items()}
 
         def prune(clone: tk.Widget) -> None:
+            """Recursively destroy widgets not present in the original tree."""
+
             orig = inverse.get(clone)
             try:
                 expected = (
@@ -1085,8 +1087,9 @@ class ClosableNotebook(ttk.Notebook):
                     except Exception:
                         pass
 
+        roots = [win]
         for root in roots:
-            prune(root, mapping[root])
+            prune(root)
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
