@@ -480,6 +480,29 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
+    def _ensure_fills(self, widget: tk.Widget) -> None:
+        """Ensure *widget* expands to fill its container.
+
+        The detached window should display its contents using all available
+        space and react to subsequent window resizes.  ``pack`` and ``grid``
+        layouts are supported; unsupported geometry managers are ignored so
+        detachment never raises an exception.
+        """
+
+        try:
+            widget.pack_configure(expand=True, fill="both")
+            return
+        except tk.TclError:
+            pass
+        try:
+            info = widget.grid_info()
+            widget.grid_configure(sticky="nsew")
+            parent = widget.master
+            parent.grid_rowconfigure(int(info.get("row", 0)), weight=1)
+            parent.grid_columnconfigure(int(info.get("column", 0)), weight=1)
+        except Exception:
+            pass
+
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
         width = self.winfo_width() or 200
@@ -504,8 +527,12 @@ class ClosableNotebook(ttk.Notebook):
                 orig.destroy()
                 nb.add(clone, text=text)
                 nb.select(clone)
+                self._ensure_fills(clone)
             else:
-                nb.select(nb.tabs()[-1])
+                tab = nb.tabs()[-1]
+                child = nb.nametowidget(tab)
+                self._ensure_fills(child)
+                nb.select(tab)
         except Exception:
             win.destroy()
             raise

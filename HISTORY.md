@@ -1,4 +1,5 @@
 # Version History
+- 0.2.142 - Ensure detached tabs fill newly opened windows and resize with them.
 - 0.2.141 - Let detached tabs resize with their windows so cloned widgets expand to fit.
 - 0.2.140 - Apply original geometry when cloning tabs so detached windows retain full content layout.
 - 0.2.139 - Preserve widget state when detaching tabs so floating windows

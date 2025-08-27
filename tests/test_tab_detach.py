@@ -197,6 +197,35 @@ class TestFloatingWindowBehavior:
 
 
 class TestFloatingWindowLayout:
+    def test_detached_tab_fits_initial_window(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        ttk.Label(frame, text="hi").pack(expand=True, fill="both")
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        new_nb.update_idletasks()
+        assert new_frame.winfo_width() == new_nb.winfo_width()
+        assert new_frame.winfo_height() == new_nb.winfo_height()
+        root.destroy()
+
     def test_detached_tab_resizes_with_window(self):
         try:
             root = tk.Tk()
