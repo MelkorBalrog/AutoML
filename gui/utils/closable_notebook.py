@@ -394,13 +394,22 @@ class ClosableNotebook(ttk.Notebook):
         return widget
 
     def _move_tab(self, tab_id: str, target: "ClosableNotebook") -> bool:
-        """Move *tab_id* to *target* notebook using Tk's native commands."""
+        """Move *tab_id* to *target* notebook using Tk's native commands.
+
+        The method first tries Tk's ``winfo`` reparenting to avoid cloning.  If
+        the operation fails, the widget is restored to its original notebook and
+        the caller may fall back to cloning.
+        """
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
         self.forget(tab_id)
         ClosableNotebook._tab_hosts.pop(child, None)
         try:
+            try:
+                child.tk.call("winfo", "reparent", child._w, target._w)
+            except tk.TclError:
+                pass
             target.add(child, text=text)
             target.select(child)
             moved = True
