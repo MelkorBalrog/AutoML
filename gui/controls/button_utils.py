@@ -57,6 +57,33 @@ def set_uniform_button_width(widget: tk.Misc) -> None:
         except Exception:  # pragma: no cover - defensive
             pass
 
+
+def max_button_reqwidth(widget: tk.Misc) -> int:
+    """Return the widest requested width of ``ttk.Button`` descendants.
+
+    Traverses *widget*'s children recursively while gracefully handling widgets
+    that have already been destroyed.  If a child no longer exists, it is
+    ignored so callers can safely compute widths during dynamic UI updates
+    without triggering :class:`tk.TclError` exceptions.
+    """
+
+    max_width = 0
+    try:
+        children = widget.winfo_children()
+    except tk.TclError:
+        return 0
+    for child in children:
+        try:
+            if not child.winfo_exists():
+                continue
+            if isinstance(child, ttk.Button):
+                max_width = max(max_width, child.winfo_reqwidth())
+            else:
+                max_width = max(max_width, max_button_reqwidth(child))
+        except tk.TclError:  # pragma: no cover - defensive
+            continue
+    return max_width
+
 def _lighten_color(color: str, factor: float = 1.2) -> str:
     """Return a subtly glowing version of *color*.
 

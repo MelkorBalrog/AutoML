@@ -16,8 +16,32 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Tests for toolbox button width utilities."""
 
-VERSION = "0.2.154"
+import os
+import tkinter as tk
+from tkinter import ttk
 
-__all__ = ["VERSION"]
+import pytest
+
+from gui.controls.button_utils import max_button_reqwidth
+
+
+@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+def test_max_button_reqwidth_ignores_destroyed_widgets():
+    root = tk.Tk()
+    root.withdraw()
+    frame = ttk.Frame(root)
+    frame.pack()
+    btn = ttk.Button(frame, text="Sample")
+    btn.pack()
+    root.update_idletasks()
+
+    # Ensure width measured while button exists
+    assert max_button_reqwidth(frame) == btn.winfo_reqwidth()
+
+    # Destroy button and ensure function handles it gracefully
+    btn.destroy()
+    root.update_idletasks()
+    assert max_button_reqwidth(frame) == 0
+    root.destroy()

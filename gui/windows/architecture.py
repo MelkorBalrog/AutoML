@@ -41,7 +41,7 @@ from gui.utils.drawing_helper import fta_drawing_helper
 from config import load_diagram_rules, load_json_with_comments
 import json
 from gui.utils.icon_factory import create_icon
-from gui.controls.button_utils import set_uniform_button_width
+from gui.controls.button_utils import set_uniform_button_width, max_button_reqwidth
 from tools.memory_manager import manager as memory_manager
 
 from mainappsrc.models.sysml.sysml_spec import SYSML_PROPERTIES
@@ -3895,18 +3895,9 @@ class SysMLDiagramWindow(tk.Frame):
         """Resize the toolbox to the smallest width that shows all button text."""
         self.toolbox.update_idletasks()
 
-        def max_button_width(widget: tk.Misc) -> int:
-            width = 0
-            for child in widget.winfo_children():
-                if isinstance(child, ttk.Button):
-                    width = max(width, child.winfo_reqwidth())
-                else:
-                    width = max(width, max_button_width(child))
-            return width
-
         # Account for the external padding applied when packing buttons so the
         # canvas is only as wide as necessary to show them.
-        button_width = max_button_width(self.toolbox) + 4
+        button_width = max_button_reqwidth(self.toolbox) + 4
         scroll_width = self.toolbox_scroll.winfo_reqwidth()
 
         self.toolbox_container.configure(width=button_width + scroll_width)

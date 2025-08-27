@@ -1,5 +1,6 @@
 # Version History
-- 0.2.154 - Add grouped detachment regression tests for layouts, canvas cloning,
+- 0.2.154 - Ignore destroyed widgets when measuring toolbox button width.
+          - Add grouped detachment regression tests for layouts, canvas cloning,
           scrollbars and GSN diagram tabs.
 - 0.2.153 - Reparent tabs via Tk ``winfo`` before cloning to simplify detachment.
           - Clone canvas items, scroll regions and bindings when detaching tabs.
