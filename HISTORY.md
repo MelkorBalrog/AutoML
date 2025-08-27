@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.159 - Coerce capsule button width and height to integers so string
+          dimensions clone correctly during tab detachment.
+- 0.2.158 - Resolve system colour parsing when darkening capsule buttons to
+          prevent detachment crashes on Windows.
 - 0.2.157 - Fix explorer detachment to retain window references.
           - Reassign container attributes to cloned children after tab detachment
           - Transfer treeview item images and open flags when cloning tabs so
