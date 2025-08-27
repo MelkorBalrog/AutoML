@@ -480,16 +480,32 @@ class ClosableNotebook(ttk.Notebook):
         return clone, mapping
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
-        """Return children of *widget* in geometry-manager order."""
+        """Return children of *widget* in geometry-manager order.
 
+        Tk allows mixing geometry managers within a single container even though
+        it is discouraged.  The previous implementation returned the first
+        non-empty geometry list which silently dropped widgets managed by other
+        strategies, leading to partially cloned tabs where only a subset of
+        controls (typically those packed) appeared in the detached window.  To
+        ensure every child is cloned we accumulate children from ``pack``,
+        ``grid`` and ``place`` while preserving their relative order and falling
+        back to ``winfo_children`` for any remaining widgets.
+        """
+
+        ordered: list[tk.Widget] = []
         for method in ("pack_slaves", "grid_slaves", "place_slaves"):
             try:
-                children = getattr(widget, method)()
-                if children:
-                    return children
+                for child in getattr(widget, method)():
+                    if child not in ordered:
+                        ordered.append(child)
             except Exception:
                 continue
-        return widget.winfo_children()
+
+        for child in widget.winfo_children():
+            if child not in ordered:
+                ordered.append(child)
+
+        return ordered
 
     def _collect_required_kwargs(self, widget: tk.Widget, cls: type) -> dict[str, t.Any]:
         """Return constructor kwargs required to recreate *widget* of type *cls*.
@@ -1081,6 +1097,7 @@ class ClosableNotebook(ttk.Notebook):
                 )
             except tk.TclError:
                 expected = set()
+
             for child in list(clone.winfo_children()):
                 prune(child)
                 if child not in expected and str(child) not in keep:

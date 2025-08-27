@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.168 - Accumulate children from all geometry managers so every widget
+          in a tab transfers to the detached window.
 - 0.2.167 - Clone children managed by grid/place so all tab contents appear in
           detached windows.
 - 0.2.166 - Define root list when pruning clones so tab detachment no longer
@@ -26,13 +28,6 @@
 - 0.2.165 - Accept optional clone mappings in `_raise_widgets` to prevent
           `TypeError` during tab detachment and ensure all widgets lift to
           the top of their stacks.
-          - Guard duplicate-pruning against destroyed widgets and retain
-          all tab contents when detaching to floating windows.
-          - Always parent detached windows to the main root so repeated
-          detachment yields windows owned by the primary application.
-          - Parent detached windows to the main root so tab content remains
-          visible and callbacks operate on valid widgets.
-          - Raise detached tab widgets so all elements remain visible in floating windows.
 - 0.2.164 - Guard duplicate-pruning against destroyed widgets and retain
           all tab contents when detaching to floating windows.
           - Recursively raise cloned widgets in original stacking order.
