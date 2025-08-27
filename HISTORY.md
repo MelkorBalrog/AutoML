@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.164 - Guard capsule button events after detachment.
+- 0.2.164 - Cancel after callbacks referencing destroyed widgets during tab
+          detachment and verify no invalid command messages remain.
+          - Guard capsule button events after detachment.
           - Cancel after callbacks on duplicate widgets prior to destruction.
           - Verify detached capsule buttons handle hover and motion safely.
 - 0.2.163 - Always parent detached windows to the main root so repeated
