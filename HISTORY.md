@@ -21,11 +21,53 @@
 # Version History
 - 0.2.164 - Guard duplicate-pruning against destroyed widgets and retain
           all tab contents when detaching to floating windows.
-- 0.2.163 - Always parent detached windows to the main root so repeated
+          - Recursively raise cloned widgets in original stacking order.
+          - Add regression tests to verify detached labels, canvases and buttons
+            remain visible when overlapping.
+          - Guard target notebook lookup when widgets are destroyed during drag.
+          - Add regression tests for tab drag detachment including releases over void and destroyed widgets.
+          - Refine duplicate widget pruning and enforce clone mapping.
+          - Prune only widgets that duplicate mapping relationships during
+            detachment.
+          - Ensure cloned widgets register in the mapping and log failures.
+          - Add layout regression tests verifying frame, label, treeview and
+            canvas visibility after detachment.
+          - Guard target notebook lookup when widgets are destroyed during drag.
+          - Wrap ``winfo_containing`` in ``try/except`` and return ``None`` on failure.
+          - Add regression test verifying drag over destroyed widget raises no errors.
+          - Cancel pending callbacks for all descendant widgets when detaching or
+          closing tabs and guard Tcl command deletions.
+          - Add regression tests for animated CapsuleButton detachment to
+          prevent invalid command name and ``AttributeError`` exceptions.
+          - Preserve geometry options for all descendants when detaching tabs and raise cloned widgets before originals are destroyed to keep z-order.
+          - Verify detached labels, entries, canvases and more remain visible.
+          - Guard drag target resolution failures and default to tab detachment.
+          - Skip Tk ``after`` cancellation when widgets lack roots and
+          search identifiers referencing widget names to remove pending
+          callbacks.  Add detachment event tests to ensure closing and
+          destroying tabs leaves no residual callbacks or ``TclError``.
+          - Split widget reference reassignment into helper methods and add unit
+          tests for configuration rewiring and canvas window updates.
+          - Cancel widget-specific Tk ``after`` callbacks during tab detachment
+          to prevent "invalid command name" errors when interacting with
+          floating-window widgets.
+          - Log failed widget clones and ensure every cloned control fills and
+          raises in detached windows.
+          - Cancel after callbacks referencing destroyed widgets during tab
+          detachment and verify no invalid command messages remain.
+          - Guard capsule button events after detachment.
+          - Cancel after callbacks on duplicate widgets prior to destruction.
+          - Verify detached capsule buttons handle hover and motion safely.
+          - Always parent detached windows to the main root so repeated
           detachment yields windows owned by the primary application.
-- 0.2.162 - Parent detached windows to the main root so tab content remains
+          - Parent detached windows to the main root so tab content remains
           visible and callbacks operate on valid widgets.
-- 0.2.161 - Raise detached tab widgets so all elements remain visible in floating windows.
+          - Raise detached tab widgets so all elements remain visible in floating windows.
+          - Parent detached windows to the main root so tab content remains
+          visible and callbacks operate on valid widgets.
+          - Raise detached tab widgets so all elements remain visible in floating windows.
+          - Generate high-definition executable icon and add scalable builder with
+          adjustable resolution.
 - 0.2.160 - Map Windows system colour names via GetSysColor to avoid invalid
           command errors from temporary Tk roots when darkening capsule buttons.
 - 0.2.159 - Coerce capsule button width and height to integers so string
