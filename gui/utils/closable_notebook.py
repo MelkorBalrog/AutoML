@@ -737,8 +737,10 @@ class ClosableNotebook(ttk.Notebook):
         ref_opts = {"command", "yscrollcommand", "xscrollcommand", "textvariable", "variable"}
         for _orig, clone in mapping.items():
             try:
-                config = clone.configure()
+                config = clone.configure() or {}
             except Exception:
+                continue
+            if not isinstance(config, dict):
                 continue
             for opt in ref_opts:
                 if opt not in config:
