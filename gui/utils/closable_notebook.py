@@ -418,7 +418,7 @@ class ClosableNotebook(ttk.Notebook):
                 if name == "master" or param.default is not inspect._empty:
                     continue
                 value = self._get_widget_value(widget, name)
-                if value is None and param.annotation is str:
+                if value is None and param.annotation in (str, "str"):
                     value = ""
                 if value is not None:
                     kwargs[name] = value
