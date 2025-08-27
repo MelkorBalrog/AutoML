@@ -716,12 +716,24 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             pass
 
+    def _raise_widgets(self, widget: tk.Widget) -> None:
+        """Recursively lift *widget* and all descendants to the top of their stacks."""
+
+        try:
+            widget.lift()
+        except Exception:
+            pass
+        for child in widget.winfo_children():
+            self._raise_widgets(child)
+
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
         text = self.tab(tab_id, "text")
-        win = tk.Toplevel(self)
+        root_win = self.winfo_toplevel()
+        win = tk.Toplevel(root_win)
+        win.transient(root_win)
         win.geometry(f"{width}x{height}+{x}+{y}")
         self._floating_windows.append(win)
         win.bind(
@@ -743,6 +755,7 @@ class ClosableNotebook(ttk.Notebook):
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
+                self._raise_widgets(new_widget)
                 self._reassign_widget_references(mapping)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
@@ -750,6 +763,7 @@ class ClosableNotebook(ttk.Notebook):
                 tab = nb.tabs()[-1]
                 child = nb.nametowidget(tab)
                 self._ensure_fills(child)
+                self._raise_widgets(child)
                 nb.select(tab)
         except Exception:
             win.destroy()
