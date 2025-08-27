@@ -758,6 +758,44 @@ class ClosableNotebook(ttk.Notebook):
                         except Exception:
                             pass
 
+        for _orig, clone in mapping.items():
+            if not isinstance(clone, tk.Scrollbar):
+                continue
+            try:
+                cmd = clone.cget("command")
+            except Exception:
+                continue
+            if not isinstance(cmd, str) or not cmd:
+                continue
+            parts = cmd.split()
+            target_name = parts[0]
+            method = parts[1] if len(parts) > 1 else ""
+            try:
+                target = clone.nametowidget(target_name)
+            except Exception:
+                continue
+            view = method or (
+                "xview" if clone.cget("orient") == "horizontal" else "yview"
+            )
+            try:
+                clone.configure(command=getattr(target, view))
+                if view == "xview":
+                    target.configure(xscrollcommand=clone.set)
+                else:
+                    target.configure(yscrollcommand=clone.set)
+                target.update_idletasks()
+                try:
+                    bbox = target.bbox("all")
+                    if bbox:
+                        target.configure(scrollregion=bbox)
+                except Exception:
+                    try:
+                        target.event_generate("<Configure>")
+                    except Exception:
+                        pass
+            except Exception:
+                continue
+
     def _remove_duplicate_widgets(
         self,
         win: tk.Toplevel,
