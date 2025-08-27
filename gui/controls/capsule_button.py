@@ -25,9 +25,36 @@ from typing import Callable, Optional
 
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
-    value = value.lstrip('#')
-    lv = len(value)
-    return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+    """Return an RGB tuple for *value*.
+
+    ``value`` may be a ``#`` prefixed hex string or a Tk colour name such as
+    ``SystemButtonFace``.  When a named colour is provided we resolve it via
+    ``winfo_rgb`` using the current Tk root.  If no root exists a temporary one
+    is created and immediately destroyed to avoid stray windows.
+    """
+
+    if value.startswith("#"):
+        value = value.lstrip("#")
+        lv = len(value)
+        return tuple(int(value[i : i + lv // 3], 16) for i in range(0, lv, lv // 3))
+
+    root = tk._default_root  # type: ignore[attr-defined]
+    owns_root = False
+    if root is None:
+        try:
+            root = tk.Tk()
+            root.withdraw()
+            owns_root = True
+        except tk.TclError as exc:  # pragma: no cover - Tk unavailable
+            raise ValueError(str(exc)) from exc
+    try:
+        r, g, b = root.winfo_rgb(value)
+        return r // 256, g // 256, b // 256
+    except tk.TclError as exc:  # Invalid colour name
+        raise ValueError(str(exc)) from exc
+    finally:
+        if owns_root and root is not None:
+            root.destroy()
 
 
 def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
