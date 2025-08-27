@@ -857,15 +857,29 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             pass
 
-    def _raise_widgets(self, widget: tk.Widget) -> None:
-        """Recursively lift *widget* and all descendants to the top of their stacks."""
+    def _raise_widgets(
+        self,
+        widget: tk.Widget,
+        mapping: dict[tk.Widget, tk.Widget] | None = None,
+    ) -> None:
+        """Raise *widget* and descendants mirroring the original stacking order."""
 
         try:
-            widget.lift()
+            widget.tkraise()
         except Exception:
             pass
+
+        if mapping:
+            orig = next((o for o, c in mapping.items() if c is widget), None)
+            if orig is not None:
+                for child in orig.winfo_children():
+                    clone = mapping.get(child)
+                    if clone is not None:
+                        self._raise_widgets(clone, mapping)
+                return
+
         for child in widget.winfo_children():
-            self._raise_widgets(child)
+            self._raise_widgets(child, mapping)
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
@@ -893,7 +907,7 @@ class ClosableNotebook(ttk.Notebook):
                 mapping: dict[tk.Widget, tk.Widget] = {}
                 new_widget, mapping = self._clone_widget(orig, nb, mapping)
                 self._copy_widget_layout(orig, new_widget, mapping)
-                self._raise_widgets(new_widget)
+                self._raise_widgets(new_widget, mapping)
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)

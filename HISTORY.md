@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.165 - Add regression tests for tab drag detachment including releases over void and destroyed widgets.
+- 0.2.166 - Recursively raise cloned widgets in original stacking order.
+          - Add regression tests to verify detached labels, canvases and buttons
+            remain visible when overlapping.
+- 0.2.165 - Guard target notebook lookup when widgets are destroyed during drag.
+          - Add regression tests for tab drag detachment including releases over void and destroyed widgets.
           - Refine duplicate widget pruning and enforce clone mapping.
           - Prune only widgets that duplicate mapping relationships during
             detachment.
