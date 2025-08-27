@@ -20,6 +20,11 @@
 
 # Version History
 - 0.2.157 - Fix explorer detachment to retain window references.
+          - Reassign container attributes to cloned children after tab detachment
+          - Transfer treeview item images and open flags when cloning tabs so
+          icons display and expanded folders remain open after detachment.
+          - Preserve explorer data sources when detaching tabs and verify
+          governance diagrams remain visible after tab detachment.
 - 0.2.156 - Rewire canvas window widgets when cloning tabs so embedded lists,
           diagrams, comboboxes and toolboxes appear in detached windows.
 - 0.2.155 - Cancel lingering Tk ``after`` callbacks to avoid animation errors
