@@ -1,7 +1,12 @@
 # Version History
 - 0.2.153 - Reparent tabs via Tk ``winfo`` before cloning to simplify detachment.
+          - Clone canvas items, scroll regions and bindings when detaching tabs.
+          - Guard tab widget reference rewrites when cloned widgets report no configuration.
+          - Preserve mixed geometry layouts when detaching tabs.
 - 0.2.152 - Limit fill adjustments to detached tab container so child layouts remain intact.
           - Rewire cloned widgets during tab detachment and remove duplicate controls.
+- 0.2.153 - Rebind cloned scrollbars to detached widgets and recompute scrollregions
+          so floating toolboxes scroll and resize correctly.
 - 0.2.151 - Always clone widgets when detaching tabs to avoid Tk reparent errors.
 - 0.2.150 - Strip geometry manager before/after references when cloning widgets
             and mirror grid parent weights so detached tabs retain layout.

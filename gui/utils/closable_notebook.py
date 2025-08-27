@@ -545,6 +545,25 @@ class ClosableNotebook(ttk.Notebook):
             elif isinstance(widget, ttk.Treeview):
                 for iid in widget.get_children(""):
                     self._copy_tree_item(widget, clone, iid, "")
+            elif isinstance(widget, tk.Canvas):
+                for item in widget.find_all():
+                    kind = widget.type(item)
+                    coords = widget.coords(item)
+                    config = {k: v[-1] for k, v in widget.itemconfig(item).items()}
+                    creator = getattr(clone, f"create_{kind}")
+                    creator(*coords, **config)
+                try:
+                    clone.configure(scrollregion=widget.cget("scrollregion"))
+                except Exception:
+                    pass
+                try:
+                    sequences = widget.tk.call("bind", widget._w).split()
+                    for seq in sequences:
+                        cmd = widget.bind(seq)
+                        if cmd:
+                            clone.bind(seq, cmd)
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -665,34 +684,25 @@ class ClosableNotebook(ttk.Notebook):
     def _ensure_fills(self, widget: tk.Widget) -> None:
         """Ensure *widget* expands to fill its immediate container.
 
-        Only the geometry of ``widget`` itself is adjusted; child widgets keep
-        their original layout configuration.  ``pack`` and ``grid`` layouts are
-        supported.  Scrollbars expand only along their orientation so they
-        retain their intended shape.
+        Only the geometry of ``widget`` itself is adjusted.  Child widgets keep
+        their existing layout configuration regardless of whether they use
+        ``pack``, ``grid`` or ``place``.
         """
 
-        fill, expand, sticky, row_weight, col_weight = "both", True, "nsew", 1, 1
-        if isinstance(widget, (tk.Scrollbar, ttk.Scrollbar)):
-            orient = str(widget.cget("orient"))
-            mapping = {
-                "vertical": ("y", False, "ns", 1, 0),
-                "horizontal": ("x", False, "ew", 0, 1),
-            }
-            fill, expand, sticky, row_weight, col_weight = mapping.get(
-                orient, ("both", True, "nsew", 1, 1)
-            )
+        try:
+            manager = widget.winfo_manager()
+        except Exception:
+            return
 
         try:
-            widget.pack_configure(expand=expand, fill=fill)
+            if manager == "pack":
+                widget.pack_configure(expand=True, fill="both")
+            elif manager == "grid":
+                widget.grid_configure(sticky="nsew")
+            elif manager == "place":
+                widget.place_configure(relx=0, rely=0, relwidth=1, relheight=1)
         except tk.TclError:
-            try:
-                info = widget.grid_info()
-                widget.grid_configure(sticky=sticky)
-                parent = widget.master
-                parent.grid_rowconfigure(int(info.get("row", 0)), weight=row_weight)
-                parent.grid_columnconfigure(int(info.get("column", 0)), weight=col_weight)
-            except Exception:
-                pass
+            pass
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
@@ -746,8 +756,10 @@ class ClosableNotebook(ttk.Notebook):
         ref_opts = {"command", "yscrollcommand", "xscrollcommand", "textvariable", "variable"}
         for _orig, clone in mapping.items():
             try:
-                config = clone.configure()
+                config = clone.configure() or {}
             except Exception:
+                continue
+            if not isinstance(config, dict):
                 continue
             for opt in ref_opts:
                 if opt not in config:
@@ -766,6 +778,44 @@ class ClosableNotebook(ttk.Notebook):
                             clone.configure({opt: value.replace(src_name, dst_name)})
                         except Exception:
                             pass
+
+        for _orig, clone in mapping.items():
+            if not isinstance(clone, tk.Scrollbar):
+                continue
+            try:
+                cmd = clone.cget("command")
+            except Exception:
+                continue
+            if not isinstance(cmd, str) or not cmd:
+                continue
+            parts = cmd.split()
+            target_name = parts[0]
+            method = parts[1] if len(parts) > 1 else ""
+            try:
+                target = clone.nametowidget(target_name)
+            except Exception:
+                continue
+            view = method or (
+                "xview" if clone.cget("orient") == "horizontal" else "yview"
+            )
+            try:
+                clone.configure(command=getattr(target, view))
+                if view == "xview":
+                    target.configure(xscrollcommand=clone.set)
+                else:
+                    target.configure(yscrollcommand=clone.set)
+                target.update_idletasks()
+                try:
+                    bbox = target.bbox("all")
+                    if bbox:
+                        target.configure(scrollregion=bbox)
+                except Exception:
+                    try:
+                        target.event_generate("<Configure>")
+                    except Exception:
+                        pass
+            except Exception:
+                continue
 
     def _remove_duplicate_widgets(
         self,
