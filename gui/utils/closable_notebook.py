@@ -483,6 +483,7 @@ class ClosableNotebook(ttk.Notebook):
         """Apply the same geometry management as *widget* uses."""
         try:
             info = widget.pack_info()
+            info.pop("in", None)
             clone.pack(**info)
             return
         except tk.TclError:
@@ -496,6 +497,7 @@ class ClosableNotebook(ttk.Notebook):
             pass
         try:
             info = widget.place_info()
+            info.pop("in", None)
             clone.place(**info)
         except tk.TclError:
             pass

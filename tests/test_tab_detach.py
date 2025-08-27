@@ -21,10 +21,15 @@ import sys
 import pytest
 import tkinter as tk
 from tkinter import ttk
-from gui import CapsuleButton, _StyledButton
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from gui.closable_notebook import ClosableNotebook
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(root_dir)
+sys.path.append(os.path.join(root_dir, "gui", "utils"))
+try:  # Import GUI extras if available
+    from gui import CapsuleButton, _StyledButton
+except Exception:  # pragma: no cover - optional GUI dependency
+    CapsuleButton = _StyledButton = None
+from closable_notebook import ClosableNotebook
 
 
 class TestTabDetachBasics:
@@ -427,6 +432,37 @@ class TestCloning:
         assert new_label.winfo_manager()
         root.destroy()
 
+    def test_clone_resets_pack_parent(self, monkeypatch):
+        """Cloned widgets should pack into the new notebook, not the original."""
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        ttk.Label(frame, text="hi").pack()
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_frame.pack_info().get("in") == str(new_nb)
+        root.destroy()
+
+    @pytest.mark.skipif(_StyledButton is None, reason="Styled button unavailable")
     def test_clone_styled_button(self, monkeypatch):
         """Styled button detachment should clone required text argument."""
         try:
@@ -458,6 +494,7 @@ class TestCloning:
         root.destroy()
 
 
+@pytest.mark.skipif(CapsuleButton is None, reason="CapsuleButton unavailable")
 class TestCapsuleButtonDetach:
     def test_clone_capsule_with_none_text(self, monkeypatch):
         try:
