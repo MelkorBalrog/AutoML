@@ -16,8 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+import sys
+from pathlib import Path
+import tkinter as tk
 
-VERSION = "0.2.158"
+import pytest
 
-__all__ = ["VERSION"]
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+from gui.controls.capsule_button import _darken
+
+
+def test_darken_accepts_system_color():
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        pytest.skip("Tk not available")
+    try:
+        assert _darken("SystemButtonFace").startswith("#")
+    finally:
+        root.destroy()
