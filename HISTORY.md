@@ -19,6 +19,7 @@
 -->
 
 # Version History
+- 0.2.165 - Guard drag target resolution failures and default to tab detachment.
 - 0.2.164 - Split widget reference reassignment into helper methods and add unit
           tests for configuration rewiring and canvas window updates.
           - Cancel widget-specific Tk ``after`` callbacks during tab detachment

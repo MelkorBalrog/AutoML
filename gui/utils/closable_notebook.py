@@ -380,10 +380,10 @@ class ClosableNotebook(ttk.Notebook):
         except IndexError:
             return
         target = self._target_notebook(event.x_root, event.y_root)
-        if target and target is not self:
-            self._move_tab(tab_id, target)
-        else:
+        if target is None or target is self:
             self._detach_tab(tab_id, event.x_root, event.y_root)
+            return
+        self._move_tab(tab_id, target)
 
     def _is_outside(self, event: tk.Event) -> bool:
         return (
@@ -394,9 +394,12 @@ class ClosableNotebook(ttk.Notebook):
         )
 
     def _target_notebook(self, x: int, y: int) -> t.Optional["ClosableNotebook"]:
-        widget = self.winfo_containing(x, y)
-        while widget is not None and not isinstance(widget, ClosableNotebook):
-            widget = widget.master
+        try:
+            widget = self.winfo_containing(x, y)
+            while widget is not None and not isinstance(widget, ClosableNotebook):
+                widget = widget.master
+        except (tk.TclError, KeyError):
+            return None
         return widget
 
     def _move_tab(self, tab_id: str, target: "ClosableNotebook") -> bool:
