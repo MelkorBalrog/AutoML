@@ -1,4 +1,5 @@
 # Version History
+- 0.2.153 - Clone canvas items, scroll regions and bindings when detaching tabs.
 - 0.2.152 - Limit fill adjustments to detached tab container so child layouts remain intact.
           - Rewire cloned widgets during tab detachment and remove duplicate controls.
 - 0.2.151 - Always clone widgets when detaching tabs to avoid Tk reparent errors.
