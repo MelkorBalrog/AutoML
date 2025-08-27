@@ -21,7 +21,7 @@ import sys
 import pytest
 import tkinter as tk
 from tkinter import ttk
-from gui import CapsuleButton
+from gui import CapsuleButton, _StyledButton
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from gui.closable_notebook import ClosableNotebook
@@ -389,6 +389,36 @@ class TestCloning:
         assert isinstance(new_label, ttk.Label)
         assert new_label.cget("text") == "hi"
         assert new_label.winfo_manager()
+        root.destroy()
+
+    def test_clone_styled_button(self, monkeypatch):
+        """Styled button detachment should clone required text argument."""
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        btn = _StyledButton(nb, text="ok")
+        nb.add(btn, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_btn = new_nb.nametowidget(new_nb.tabs()[0])
+        assert isinstance(new_btn, _StyledButton)
+        assert new_btn.cget("text") == "ok"
         root.destroy()
 
 

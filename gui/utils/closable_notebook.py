@@ -33,6 +33,10 @@ import tkinter as tk
 from tkinter import ttk
 
 
+# Widget types whose text is only available through ``cget`` even when the
+# constructor signature cannot be introspected (e.g. CapsuleButton subclasses)
+_KNOWN_TEXT_WIDGETS = {"CapsuleButton"}
+
 class ClosableNotebook(ttk.Notebook):
     """Notebook widget with an 'x' button on the left side of each tab."""
 
@@ -386,10 +390,31 @@ class ClosableNotebook(ttk.Notebook):
         return clone
 
     def _collect_required_kwargs(self, widget: tk.Widget, cls: type) -> dict[str, t.Any]:
+        """Return constructor kwargs required to recreate *widget* of type *cls*.
+
+        Some subclasses only expose ``*args``/``**kwargs`` in ``__init__``.  Walk
+        the method resolution order to inspect base-class signatures for required
+        parameters and fall back to widget introspection for known families like
+        ``CapsuleButton`` when no signature information is available.
+        """
+
         kwargs: dict[str, t.Any] = {}
-        try:
-            sig = inspect.signature(cls.__init__)
-            for name, param in list(sig.parameters.items())[1:]:
+        for base in inspect.getmro(cls):
+            try:
+                sig = inspect.signature(base.__init__)
+            except Exception:
+                continue
+            params = list(sig.parameters.items())[1:]
+            # Skip bases that only accept *args/**kwargs and provide no
+            # information about required parameters.
+            if all(
+                p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+                or name == "master"
+                or p.default is not inspect._empty
+                for name, p in params
+            ):
+                continue
+            for name, param in params:
                 if name == "master" or param.default is not inspect._empty:
                     continue
                 value = self._get_widget_value(widget, name)
@@ -397,8 +422,16 @@ class ClosableNotebook(ttk.Notebook):
                     value = ""
                 if value is not None:
                     kwargs[name] = value
-        except Exception:
-            pass
+            if kwargs:
+                break
+
+        if not kwargs:
+            names = {c.__name__ for c in inspect.getmro(cls)}
+            if names & _KNOWN_TEXT_WIDGETS:
+                try:
+                    kwargs["text"] = widget.cget("text")
+                except Exception:
+                    pass
         return kwargs
 
     def _get_widget_value(self, widget: tk.Widget, name: str) -> t.Any | None:
