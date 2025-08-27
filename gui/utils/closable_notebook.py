@@ -745,6 +745,7 @@ class ClosableNotebook(ttk.Notebook):
                 self._ensure_fills(new_widget)
                 self._reassign_widget_references(mapping)
                 self._remove_duplicate_widgets(win, nb, mapping)
+                self._reassign_container_attributes(mapping)
             else:
                 tab = nb.tabs()[-1]
                 child = nb.nametowidget(tab)
@@ -844,6 +845,46 @@ class ClosableNotebook(ttk.Notebook):
                         pass
             except Exception:
                 continue
+
+    def _reassign_container_attributes(
+        self, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
+        """Rebind attributes on cloned containers to point at cloned widgets."""
+
+        def _rewrite(value: t.Any) -> t.Any:
+            if isinstance(value, tk.Widget):
+                return mapping.get(value, value)
+            if isinstance(value, dict):
+                updated: dict[t.Any, t.Any] = {}
+                changed = False
+                for k, v in value.items():
+                    nk = _rewrite(k)
+                    nv = _rewrite(v)
+                    changed = changed or nk is not k or nv is not v
+                    updated[nk] = nv
+                return updated if changed else value
+            if isinstance(value, list):
+                new_list = [_rewrite(v) for v in value]
+                return new_list if any(n is not o for n, o in zip(new_list, value)) else value
+            if isinstance(value, tuple):
+                new_tuple = tuple(_rewrite(v) for v in value)
+                return new_tuple if new_tuple != value else value
+            if isinstance(value, set):
+                new_set = {_rewrite(v) for v in value}
+                return new_set if new_set != value else value
+            return value
+
+        for orig, clone in mapping.items():
+            module = getattr(orig.__class__, "__module__", "")
+            if module.startswith("tkinter"):
+                continue
+            if not hasattr(orig, "__dict__") or not hasattr(clone, "__dict__"):
+                continue
+            for name, val in vars(orig).items():
+                try:
+                    setattr(clone, name, _rewrite(val))
+                except Exception:
+                    pass
 
     def _remove_duplicate_widgets(
         self,

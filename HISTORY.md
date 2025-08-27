@@ -1,5 +1,6 @@
 # Version History
-- 0.2.157 - Transfer treeview item images and open flags when cloning tabs so
+- 0.2.157 - Reassign container attributes to cloned children after tab detachment
+          - Transfer treeview item images and open flags when cloning tabs so
           icons display and expanded folders remain open after detachment.
           - Preserve explorer data sources when detaching tabs and verify
           governance diagrams remain visible after tab detachment.
