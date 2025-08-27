@@ -656,34 +656,25 @@ class ClosableNotebook(ttk.Notebook):
     def _ensure_fills(self, widget: tk.Widget) -> None:
         """Ensure *widget* expands to fill its immediate container.
 
-        Only the geometry of ``widget`` itself is adjusted; child widgets keep
-        their original layout configuration.  ``pack`` and ``grid`` layouts are
-        supported.  Scrollbars expand only along their orientation so they
-        retain their intended shape.
+        Only the geometry of ``widget`` itself is adjusted.  Child widgets keep
+        their existing layout configuration regardless of whether they use
+        ``pack``, ``grid`` or ``place``.
         """
 
-        fill, expand, sticky, row_weight, col_weight = "both", True, "nsew", 1, 1
-        if isinstance(widget, (tk.Scrollbar, ttk.Scrollbar)):
-            orient = str(widget.cget("orient"))
-            mapping = {
-                "vertical": ("y", False, "ns", 1, 0),
-                "horizontal": ("x", False, "ew", 0, 1),
-            }
-            fill, expand, sticky, row_weight, col_weight = mapping.get(
-                orient, ("both", True, "nsew", 1, 1)
-            )
+        try:
+            manager = widget.winfo_manager()
+        except Exception:
+            return
 
         try:
-            widget.pack_configure(expand=expand, fill=fill)
+            if manager == "pack":
+                widget.pack_configure(expand=True, fill="both")
+            elif manager == "grid":
+                widget.grid_configure(sticky="nsew")
+            elif manager == "place":
+                widget.place_configure(relx=0, rely=0, relwidth=1, relheight=1)
         except tk.TclError:
-            try:
-                info = widget.grid_info()
-                widget.grid_configure(sticky=sticky)
-                parent = widget.master
-                parent.grid_rowconfigure(int(info.get("row", 0)), weight=row_weight)
-                parent.grid_columnconfigure(int(info.get("column", 0)), weight=col_weight)
-            except Exception:
-                pass
+            pass
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()

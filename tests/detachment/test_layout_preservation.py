@@ -61,3 +61,58 @@ class TestLayoutPreservation:
         assert text_before == text_after
         assert vsb_before == vsb_after
         root.destroy()
+
+    def test_mixed_geometry_unchanged_after_detach(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        container = ttk.Frame(nb)
+        nb.add(container, text="Tab1")
+
+        pack_frame = ttk.Frame(container)
+        pack_frame.pack(side="top")
+        pack_lbl = ttk.Label(pack_frame, text="p")
+        pack_lbl.pack(side="left")
+
+        grid_frame = ttk.Frame(container)
+        grid_frame.pack(side="top")
+        grid_lbl = ttk.Label(grid_frame, text="g")
+        grid_lbl.grid(row=0, column=0)
+
+        place_frame = ttk.Frame(container, width=20, height=20)
+        place_frame.pack(side="top")
+        place_lbl = ttk.Label(place_frame, text="pl")
+        place_lbl.place(x=5, y=5)
+
+        nb.update_idletasks()
+        pack_before = pack_lbl.pack_info()
+        grid_before = grid_lbl.grid_info()
+        place_before = place_lbl.place_info()
+        for info in (grid_before, place_before):
+            for key in ("in", "in_", "before", "after"):
+                info.pop(key, None)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        assert nb._floating_windows, "Tab did not detach"
+        pack_after = pack_lbl.pack_info()
+        grid_after = grid_lbl.grid_info()
+        place_after = place_lbl.place_info()
+        for info in (grid_after, place_after):
+            for key in ("in", "in_", "before", "after"):
+                info.pop(key, None)
+
+        assert pack_before == pack_after
+        assert grid_before == grid_after
+        assert place_before == place_after
+        root.destroy()
