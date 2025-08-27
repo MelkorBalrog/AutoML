@@ -19,10 +19,12 @@
 -->
 
 # Version History
-- 0.2.166 - Recursively raise cloned widgets in original stacking order.
+- 0.2.164 - Guard duplicate-pruning against destroyed widgets and retain
+          all tab contents when detaching to floating windows.
+          - Recursively raise cloned widgets in original stacking order.
           - Add regression tests to verify detached labels, canvases and buttons
             remain visible when overlapping.
-- 0.2.165 - Guard target notebook lookup when widgets are destroyed during drag.
+          - Guard target notebook lookup when widgets are destroyed during drag.
           - Add regression tests for tab drag detachment including releases over void and destroyed widgets.
           - Refine duplicate widget pruning and enforce clone mapping.
           - Prune only widgets that duplicate mapping relationships during
@@ -44,7 +46,7 @@
           search identifiers referencing widget names to remove pending
           callbacks.  Add detachment event tests to ensure closing and
           destroying tabs leaves no residual callbacks or ``TclError``.
-- 0.2.164 - Split widget reference reassignment into helper methods and add unit
+          - Split widget reference reassignment into helper methods and add unit
           tests for configuration rewiring and canvas window updates.
           - Cancel widget-specific Tk ``after`` callbacks during tab detachment
           to prevent "invalid command name" errors when interacting with
@@ -56,11 +58,11 @@
           - Guard capsule button events after detachment.
           - Cancel after callbacks on duplicate widgets prior to destruction.
           - Verify detached capsule buttons handle hover and motion safely.
-- 0.2.163 - Always parent detached windows to the main root so repeated
+          - Always parent detached windows to the main root so repeated
           detachment yields windows owned by the primary application.
-- 0.2.162 - Parent detached windows to the main root so tab content remains
+          - Parent detached windows to the main root so tab content remains
           visible and callbacks operate on valid widgets.
-- 0.2.161 - Raise detached tab widgets so all elements remain visible in floating windows.
+          - Raise detached tab widgets so all elements remain visible in floating windows.
           - Parent detached windows to the main root so tab content remains
           visible and callbacks operate on valid widgets.
           - Raise detached tab widgets so all elements remain visible in floating windows.

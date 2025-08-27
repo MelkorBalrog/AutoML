@@ -857,29 +857,15 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             pass
 
-    def _raise_widgets(
-        self,
-        widget: tk.Widget,
-        mapping: dict[tk.Widget, tk.Widget] | None = None,
-    ) -> None:
-        """Raise *widget* and descendants mirroring the original stacking order."""
+    def _raise_widgets(self, widget: tk.Widget) -> None:
+        """Recursively lift *widget* and all descendants to the top of their stacks."""
 
         try:
-            widget.tkraise()
+            widget.lift()
         except Exception:
             pass
-
-        if mapping:
-            orig = next((o for o, c in mapping.items() if c is widget), None)
-            if orig is not None:
-                for child in orig.winfo_children():
-                    clone = mapping.get(child)
-                    if clone is not None:
-                        self._raise_widgets(clone, mapping)
-                return
-
         for child in widget.winfo_children():
-            self._raise_widgets(child, mapping)
+            self._raise_widgets(child)
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
@@ -911,8 +897,8 @@ class ClosableNotebook(ttk.Notebook):
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
-                for cloned in mapping.values():
-                    self._ensure_fills(cloned)
+                self._ensure_fills(new_widget)
+                self._raise_widgets(new_widget)
                 self._reassign_widget_references(mapping)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
@@ -1071,19 +1057,22 @@ class ClosableNotebook(ttk.Notebook):
     ) -> None:
         """Remove widgets that were inadvertently duplicated during cloning."""
 
+        keep = {str(win), str(nb)} | {str(w) for w in mapping.values()}
         inverse = {clone: orig for orig, clone in mapping.items()}
-        roots = [orig for orig in mapping if orig.master not in mapping]
 
-        def prune(orig: tk.Widget, clone: tk.Widget) -> None:
-            expected = {mapping[c] for c in orig.winfo_children() if c in mapping}
+        def prune(clone: tk.Widget) -> None:
+            orig = inverse.get(clone)
+            try:
+                expected = (
+                    {mapping[c] for c in orig.winfo_children() if c in mapping}
+                    if orig and orig.winfo_exists()
+                    else set()
+                )
+            except tk.TclError:
+                expected = set()
             for child in list(clone.winfo_children()):
-                if child in expected:
-                    prune(inverse[child], child)
-                else:
-                    try:
-                        self._cancel_after_events(child)
-                    except Exception:
-                        pass
+                prune(child)
+                if child not in expected and str(child) not in keep:
                     try:
                         child.destroy()
                     except Exception:
