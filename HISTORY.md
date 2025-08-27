@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.165 - Cancel pending callbacks for all descendant widgets when detaching or
+          closing tabs and guard Tcl command deletions.
+          - Add regression tests for animated CapsuleButton detachment to
+          prevent invalid command name and ``AttributeError`` exceptions.
 - 0.2.164 - Split widget reference reassignment into helper methods and add unit
           tests for configuration rewiring and canvas window updates.
           - Cancel widget-specific Tk ``after`` callbacks during tab detachment
