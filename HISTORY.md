@@ -21,6 +21,16 @@
 # Version History
 - 0.2.164 - Split widget reference reassignment into helper methods and add unit
           tests for configuration rewiring and canvas window updates.
+          - Cancel widget-specific Tk ``after`` callbacks during tab detachment
+          to prevent "invalid command name" errors when interacting with
+          floating-window widgets.
+          - Log failed widget clones and ensure every cloned control fills and
+          raises in detached windows.
+          - Cancel after callbacks referencing destroyed widgets during tab
+          detachment and verify no invalid command messages remain.
+          - Guard capsule button events after detachment.
+          - Cancel after callbacks on duplicate widgets prior to destruction.
+          - Verify detached capsule buttons handle hover and motion safely.
 - 0.2.163 - Always parent detached windows to the main root so repeated
           detachment yields windows owned by the primary application.
 - 0.2.162 - Parent detached windows to the main root so tab content remains

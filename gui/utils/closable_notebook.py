@@ -28,10 +28,13 @@ notebook re-attaches it to that notebook.
 
 
 import inspect
+import logging
 import typing as t
 import tkinter as tk
 import weakref
 from tkinter import ttk
+
+logger = logging.getLogger(__name__)
 
 
 # Widget types whose text is only available through ``cget`` even when the
@@ -453,7 +456,10 @@ class ClosableNotebook(ttk.Notebook):
         if not isinstance(widget.master, ttk.Notebook):
             self._copy_widget_layout(widget, clone)
         for child in self._ordered_children(widget):
-            self._clone_widget(child, clone, mapping)
+            try:
+                self._clone_widget(child, clone, mapping)
+            except Exception as exc:
+                logger.warning("Failed to clone child %s: %s", child, exc)
         return clone, mapping
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
@@ -658,23 +664,57 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-    def _cancel_after_events(self, widget: tk.Widget) -> None:
-        """Cancel common Tk ``after`` callbacks for *widget* and children."""
+    def _cancel_after_events(
+        self, widget: tk.Widget, cancelled: set[str] | None = None
+    ) -> None:
+        """Cancel Tk ``after`` callbacks tied to *widget* or dead commands.
+
+        Parameters
+        ----------
+        widget:
+            Widget whose callbacks should be cancelled.
+        cancelled:
+            Set of identifiers that have already been cancelled.  This avoids
+            issuing multiple ``after_cancel`` calls for the same callback when
+            widgets share identifiers.
+        """
+
+        if cancelled is None:
+            cancelled = set()
+
         try:
             tcl_name = str(widget)
-            ids = widget.tk.call("after", "info")
-            if isinstance(ids, str):
-                ids = [ids]
+            tkapp = widget.tk
+            ids: set[str] = set()
+            try:
+                global_ids = tkapp.call("after", "info")
+            except Exception:
+                global_ids = []
+            if isinstance(global_ids, str):
+                global_ids = [global_ids]
+            ids.update(global_ids)
+            try:
+                widget_ids = tkapp.call("after", "info", tcl_name)
+            except Exception:
+                widget_ids = []
+            if isinstance(widget_ids, str):
+                widget_ids = [widget_ids]
+            ids.update(widget_ids)
+            try:
+                tcl_cmds = {
+                    cmd for cmd in getattr(tkapp, "_tclCommands", []) if tcl_name in cmd
+                }
+            except Exception:
+                tcl_cmds = set()
             for ident in ids:
                 try:
-                    cmd = widget.tk.call("after", "info", ident)
+                    cmd = tkapp.call("after", "info", ident)
                 except Exception:
                     cmd = ""
                 if (
                     tcl_name in cmd
-                    or str(ident).endswith(
-                        ("_animate", "_anim", "_after", "_timer")
-                    )
+                    or any(c in cmd for c in tcl_cmds)
+                    or str(ident).endswith(("_animate", "_anim", "_after", "_timer"))
                 ):
                     try:
                         widget.after_cancel(ident)
@@ -686,15 +726,17 @@ class ClosableNotebook(ttk.Notebook):
             for name in dir(widget):
                 if name.endswith(("_anim", "_after", "_timer")):
                     ident = getattr(widget, name, None)
-                    if isinstance(ident, str):
+                    if isinstance(ident, str) and ident not in cancelled:
                         try:
                             widget.after_cancel(ident)
                         except Exception:
                             pass
+                        else:
+                            cancelled.add(ident)
         except Exception:
             pass
         for child in widget.winfo_children():
-            self._cancel_after_events(child)
+            self._cancel_after_events(child, cancelled)
             
     def _ensure_fills(self, widget: tk.Widget) -> None:
         """Ensure *widget* expands to fill its immediate container.
@@ -757,8 +799,9 @@ class ClosableNotebook(ttk.Notebook):
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
-                self._ensure_fills(new_widget)
-                self._raise_widgets(new_widget)
+                for cloned in mapping.values():
+                    self._ensure_fills(cloned)
+                    self._raise_widgets(cloned)
                 self._reassign_widget_references(mapping)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
@@ -923,6 +966,10 @@ class ClosableNotebook(ttk.Notebook):
             for child in widget.winfo_children():
                 prune(child)
             if str(widget) not in keep:
+                try:
+                    self._cancel_after_events(widget)
+                except Exception:
+                    pass
                 try:
                     widget.destroy()
                 except Exception:

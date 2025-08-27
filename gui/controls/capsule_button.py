@@ -520,8 +520,13 @@ class CapsuleButton(tk.Canvas):
         ]
 
     def _set_color(self, color: str) -> None:
+        if not self.winfo_exists():
+            return
         for item in self._shape_items:
-            self.itemconfigure(item, fill=color)
+            try:
+                self.itemconfigure(item, fill=color)
+            except tk.TclError:
+                pass
         inner = _darken(color, 0.7)
         dark = _darken(color, 0.8)
         light = _lighten(color, 1.2)
@@ -607,46 +612,69 @@ class CapsuleButton(tk.Canvas):
             self.itemconfigure(item, state=state)
 
     def _on_motion(self, event: tk.Event) -> None:
-        if "disabled" in self._state:
+        if "disabled" in self._state or not self.winfo_exists():
             return
-        w, h = int(self["width"]), int(self["height"])
+        try:
+            w, h = int(self["width"]), int(self["height"])
+        except tk.TclError:
+            return
         inside = 0 <= event.x < w and 0 <= event.y < h
         if inside:
             if self._current_color == self._normal_color:
                 self._set_color(self._hover_color)
-            if self._image_item and self._image and self._current_image is self._image:
+            if (
+                self._image_item
+                and self._image
+                and self._current_image is self._image
+            ):
                 glow = self._get_glow_image()
                 if glow:
-                    self.itemconfigure(self._image_item, image=glow)
-                    self._current_image = glow
+                    try:
+                        self.itemconfigure(self._image_item, image=glow)
+                    except tk.TclError:
+                        pass
+                    else:
+                        self._current_image = glow
             self._add_glow()
             self._set_gradient(self._hover_gradient)
         else:
             if self._current_color != self._normal_color:
                 self._set_color(self._normal_color)
             if self._image_item and self._current_image is not self._image:
-                self.itemconfigure(self._image_item, image=self._image)
-                self._current_image = self._image
+                try:
+                    self.itemconfigure(self._image_item, image=self._image)
+                except tk.TclError:
+                    pass
+                else:
+                    self._current_image = self._image
             self._remove_glow()
             self._set_gradient(self._normal_gradient)
 
     def _on_enter(self, _event: tk.Event) -> None:
-        if "disabled" not in self._state:
+        if "disabled" not in self._state and self.winfo_exists():
             self._set_color(self._hover_color)
             if self._image_item and self._image:
                 glow = self._get_glow_image()
                 if glow:
-                    self.itemconfigure(self._image_item, image=glow)
-                    self._current_image = glow
+                    try:
+                        self.itemconfigure(self._image_item, image=glow)
+                    except tk.TclError:
+                        pass
+                    else:
+                        self._current_image = glow
             self._add_glow()
             self._set_gradient(self._hover_gradient)
 
     def _on_leave(self, _event: tk.Event) -> None:
-        if "disabled" not in self._state:
+        if "disabled" not in self._state and self.winfo_exists():
             self._set_color(self._normal_color)
             if self._image_item and self._current_image is not self._image:
-                self.itemconfigure(self._image_item, image=self._image)
-                self._current_image = self._image
+                try:
+                    self.itemconfigure(self._image_item, image=self._image)
+                except tk.TclError:
+                    pass
+                else:
+                    self._current_image = self._image
             self._remove_glow()
             self._set_gradient(self._normal_gradient)
 
