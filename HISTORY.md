@@ -1,4 +1,6 @@
 # Version History
+- 0.2.157 - Transfer treeview item images and open flags when cloning tabs so
+          icons display and expanded folders remain open after detachment.
 - 0.2.156 - Rewire canvas window widgets when cloning tabs so embedded lists,
           diagrams, comboboxes and toolboxes appear in detached windows.
 - 0.2.155 - Cancel lingering Tk ``after`` callbacks to avoid animation errors
