@@ -372,11 +372,15 @@ class ClosableNotebook(ttk.Notebook):
         return moved
 
     def _clone_widget(self, widget: tk.Widget, parent: tk.Widget) -> tk.Widget:
-        """Recursively clone *widget* into *parent*.
+        """Re-parent *widget* into *parent* or clone it if necessary."""
 
-        Only standard configuration options are copied.  Widgets without
-        compatible options are skipped to keep the cloning logic minimal.
-        """
+        try:
+            widget.master = parent  # Try re-parenting first
+            if not isinstance(parent, ttk.Notebook):
+                self._copy_widget_layout(widget, widget)
+            return widget
+        except Exception:
+            pass
 
         cls = widget.__class__
         kwargs = self._collect_required_kwargs(widget, cls)
@@ -390,9 +394,19 @@ class ClosableNotebook(ttk.Notebook):
         self._copy_widget_state(widget, clone)
         if not isinstance(widget.master, ttk.Notebook):
             self._copy_widget_layout(widget, clone)
-        for child in widget.winfo_children():
+        for child in self._ordered_children(widget):
             self._clone_widget(child, clone)
         return clone
+
+    def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
+        """Return children of *widget* in geometry-manager order."""
+
+        for method in ("pack_slaves", "grid_slaves", "place_slaves"):
+            try:
+                return getattr(widget, method)()
+            except Exception:
+                continue
+        return widget.winfo_children()
 
     def _collect_required_kwargs(self, widget: tk.Widget, cls: type) -> dict[str, t.Any]:
         """Return constructor kwargs required to recreate *widget* of type *cls*.
@@ -481,10 +495,15 @@ class ClosableNotebook(ttk.Notebook):
 
     def _copy_widget_layout(self, widget: tk.Widget, clone: tk.Widget) -> None:
         """Apply the same geometry management as *widget* uses."""
+
         try:
             info = widget.pack_info()
             info.pop("in", None)
             clone.pack(**info)
+            try:
+                clone.pack_propagate(widget.pack_propagate())
+            except Exception:
+                pass
             return
         except tk.TclError:
             pass
@@ -492,6 +511,19 @@ class ClosableNotebook(ttk.Notebook):
             info = widget.grid_info()
             info.pop("in", None)
             clone.grid(**info)
+            try:
+                clone.grid_propagate(widget.grid_propagate())
+                cols, rows = widget.grid_size()
+                for r in range(rows):
+                    cfg = widget.grid_rowconfigure(r)
+                    if cfg:
+                        clone.grid_rowconfigure(r, **cfg)
+                for c in range(cols):
+                    cfg = widget.grid_columnconfigure(c)
+                    if cfg:
+                        clone.grid_columnconfigure(c, **cfg)
+            except Exception:
+                pass
             return
         except tk.TclError:
             pass
@@ -599,12 +631,15 @@ class ClosableNotebook(ttk.Notebook):
             if not self._move_tab(tab_id, nb):
                 orig = self.nametowidget(tab_id)
                 self._cancel_after_events(orig)
-                clone = self._clone_widget(orig, nb)
                 self.forget(tab_id)
-                orig.destroy()
-                nb.add(clone, text=text)
-                nb.select(clone)
-                self._ensure_fills(clone)
+                new_widget = self._clone_widget(orig, nb)
+                if new_widget is orig:
+                    nb.add(orig, text=text)
+                else:
+                    orig.destroy()
+                    nb.add(new_widget, text=text)
+                nb.select(new_widget)
+                self._ensure_fills(new_widget)
             else:
                 tab = nb.tabs()[-1]
                 child = nb.nametowidget(tab)

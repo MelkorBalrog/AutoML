@@ -300,6 +300,100 @@ class TestFloatingWindowLayout:
         assert new_inner.winfo_height() == new_nb.winfo_height()
         root.destroy()
 
+
+class TestDetachedWindowLayout:
+    def test_pack_layout_preserved(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        l1 = ttk.Label(frame, text="a")
+        l2 = ttk.Label(frame, text="b")
+        l1.pack(side="left")
+        l2.pack(side="right")
+        order = [w.cget("text") for w in frame.pack_slaves()]
+        packs = [
+            {k: v for k, v in w.pack_info().items() if k != "in"}
+            for w in frame.pack_slaves()
+        ]
+        nb.add(frame, text="T")
+        nb.update_idletasks()
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        new_order = [w.cget("text") for w in new_frame.pack_slaves()]
+        new_packs = [
+            {k: v for k, v in w.pack_info().items() if k != "in"}
+            for w in new_frame.pack_slaves()
+        ]
+        assert order == new_order
+        assert packs == new_packs
+        root.destroy()
+
+    def test_grid_layout_preserved(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        frame.grid_rowconfigure(0, weight=1)
+        frame.grid_columnconfigure(0, weight=2)
+        g1 = ttk.Label(frame, text="1")
+        g2 = ttk.Label(frame, text="2")
+        g1.grid(row=0, column=0, sticky="nsew")
+        g2.grid(row=0, column=1)
+        rows = [frame.grid_rowconfigure(0)]
+        cols = [frame.grid_columnconfigure(0), frame.grid_columnconfigure(1)]
+        infos = [
+            {k: v for k, v in w.grid_info().items() if k != "in"}
+            for w in frame.winfo_children()
+        ]
+        nb.add(frame, text="T")
+        nb.update_idletasks()
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        new_rows = [new_frame.grid_rowconfigure(0)]
+        new_cols = [
+            new_frame.grid_columnconfigure(0),
+            new_frame.grid_columnconfigure(1),
+        ]
+        new_infos = [
+            {k: v for k, v in w.grid_info().items() if k != "in"}
+            for w in new_frame.winfo_children()
+        ]
+        assert rows == new_rows
+        assert cols == new_cols
+        assert infos == new_infos
+        root.destroy()
+
 class TestCloning:
     def test_clone_handles_required_args(self, monkeypatch):
         try:
