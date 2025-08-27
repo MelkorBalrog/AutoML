@@ -1,4 +1,6 @@
 # Version History
+- 0.2.155 - Cancel lingering Tk ``after`` callbacks to avoid animation errors
+          when detaching tabs and skip toolbox fitting for destroyed widgets.
 - 0.2.154 - Ignore destroyed widgets when measuring toolbox button width.
           - Add grouped detachment regression tests for layouts, canvas cloning,
           scrollbars and GSN diagram tabs.

@@ -659,8 +659,13 @@ class ClosableNotebook(ttk.Notebook):
                 try:
                     cmd = widget.tk.call("after", "info", ident)
                 except Exception:
-                    continue
-                if tcl_name in cmd:
+                    cmd = ""
+                if (
+                    tcl_name in cmd
+                    or str(ident).endswith(
+                        ("_animate", "_anim", "_after", "_timer")
+                    )
+                ):
                     try:
                         widget.after_cancel(ident)
                     except Exception:
