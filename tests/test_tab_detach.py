@@ -531,6 +531,34 @@ class TestAnimatedWidgetDetach:
         assert "invalid command name" not in err
         root.destroy()
 
+
+class TestTabDetachCallbacks:
+    def test_detach_tab_with_after_callback(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        root.report_callback_exception = lambda exc, val, tb: (_ for _ in ()).throw(val)
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        frame.after(1, lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        root.update()
+        root.destroy()
+
     def test_detach_child_untracked_animation(self, monkeypatch, capsys):
         try:
             root = tk.Tk()
