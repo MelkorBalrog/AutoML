@@ -30,6 +30,7 @@ notebook re-attaches it to that notebook.
 import inspect
 import typing as t
 import tkinter as tk
+import weakref
 from tkinter import ttk
 
 
@@ -42,6 +43,7 @@ class ClosableNotebook(ttk.Notebook):
 
     _style_initialized = False
     _close_img: tk.PhotoImage | None = None
+    _tab_hosts: weakref.WeakKeyDictionary[tk.Widget, tk.Toplevel] = weakref.WeakKeyDictionary()
 
     def __init__(self, master: tk.Widget | None = None, **kw):
         if not ClosableNotebook._style_initialized:
@@ -136,6 +138,31 @@ class ClosableNotebook(ttk.Notebook):
         # Refresh the newly selected tab whenever focus changes
         self.bind("<<NotebookTabChanged>>", self._on_tab_changed, True)
         self.bind("<FocusIn>", self._on_focus_in, True)
+
+    # ------------------------------------------------------------------
+    # Tab management
+    # ------------------------------------------------------------------
+
+    def add(self, child: tk.Widget, **kw: t.Any) -> None:  # type: ignore[override]
+        host = ClosableNotebook._tab_hosts.get(child)
+        if host is not None and host.winfo_exists():
+            host.deiconify()
+            host.lift()
+            try:
+                host.focus_force()
+            except tk.TclError:
+                pass
+            return
+        super().add(child, **kw)
+        if isinstance(self.master, tk.Toplevel):
+            ClosableNotebook._tab_hosts[child] = self.master
+
+            def _forget(_e: tk.Event, w: tk.Widget = child) -> None:
+                ClosableNotebook._tab_hosts.pop(w, None)
+
+            self.master.bind("<Destroy>", _forget, add="+")
+        else:
+            ClosableNotebook._tab_hosts.pop(child, None)
 
     # ------------------------------------------------------------------
     # Floating window helpers
@@ -372,6 +399,7 @@ class ClosableNotebook(ttk.Notebook):
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
         self.forget(tab_id)
+        ClosableNotebook._tab_hosts.pop(child, None)
         try:
             target.add(child, text=text)
             target.select(child)
