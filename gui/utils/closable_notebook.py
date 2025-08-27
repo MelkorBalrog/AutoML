@@ -647,6 +647,8 @@ class ClosableNotebook(ttk.Notebook):
                 "end",
                 text=src.item(item, "text"),
                 values=src.item(item, "values"),
+                image=src.item(item, "image"),
+                open=src.item(item, "open"),
             )
             for child in src.get_children(item):
                 self._copy_tree_item(src, dst, child, new_id)
