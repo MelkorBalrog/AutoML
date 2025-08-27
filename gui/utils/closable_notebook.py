@@ -413,15 +413,7 @@ class ClosableNotebook(ttk.Notebook):
         return moved
 
     def _clone_widget(self, widget: tk.Widget, parent: tk.Widget) -> tk.Widget:
-        """Re-parent *widget* into *parent* or clone it if necessary."""
-
-        try:
-            widget.master = parent  # Try re-parenting first
-            if not isinstance(parent, ttk.Notebook):
-                self._copy_widget_layout(widget, widget)
-            return widget
-        except Exception:
-            pass
+        """Return a clone of *widget* re-parented into *parent*."""
 
         cls = widget.__class__
         kwargs = self._collect_required_kwargs(widget, cls)
@@ -694,11 +686,8 @@ class ClosableNotebook(ttk.Notebook):
                 self._cancel_after_events(orig)
                 self.forget(tab_id)
                 new_widget = self._clone_widget(orig, nb)
-                if new_widget is orig:
-                    nb.add(orig, text=text)
-                else:
-                    orig.destroy()
-                    nb.add(new_widget, text=text)
+                orig.destroy()
+                nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
             else:
