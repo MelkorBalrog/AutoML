@@ -360,6 +360,7 @@ class ClosableNotebook(ttk.Notebook):
                 self._active = None
                 self._reset_drag()
                 return True
+            child = self.nametowidget(tab_id)
             self._closing_tab = tab_id
             self.event_generate("<<NotebookTabClosed>>")
             if tab_id in self.tabs():
@@ -367,6 +368,14 @@ class ClosableNotebook(ttk.Notebook):
                     self.forget(tab_id)
                 except tk.TclError:
                     pass
+            try:
+                self._cancel_after_events(child)
+            except Exception:
+                pass
+            try:
+                child.destroy()
+            except Exception:
+                pass
         self.state(["!pressed"])
         self._active = None
         self._reset_drag()
@@ -785,13 +794,19 @@ class ClosableNotebook(ttk.Notebook):
                 except Exception:
                     cmd = ""
                 if (
-                    tcl_name in cmd
-                    or tcl_name in str(ident)
+                    ident in widget_ids
+                    or tcl_name in cmd
                     or any(c in cmd for c in tcl_cmds)
                     or str(ident).endswith(("_animate", "_anim", "_after", "_timer"))
                 ):
                     try:
                         widget.after_cancel(ident)
+                    except Exception:
+                        pass
+            if getattr(tkapp, "_tclCommands", None):
+                for cmd in tcl_cmds:
+                    try:
+                        tkapp.deletecommand(cmd)
                     except Exception:
                         pass
         except Exception:

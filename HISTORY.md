@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.165 - Preserve geometry options for all descendants when detaching tabs and raise cloned widgets before originals are destroyed to keep z-order.
+- 0.2.165 - Cancel pending callbacks for all descendant widgets when detaching or
+          closing tabs and guard Tcl command deletions.
+          - Add regression tests for animated CapsuleButton detachment to
+          prevent invalid command name and ``AttributeError`` exceptions.
+          - Preserve geometry options for all descendants when detaching tabs and raise cloned widgets before originals are destroyed to keep z-order.
           - Verify detached labels, entries, canvases and more remain visible.
           - Guard drag target resolution failures and default to tab detachment.
           - Skip Tk ``after`` cancellation when widgets lack roots and
