@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.165 - Preserve geometry options for all descendants when detaching tabs and raise cloned widgets before originals are destroyed to keep z-order.
+          - Verify detached labels, entries, canvases and more remain visible.
 - 0.2.164 - Split widget reference reassignment into helper methods and add unit
           tests for configuration rewiring and canvas window updates.
           - Cancel widget-specific Tk ``after`` callbacks during tab detachment
