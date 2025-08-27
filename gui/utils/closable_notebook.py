@@ -28,10 +28,13 @@ notebook re-attaches it to that notebook.
 
 
 import inspect
+import logging
 import typing as t
 import tkinter as tk
 import weakref
 from tkinter import ttk
+
+logger = logging.getLogger(__name__)
 
 
 # Widget types whose text is only available through ``cget`` even when the
@@ -357,6 +360,7 @@ class ClosableNotebook(ttk.Notebook):
                 self._active = None
                 self._reset_drag()
                 return True
+            child = self.nametowidget(tab_id)
             self._closing_tab = tab_id
             self.event_generate("<<NotebookTabClosed>>")
             if tab_id in self.tabs():
@@ -364,6 +368,14 @@ class ClosableNotebook(ttk.Notebook):
                     self.forget(tab_id)
                 except tk.TclError:
                     pass
+            try:
+                self._cancel_after_events(child)
+            except Exception:
+                pass
+            try:
+                child.destroy()
+            except Exception:
+                pass
         self.state(["!pressed"])
         self._active = None
         self._reset_drag()
@@ -377,10 +389,10 @@ class ClosableNotebook(ttk.Notebook):
         except IndexError:
             return
         target = self._target_notebook(event.x_root, event.y_root)
-        if target and target is not self:
-            self._move_tab(tab_id, target)
-        else:
+        if target is None or target is self:
             self._detach_tab(tab_id, event.x_root, event.y_root)
+            return
+        self._move_tab(tab_id, target)
 
     def _is_outside(self, event: tk.Event) -> bool:
         return (
@@ -391,7 +403,10 @@ class ClosableNotebook(ttk.Notebook):
         )
 
     def _target_notebook(self, x: int, y: int) -> t.Optional["ClosableNotebook"]:
-        widget = self.winfo_containing(x, y)
+        try:
+            widget = self.winfo_containing(x, y)
+        except (tk.TclError, KeyError):
+            return None
         while widget is not None and not isinstance(widget, ClosableNotebook):
             widget = widget.master
         return widget
@@ -446,14 +461,22 @@ class ClosableNotebook(ttk.Notebook):
         # this option which results in a ``TclError`` when cloning detached tabs.
         # Drop it from the keyword arguments so cloning remains robust.
         kwargs.pop("widgetName", None)
-        clone = cls(parent, **kwargs)
+        try:
+            clone = cls(parent, **kwargs)
+        except Exception as exc:  # pragma: no cover - extremely rare
+            logger.error("Failed to instantiate %s under %s: %s", widget, parent, exc)
+            raise
         mapping[widget] = clone
         self._copy_widget_config(widget, clone)
         self._copy_widget_state(widget, clone)
-        if not isinstance(widget.master, ttk.Notebook):
-            self._copy_widget_layout(widget, clone)
         for child in self._ordered_children(widget):
-            self._clone_widget(child, clone, mapping)
+            try:
+                child_clone, mapping = self._clone_widget(child, clone, mapping)
+            except Exception as exc:
+                logger.error("Failed to clone child %s: %s", child, exc)
+            else:
+                if child not in mapping:
+                    logger.error("Child %s was not added to mapping", child)
         return clone, mapping
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
@@ -575,63 +598,134 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-    def _copy_widget_layout(self, widget: tk.Widget, clone: tk.Widget) -> None:
-        """Apply the same geometry management as *widget* uses."""
+    def _copy_widget_layout(
+        self,
+        widget: tk.Widget,
+        clone: tk.Widget,
+        mapping: dict[tk.Widget, tk.Widget],
+    ) -> None:
+        """Apply geometry options of *widget* to *clone* and descendants."""
 
+        def recurse(src: tk.Widget, dst: tk.Widget) -> None:
+            try:
+                manager = src.winfo_manager()
+            except Exception:
+                manager = ""
+            if manager == "pack":
+                self._apply_pack_layout(src, dst, mapping)
+            elif manager == "grid":
+                self._apply_grid_layout(src, dst, mapping)
+            elif manager == "place":
+                self._apply_place_layout(src, dst, mapping)
+            for child, child_clone in zip(
+                self._ordered_children(src), self._ordered_children(dst)
+            ):
+                recurse(child, child_clone)
+
+        recurse(widget, clone)
+
+    def _apply_pack_layout(
+        self, widget: tk.Widget, clone: tk.Widget, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
         try:
             info = widget.pack_info()
-            for key in ("in", "in_", "before", "after"):
+            for key in ("in", "in_"):
                 info.pop(key, None)
+            for key in ("before", "after"):
+                ref = info.get(key)
+                if ref:
+                    try:
+                        ref_widget = widget.nametowidget(ref)
+                    except Exception:
+                        ref_widget = None
+                    clone_ref = mapping.get(ref_widget) if ref_widget else None
+                    if clone_ref:
+                        info[key] = clone_ref
+                    else:
+                        info.pop(key, None)
             clone.pack(**info)
             try:
                 clone.pack_propagate(widget.pack_propagate())
             except Exception:
                 pass
-            return
         except tk.TclError:
             pass
+
+    def _apply_grid_layout(
+        self, widget: tk.Widget, clone: tk.Widget, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
         try:
             info = widget.grid_info()
-            for key in ("in", "in_", "before", "after"):
+            for key in ("in", "in_"):
                 info.pop(key, None)
-            clone.grid(**info)
-            try:
-                clone.grid_propagate(widget.grid_propagate())
-                cols, rows = widget.grid_size()
-                for r in range(rows):
-                    cfg = widget.grid_rowconfigure(r)
-                    if cfg:
-                        clone.grid_rowconfigure(r, **cfg)
-                for c in range(cols):
-                    cfg = widget.grid_columnconfigure(c)
-                    if cfg:
-                        clone.grid_columnconfigure(c, **cfg)
-                if widget is not clone:
-                    orig_parent = widget.master
-                    new_parent = clone.master
+            for key in ("before", "after"):
+                ref = info.get(key)
+                if ref:
                     try:
-                        pcols, prows = orig_parent.grid_size()
-                        for r in range(prows):
-                            pcfg = orig_parent.grid_rowconfigure(r)
-                            weight = pcfg.get("weight") if pcfg else 0
-                            if weight:
-                                new_parent.grid_rowconfigure(r, weight=weight)
-                        for c in range(pcols):
-                            pcfg = orig_parent.grid_columnconfigure(c)
-                            weight = pcfg.get("weight") if pcfg else 0
-                            if weight:
-                                new_parent.grid_columnconfigure(c, weight=weight)
+                        ref_widget = widget.nametowidget(ref)
                     except Exception:
-                        pass
-            except Exception:
-                pass
-            return
+                        ref_widget = None
+                    clone_ref = mapping.get(ref_widget) if ref_widget else None
+                    if clone_ref:
+                        info[key] = clone_ref
+                    else:
+                        info.pop(key, None)
+            clone.grid(**info)
+            self._configure_grid_weights(widget, clone)
         except tk.TclError:
             pass
+
+    def _configure_grid_weights(self, widget: tk.Widget, clone: tk.Widget) -> None:
+        try:
+            clone.grid_propagate(widget.grid_propagate())
+            cols, rows = widget.grid_size()
+            for r in range(rows):
+                cfg = widget.grid_rowconfigure(r)
+                if cfg:
+                    clone.grid_rowconfigure(r, **cfg)
+            for c in range(cols):
+                cfg = widget.grid_columnconfigure(c)
+                if cfg:
+                    clone.grid_columnconfigure(c, **cfg)
+            if widget is not clone:
+                orig_parent = widget.master
+                new_parent = clone.master
+                try:
+                    pcols, prows = orig_parent.grid_size()
+                    for r in range(prows):
+                        pcfg = orig_parent.grid_rowconfigure(r)
+                        weight = pcfg.get("weight") if pcfg else 0
+                        if weight:
+                            new_parent.grid_rowconfigure(r, weight=weight)
+                    for c in range(pcols):
+                        pcfg = orig_parent.grid_columnconfigure(c)
+                        weight = pcfg.get("weight") if pcfg else 0
+                        if weight:
+                            new_parent.grid_columnconfigure(c, weight=weight)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    def _apply_place_layout(
+        self, widget: tk.Widget, clone: tk.Widget, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
         try:
             info = widget.place_info()
-            for key in ("in", "in_", "before", "after"):
+            for key in ("in", "in_"):
                 info.pop(key, None)
+            for key in ("before", "after"):
+                ref = info.get(key)
+                if ref:
+                    try:
+                        ref_widget = widget.nametowidget(ref)
+                    except Exception:
+                        ref_widget = None
+                    clone_ref = mapping.get(ref_widget) if ref_widget else None
+                    if clone_ref:
+                        info[key] = clone_ref
+                    else:
+                        info.pop(key, None)
             clone.place(**info)
         except tk.TclError:
             pass
@@ -658,26 +752,68 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-    def _cancel_after_events(self, widget: tk.Widget) -> None:
-        """Cancel common Tk ``after`` callbacks for *widget* and children."""
+    def _cancel_after_events(
+        self, widget: tk.Widget, cancelled: set[str] | None = None
+    ) -> None:
+        """Cancel Tk ``after`` callbacks tied to *widget* or dead commands.
+
+        Parameters
+        ----------
+        widget:
+            Widget whose callbacks should be cancelled.
+        cancelled:
+            Set of identifiers that have already been cancelled.  This avoids
+            issuing multiple ``after_cancel`` calls for the same callback when
+            widgets share identifiers.
+        """
+
+        if cancelled is None:
+            cancelled = set()
+
         try:
+            tkapp = getattr(widget, "tk", None)
+            if tkapp is None or getattr(tkapp, "_tclCommands", None) is None:
+                return
             tcl_name = str(widget)
-            ids = widget.tk.call("after", "info")
-            if isinstance(ids, str):
-                ids = [ids]
+            ids: set[str] = set()
+            try:
+                global_ids = tkapp.call("after", "info")
+            except Exception:
+                global_ids = []
+            if isinstance(global_ids, str):
+                global_ids = [global_ids]
+            ids.update(global_ids)
+            try:
+                widget_ids = tkapp.call("after", "info", tcl_name)
+            except Exception:
+                widget_ids = []
+            if isinstance(widget_ids, str):
+                widget_ids = [widget_ids]
+            ids.update(widget_ids)
+            try:
+                commands = getattr(tkapp, "_tclCommands", None) or []
+                tcl_cmds = {cmd for cmd in commands if tcl_name in cmd}
+            except Exception:
+                tcl_cmds = set()
             for ident in ids:
                 try:
-                    cmd = widget.tk.call("after", "info", ident)
+                    cmd = tkapp.call("after", "info", ident)
                 except Exception:
                     cmd = ""
                 if (
-                    tcl_name in cmd
-                    or str(ident).endswith(
-                        ("_animate", "_anim", "_after", "_timer")
-                    )
+                    ident in widget_ids
+                    or tcl_name in cmd
+                    or any(c in cmd for c in tcl_cmds)
+                    or str(ident).endswith(("_animate", "_anim", "_after", "_timer"))
                 ):
                     try:
                         widget.after_cancel(ident)
+                    except Exception:
+                        pass
+            if getattr(tkapp, "_tclCommands", None):
+                for cmd in tcl_cmds:
+                    try:
+                        tkapp.deletecommand(cmd)
                     except Exception:
                         pass
         except Exception:
@@ -686,15 +822,17 @@ class ClosableNotebook(ttk.Notebook):
             for name in dir(widget):
                 if name.endswith(("_anim", "_after", "_timer")):
                     ident = getattr(widget, name, None)
-                    if isinstance(ident, str):
+                    if isinstance(ident, str) and ident not in cancelled:
                         try:
                             widget.after_cancel(ident)
                         except Exception:
                             pass
+                        else:
+                            cancelled.add(ident)
         except Exception:
             pass
         for child in widget.winfo_children():
-            self._cancel_after_events(child)
+            self._cancel_after_events(child, cancelled)
             
     def _ensure_fills(self, widget: tk.Widget) -> None:
         """Ensure *widget* expands to fill its immediate container.
@@ -761,6 +899,8 @@ class ClosableNotebook(ttk.Notebook):
                 self.forget(tab_id)
                 mapping: dict[tk.Widget, tk.Widget] = {}
                 new_widget, mapping = self._clone_widget(orig, nb, mapping)
+                self._copy_widget_layout(orig, new_widget, mapping)
+                self._raise_widgets(new_widget, mapping)
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
@@ -779,18 +919,13 @@ class ClosableNotebook(ttk.Notebook):
             win.destroy()
             raise
 
-    def _reassign_widget_references(
+    def _rewrite_config_options(
         self, mapping: dict[tk.Widget, tk.Widget]
     ) -> None:
-        """Rewrite widget option references to point to clones.
-
-        Tk stores widget relationships such as scroll commands as textual widget
-        paths.  When a tab is detached and its widgets cloned, these options must
-        be rewritten so they reference the cloned siblings instead of the now
-        destroyed originals.
-        """
+        """Rewrite widget configuration options to point at cloned widgets."""
 
         ref_opts = {"command", "yscrollcommand", "xscrollcommand", "textvariable", "variable"}
+        name_map = {str(o): str(c) for o, c in mapping.items()}
         for _orig, clone in mapping.items():
             try:
                 config = clone.configure() or {}
@@ -807,30 +942,12 @@ class ClosableNotebook(ttk.Notebook):
                     continue
                 if not isinstance(value, str):
                     continue
-                for src, dst in mapping.items():
-                    src_name = str(src)
-                    dst_name = str(dst)
+                for src_name, dst_name in name_map.items():
                     if src_name in value:
                         try:
                             clone.configure({opt: value.replace(src_name, dst_name)})
                         except Exception:
                             pass
-
-        name_map = {str(o): str(c) for o, c in mapping.items()}
-        for _orig, clone in mapping.items():
-            if not isinstance(clone, tk.Canvas):
-                continue
-            for item in clone.find_all():
-                if clone.type(item) != "window":
-                    continue
-                old = clone.itemcget(item, "window")
-                new = name_map.get(old)
-                if not new:
-                    continue
-                try:
-                    clone.itemconfigure(item, window=new)
-                except Exception:
-                    pass
 
         for _orig, clone in mapping.items():
             if not isinstance(clone, tk.Scrollbar):
@@ -869,6 +986,35 @@ class ClosableNotebook(ttk.Notebook):
                         pass
             except Exception:
                 continue
+
+    def _update_canvas_window_items(
+        self, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
+        """Update canvas window items to point at cloned windows."""
+
+        name_map = {str(o): str(c) for o, c in mapping.items()}
+        for _orig, clone in mapping.items():
+            if not isinstance(clone, tk.Canvas):
+                continue
+            for item in clone.find_all():
+                if clone.type(item) != "window":
+                    continue
+                old = clone.itemcget(item, "window")
+                new = name_map.get(old)
+                if not new:
+                    continue
+                try:
+                    clone.itemconfigure(item, window=new)
+                except Exception:
+                    pass
+
+    def _reassign_widget_references(
+        self, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
+        """Rewrite internal widget references after cloning."""
+
+        self._rewrite_config_options(mapping)
+        self._update_canvas_window_items(mapping)
 
     def _reassign_container_attributes(
         self, mapping: dict[tk.Widget, tk.Widget]
@@ -916,7 +1062,7 @@ class ClosableNotebook(ttk.Notebook):
         nb: ttk.Notebook,
         mapping: dict[tk.Widget, tk.Widget],
     ) -> None:
-        """Remove any widgets that were inadvertently created during cloning."""
+        """Remove widgets that were inadvertently duplicated during cloning."""
 
         keep = {str(win), str(nb)} | {str(w) for w in mapping.values()}
         inverse = {clone: orig for orig, clone in mapping.items()}
@@ -939,7 +1085,8 @@ class ClosableNotebook(ttk.Notebook):
                     except Exception:
                         pass
 
-        prune(win)
+        for root in roots:
+            prune(root, mapping[root])
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
