@@ -3893,7 +3893,20 @@ class SysMLDiagramWindow(tk.Frame):
 
     def _fit_toolbox(self) -> None:
         """Resize the toolbox to the smallest width that shows all button text."""
-        self.toolbox.update_idletasks()
+
+        widgets = (
+            getattr(self, "toolbox", None),
+            getattr(self, "toolbox_scroll", None),
+            getattr(self, "toolbox_container", None),
+            getattr(self, "toolbox_canvas", None),
+            getattr(self, "prop_view", None),
+        )
+        try:
+            if any(w is None or not w.winfo_exists() for w in widgets):
+                return
+            self.toolbox.update_idletasks()
+        except Exception:
+            return
 
         # Account for the external padding applied when packing buttons so the
         # canvas is only as wide as necessary to show them.

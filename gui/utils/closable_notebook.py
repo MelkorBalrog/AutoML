@@ -659,8 +659,13 @@ class ClosableNotebook(ttk.Notebook):
                 try:
                     cmd = widget.tk.call("after", "info", ident)
                 except Exception:
-                    continue
-                if tcl_name in cmd:
+                    cmd = ""
+                if (
+                    tcl_name in cmd
+                    or str(ident).endswith(
+                        ("_animate", "_anim", "_after", "_timer")
+                    )
+                ):
                     try:
                         widget.after_cancel(ident)
                     except Exception:
@@ -778,6 +783,22 @@ class ClosableNotebook(ttk.Notebook):
                             clone.configure({opt: value.replace(src_name, dst_name)})
                         except Exception:
                             pass
+
+        name_map = {str(o): str(c) for o, c in mapping.items()}
+        for _orig, clone in mapping.items():
+            if not isinstance(clone, tk.Canvas):
+                continue
+            for item in clone.find_all():
+                if clone.type(item) != "window":
+                    continue
+                old = clone.itemcget(item, "window")
+                new = name_map.get(old)
+                if not new:
+                    continue
+                try:
+                    clone.itemconfigure(item, window=new)
+                except Exception:
+                    pass
 
         for _orig, clone in mapping.items():
             if not isinstance(clone, tk.Scrollbar):
