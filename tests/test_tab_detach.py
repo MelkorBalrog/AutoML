@@ -201,6 +201,33 @@ class TestFloatingWindowBehavior:
         assert new_frame is frame
         root.destroy()
 
+    def test_reopen_detached_tab_focuses_window(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        nb.add(frame, text="Tab1")
+        assert len(nb.tabs()) == 0
+        focused = win.focus_get()
+        assert focused is not None and focused.winfo_toplevel() is win
+        root.destroy()
+
 
 class TestFloatingWindowLayout:
     def test_detached_tab_fits_initial_window(self):
