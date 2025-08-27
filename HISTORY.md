@@ -1,4 +1,6 @@
 # Version History
+- 0.2.154 - Add grouped detachment regression tests for layouts, canvas cloning,
+          scrollbars and GSN diagram tabs.
 - 0.2.153 - Reparent tabs via Tk ``winfo`` before cloning to simplify detachment.
           - Clone canvas items, scroll regions and bindings when detaching tabs.
           - Guard tab widget reference rewrites when cloned widgets report no configuration.
