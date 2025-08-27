@@ -590,9 +590,9 @@ class ClosableNotebook(ttk.Notebook):
         try:
             if not self._move_tab(tab_id, nb):
                 orig = self.nametowidget(tab_id)
+                self._cancel_after_events(orig)
                 clone = self._clone_widget(orig, nb)
                 self.forget(tab_id)
-                self._cancel_after_events(orig)
                 orig.destroy()
                 nb.add(clone, text=text)
                 nb.select(clone)
