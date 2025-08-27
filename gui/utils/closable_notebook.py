@@ -115,6 +115,9 @@ class ClosableNotebook(ttk.Notebook):
         except ValueError:
             self._data_strategy = 4
         self._focused_tab: str | None = None
+        # Cache application root so floating windows always attach to the main
+        # window even when this notebook resides in a detached toplevel.
+        self._app_root = self._root()
         # ``_root_bindings`` store identifiers for bindings that temporarily
         # attach to the containing toplevel while a drag operation is active.
         # This ensures that we still receive ``<B1-Motion>`` and
@@ -458,7 +461,9 @@ class ClosableNotebook(ttk.Notebook):
 
         for method in ("pack_slaves", "grid_slaves", "place_slaves"):
             try:
-                return getattr(widget, method)()
+                children = getattr(widget, method)()
+                if children:
+                    return children
             except Exception:
                 continue
         return widget.winfo_children()
@@ -716,12 +721,31 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             pass
 
+    def _raise_widgets(
+        self, widget: tk.Widget, _mapping: t.Optional[dict[tk.Widget, tk.Widget]] = None
+    ) -> None:
+        """Recursively lift *widget* and descendants to the top of their stacks.
+
+        The optional *_mapping* parameter is accepted for backward compatibility
+        with earlier implementations that supplied the clone mapping. It is
+        ignored but kept to avoid ``TypeError`` when older call sites pass it.
+        """
+
+        try:
+            widget.lift()
+        except Exception:
+            pass
+        for child in widget.winfo_children():
+            self._raise_widgets(child)
+
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
         text = self.tab(tab_id, "text")
-        win = tk.Toplevel(self)
+        root_win = self._app_root
+        win = tk.Toplevel(root_win)
+        win.transient(root_win)
         win.geometry(f"{width}x{height}+{x}+{y}")
         self._floating_windows.append(win)
         win.bind(
@@ -743,6 +767,7 @@ class ClosableNotebook(ttk.Notebook):
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
+                self._raise_widgets(new_widget, mapping)
                 self._reassign_widget_references(mapping)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
@@ -750,6 +775,7 @@ class ClosableNotebook(ttk.Notebook):
                 tab = nb.tabs()[-1]
                 child = nb.nametowidget(tab)
                 self._ensure_fills(child)
+                self._raise_widgets(child)
                 nb.select(tab)
         except Exception:
             win.destroy()
@@ -895,17 +921,32 @@ class ClosableNotebook(ttk.Notebook):
         """Remove any widgets that were inadvertently created during cloning."""
 
         keep = {str(win), str(nb)} | {str(w) for w in mapping.values()}
+        inverse = {clone: orig for orig, clone in mapping.items()}
 
-        def prune(widget: tk.Widget) -> None:
-            for child in widget.winfo_children():
+        def prune(clone: tk.Widget) -> None:
+            """Recursively destroy widgets not present in the original tree."""
+
+            orig = inverse.get(clone)
+            try:
+                expected = (
+                    {mapping[c] for c in orig.winfo_children() if c in mapping}
+                    if orig and orig.winfo_exists()
+                    else set()
+                )
+            except tk.TclError:
+                expected = set()
+
+            for child in list(clone.winfo_children()):
                 prune(child)
-            if str(widget) not in keep:
-                try:
-                    widget.destroy()
-                except Exception:
-                    pass
+                if child not in expected and str(child) not in keep:
+                    try:
+                        child.destroy()
+                    except Exception:
+                        pass
 
-        prune(win)
+        roots = [win]
+        for root in roots:
+            prune(root)
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
