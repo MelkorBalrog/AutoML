@@ -379,7 +379,8 @@ class ClosableNotebook(ttk.Notebook):
         clone = cls(parent, **kwargs)
         self._copy_widget_config(widget, clone)
         self._copy_widget_state(widget, clone)
-        self._copy_widget_layout(widget, clone)
+        if not isinstance(widget.master, ttk.Notebook):
+            self._copy_widget_layout(widget, clone)
         for child in widget.winfo_children():
             self._clone_widget(child, clone)
         return clone
