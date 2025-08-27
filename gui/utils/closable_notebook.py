@@ -412,8 +412,20 @@ class ClosableNotebook(ttk.Notebook):
             self.master.destroy()
         return moved
 
-    def _clone_widget(self, widget: tk.Widget, parent: tk.Widget) -> tk.Widget:
-        """Return a clone of *widget* re-parented into *parent*."""
+    def _clone_widget(
+        self,
+        widget: tk.Widget,
+        parent: tk.Widget,
+        mapping: dict[tk.Widget, tk.Widget] | None = None,
+    ) -> tuple[tk.Widget, dict[tk.Widget, tk.Widget]]:
+        """Return a clone of *widget* re-parented into *parent*.
+
+        ``mapping`` stores a relation of original widgets to their clones so
+        options referencing sibling widgets can later be rewired.
+        """
+
+        if mapping is None:
+            mapping = {}
 
         cls = widget.__class__
         kwargs = self._collect_required_kwargs(widget, cls)
@@ -423,13 +435,14 @@ class ClosableNotebook(ttk.Notebook):
         # Drop it from the keyword arguments so cloning remains robust.
         kwargs.pop("widgetName", None)
         clone = cls(parent, **kwargs)
+        mapping[widget] = clone
         self._copy_widget_config(widget, clone)
         self._copy_widget_state(widget, clone)
         if not isinstance(widget.master, ttk.Notebook):
             self._copy_widget_layout(widget, clone)
         for child in self._ordered_children(widget):
-            self._clone_widget(child, clone)
-        return clone
+            self._clone_widget(child, clone, mapping)
+        return clone, mapping
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return children of *widget* in geometry-manager order."""
@@ -693,11 +706,14 @@ class ClosableNotebook(ttk.Notebook):
                 orig = self.nametowidget(tab_id)
                 self._cancel_after_events(orig)
                 self.forget(tab_id)
-                new_widget = self._clone_widget(orig, nb)
+                mapping: dict[tk.Widget, tk.Widget] = {}
+                new_widget, mapping = self._clone_widget(orig, nb, mapping)
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
+                self._reassign_widget_references(mapping)
+                self._remove_duplicate_widgets(win, nb, mapping)
             else:
                 tab = nb.tabs()[-1]
                 child = nb.nametowidget(tab)
@@ -706,6 +722,62 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             win.destroy()
             raise
+
+    def _reassign_widget_references(
+        self, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
+        """Rewrite widget option references to point to clones.
+
+        Tk stores widget relationships such as scroll commands as textual widget
+        paths.  When a tab is detached and its widgets cloned, these options must
+        be rewritten so they reference the cloned siblings instead of the now
+        destroyed originals.
+        """
+
+        ref_opts = {"command", "yscrollcommand", "xscrollcommand", "textvariable", "variable"}
+        for _orig, clone in mapping.items():
+            try:
+                config = clone.configure()
+            except Exception:
+                continue
+            for opt in ref_opts:
+                if opt not in config:
+                    continue
+                try:
+                    value = clone.cget(opt)
+                except Exception:
+                    continue
+                if not isinstance(value, str):
+                    continue
+                for src, dst in mapping.items():
+                    src_name = str(src)
+                    dst_name = str(dst)
+                    if src_name in value:
+                        try:
+                            clone.configure({opt: value.replace(src_name, dst_name)})
+                        except Exception:
+                            pass
+
+    def _remove_duplicate_widgets(
+        self,
+        win: tk.Toplevel,
+        nb: ttk.Notebook,
+        mapping: dict[tk.Widget, tk.Widget],
+    ) -> None:
+        """Remove any widgets that were inadvertently created during cloning."""
+
+        keep = {str(win), str(nb)} | {str(w) for w in mapping.values()}
+
+        def prune(widget: tk.Widget) -> None:
+            for child in widget.winfo_children():
+                prune(child)
+            if str(widget) not in keep:
+                try:
+                    widget.destroy()
+                except Exception:
+                    pass
+
+        prune(win)
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
