@@ -385,15 +385,7 @@ class ClosableNotebook(ttk.Notebook):
         return moved
 
     def _clone_widget(self, widget: tk.Widget, parent: tk.Widget) -> tk.Widget:
-        """Re-parent *widget* into *parent* or clone it if necessary."""
-
-        try:
-            widget.master = parent  # Try re-parenting first
-            if not isinstance(parent, ttk.Notebook):
-                self._copy_widget_layout(widget, widget)
-            return widget
-        except Exception:
-            pass
+        """Return a clone of *widget* re-parented into *parent*."""
 
         cls = widget.__class__
         kwargs = self._collect_required_kwargs(widget, cls)
@@ -511,7 +503,8 @@ class ClosableNotebook(ttk.Notebook):
 
         try:
             info = widget.pack_info()
-            info.pop("in", None)
+            for key in ("in", "in_", "before", "after"):
+                info.pop(key, None)
             clone.pack(**info)
             try:
                 clone.pack_propagate(widget.pack_propagate())
@@ -522,7 +515,8 @@ class ClosableNotebook(ttk.Notebook):
             pass
         try:
             info = widget.grid_info()
-            info.pop("in", None)
+            for key in ("in", "in_", "before", "after"):
+                info.pop(key, None)
             clone.grid(**info)
             try:
                 clone.grid_propagate(widget.grid_propagate())
@@ -535,6 +529,23 @@ class ClosableNotebook(ttk.Notebook):
                     cfg = widget.grid_columnconfigure(c)
                     if cfg:
                         clone.grid_columnconfigure(c, **cfg)
+                if widget is not clone:
+                    orig_parent = widget.master
+                    new_parent = clone.master
+                    try:
+                        pcols, prows = orig_parent.grid_size()
+                        for r in range(prows):
+                            pcfg = orig_parent.grid_rowconfigure(r)
+                            weight = pcfg.get("weight") if pcfg else 0
+                            if weight:
+                                new_parent.grid_rowconfigure(r, weight=weight)
+                        for c in range(pcols):
+                            pcfg = orig_parent.grid_columnconfigure(c)
+                            weight = pcfg.get("weight") if pcfg else 0
+                            if weight:
+                                new_parent.grid_columnconfigure(c, weight=weight)
+                    except Exception:
+                        pass
             except Exception:
                 pass
             return
@@ -542,7 +553,8 @@ class ClosableNotebook(ttk.Notebook):
             pass
         try:
             info = widget.place_info()
-            info.pop("in", None)
+            for key in ("in", "in_", "before", "after"):
+                info.pop(key, None)
             clone.place(**info)
         except tk.TclError:
             pass
@@ -646,11 +658,8 @@ class ClosableNotebook(ttk.Notebook):
                 self._cancel_after_events(orig)
                 self.forget(tab_id)
                 new_widget = self._clone_widget(orig, nb)
-                if new_widget is orig:
-                    nb.add(orig, text=text)
-                else:
-                    orig.destroy()
-                    nb.add(new_widget, text=text)
+                orig.destroy()
+                nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
             else:
