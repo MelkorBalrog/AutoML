@@ -31,7 +31,15 @@ def test_all_strategies(tmp_path):
         ib.build_icon(out, strat)
         assert out.exists()
         assert out.stat().st_size > 0
-        # basic validation: ensure file begins with ICO header bytes
         with out.open("rb") as f:
-            header = f.read(4)
+            header = f.read(8)
         assert header.startswith(b"\x00\x00")
+        assert header[6] == header[7] == 128
+
+
+def test_custom_scale(tmp_path):
+    out = tmp_path / "icon_custom.ico"
+    ib.build_icon(out, "v4", scale=2)
+    with out.open("rb") as f:
+        data = f.read(8)
+    assert data[6] == data[7] == 64

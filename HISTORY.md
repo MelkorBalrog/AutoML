@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.161 - Generate high-definition executable icon and add scalable builder with
+          adjustable resolution.
 - 0.2.160 - Map Windows system colour names via GetSysColor to avoid invalid
           command errors from temporary Tk roots when darkening capsule buttons.
 - 0.2.159 - Coerce capsule button width and height to integers so string
