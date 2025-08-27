@@ -19,15 +19,51 @@
 
 from __future__ import annotations
 
+import os
+import ctypes
 import tkinter as tk
 import tkinter.font as tkfont
 from typing import Callable, Optional
 
 
+_SYSTEM_COLORS = {
+    "SystemButtonFace": 15,  # COLOR_BTNFACE
+    "SystemWindow": 5,  # COLOR_WINDOW
+    "SystemWindowText": 8,  # COLOR_WINDOWTEXT
+}
+
+
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
-    value = value.lstrip('#')
-    lv = len(value)
-    return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+    """Return an RGB tuple for *value*.
+
+    ``value`` may be a ``#`` prefixed hex string or a Tk colour name such as
+    ``SystemButtonFace``.  Hex strings are parsed directly.  For system colour
+    names on Windows we query ``GetSysColor`` to avoid creating temporary Tk
+    roots that can trigger ``after`` callbacks.  If a Tk root exists we fall
+    back to ``winfo_rgb`` for other named colours.
+    """
+
+    if value.startswith("#"):
+        value = value.lstrip("#")
+        lv = len(value)
+        return tuple(int(value[i : i + lv // 3], 16) for i in range(0, lv, lv // 3))
+
+    if os.name == "nt" and value in _SYSTEM_COLORS:
+        idx = _SYSTEM_COLORS[value]
+        colorref = ctypes.windll.user32.GetSysColor(idx)
+        r = colorref & 0xFF
+        g = (colorref >> 8) & 0xFF
+        b = (colorref >> 16) & 0xFF
+        return r, g, b
+
+    root = tk._default_root  # type: ignore[attr-defined]
+    if root is None:
+        raise ValueError(f"unknown colour name: {value}")
+    try:
+        r, g, b = root.winfo_rgb(value)
+    except tk.TclError as exc:  # Invalid colour name
+        raise ValueError(str(exc)) from exc
+    return r // 256, g // 256, b // 256
 
 
 def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
@@ -138,8 +174,8 @@ class CapsuleButton(tk.Canvas):
         master: tk.Widget,
         text: str,
         command: Optional[Callable[[], None]] = None,
-        width: int = 80,
-        height: int = 26,
+        width: int | str = 80,
+        height: int | str = 26,
         bg: str = "#c3d7ff",
         hover_bg: Optional[str] = None,
         state: str | None = None,
@@ -149,6 +185,8 @@ class CapsuleButton(tk.Canvas):
         hover_gradient: list[str] | None = None,
         **kwargs,
     ) -> None:
+        width = int(width)
+        height = int(height)
         init_kwargs = {
             "height": height,
             "highlightthickness": 0,
@@ -228,8 +266,9 @@ class CapsuleButton(tk.Canvas):
         # Apply the initial state after the button has been drawn.
         self._apply_state()
 
-    def _content_width(self, height: int) -> int:
+    def _content_width(self, height: int | str) -> int:
         """Return the minimum width to display current text and image."""
+        height = int(height)
         font = tkfont.nametofont("TkDefaultFont")
         text_w = font.measure(self._text) if self._text else 0
         img_w = self._image.width() if self._image else 0
