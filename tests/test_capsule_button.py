@@ -17,13 +17,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
+import os
+import ctypes
+import types
 from pathlib import Path
 import tkinter as tk
 
 import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from gui.controls.capsule_button import CapsuleButton, _darken
+from gui.controls.capsule_button import CapsuleButton, _darken, _hex_to_rgb
 
 
 class TestCapsuleButtonColor:
@@ -37,6 +40,16 @@ class TestCapsuleButtonColor:
         finally:
             root.destroy()
 
+    def test_resolves_system_color_without_root(self, monkeypatch):
+        if os.name != "nt":
+            pytest.skip("Windows specific")
+        monkeypatch.setattr(tk, "_default_root", None, raising=False)
+        class DummyUser32:
+            @staticmethod
+            def GetSysColor(index):
+                return 0x00332211
+        monkeypatch.setattr(ctypes, "windll", types.SimpleNamespace(user32=DummyUser32()))
+        assert _hex_to_rgb("SystemButtonFace") == (0x11, 0x22, 0x33)
 
 class TestCapsuleButtonDimensions:
     def test_accepts_string_dimensions(self):

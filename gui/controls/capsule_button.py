@@ -19,18 +19,28 @@
 
 from __future__ import annotations
 
+import os
+import ctypes
 import tkinter as tk
 import tkinter.font as tkfont
 from typing import Callable, Optional
+
+
+_SYSTEM_COLORS = {
+    "SystemButtonFace": 15,  # COLOR_BTNFACE
+    "SystemWindow": 5,  # COLOR_WINDOW
+    "SystemWindowText": 8,  # COLOR_WINDOWTEXT
+}
 
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
     """Return an RGB tuple for *value*.
 
     ``value`` may be a ``#`` prefixed hex string or a Tk colour name such as
-    ``SystemButtonFace``.  When a named colour is provided we resolve it via
-    ``winfo_rgb`` using the current Tk root.  If no root exists a temporary one
-    is created and immediately destroyed to avoid stray windows.
+    ``SystemButtonFace``.  Hex strings are parsed directly.  For system colour
+    names on Windows we query ``GetSysColor`` to avoid creating temporary Tk
+    roots that can trigger ``after`` callbacks.  If a Tk root exists we fall
+    back to ``winfo_rgb`` for other named colours.
     """
 
     if value.startswith("#"):
@@ -38,23 +48,22 @@ def _hex_to_rgb(value: str) -> tuple[int, int, int]:
         lv = len(value)
         return tuple(int(value[i : i + lv // 3], 16) for i in range(0, lv, lv // 3))
 
+    if os.name == "nt" and value in _SYSTEM_COLORS:
+        idx = _SYSTEM_COLORS[value]
+        colorref = ctypes.windll.user32.GetSysColor(idx)
+        r = colorref & 0xFF
+        g = (colorref >> 8) & 0xFF
+        b = (colorref >> 16) & 0xFF
+        return r, g, b
+
     root = tk._default_root  # type: ignore[attr-defined]
-    owns_root = False
     if root is None:
-        try:
-            root = tk.Tk()
-            root.withdraw()
-            owns_root = True
-        except tk.TclError as exc:  # pragma: no cover - Tk unavailable
-            raise ValueError(str(exc)) from exc
+        raise ValueError(f"unknown colour name: {value}")
     try:
         r, g, b = root.winfo_rgb(value)
-        return r // 256, g // 256, b // 256
     except tk.TclError as exc:  # Invalid colour name
         raise ValueError(str(exc)) from exc
-    finally:
-        if owns_root and root is not None:
-            root.destroy()
+    return r // 256, g // 256, b // 256
 
 
 def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
