@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.164 - Cancel after callbacks referencing destroyed widgets during tab
+          detachment and verify no invalid command messages remain.
 - 0.2.163 - Always parent detached windows to the main root so repeated
           detachment yields windows owned by the primary application.
 - 0.2.162 - Parent detached windows to the main root so tab content remains
