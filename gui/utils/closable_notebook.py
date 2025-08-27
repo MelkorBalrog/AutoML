@@ -497,7 +497,7 @@ class ClosableNotebook(ttk.Notebook):
             pass
         for child in widget.winfo_children():
             self._cancel_after_events(child)
-
+            
     def _ensure_fills(self, widget: tk.Widget) -> None:
         """Ensure *widget* expands to fill its container.
 
