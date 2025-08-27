@@ -165,8 +165,8 @@ class CapsuleButton(tk.Canvas):
         master: tk.Widget,
         text: str,
         command: Optional[Callable[[], None]] = None,
-        width: int = 80,
-        height: int = 26,
+        width: int | str = 80,
+        height: int | str = 26,
         bg: str = "#c3d7ff",
         hover_bg: Optional[str] = None,
         state: str | None = None,
@@ -176,6 +176,8 @@ class CapsuleButton(tk.Canvas):
         hover_gradient: list[str] | None = None,
         **kwargs,
     ) -> None:
+        width = int(width)
+        height = int(height)
         init_kwargs = {
             "height": height,
             "highlightthickness": 0,
@@ -255,8 +257,9 @@ class CapsuleButton(tk.Canvas):
         # Apply the initial state after the button has been drawn.
         self._apply_state()
 
-    def _content_width(self, height: int) -> int:
+    def _content_width(self, height: int | str) -> int:
         """Return the minimum width to display current text and image."""
+        height = int(height)
         font = tkfont.nametofont("TkDefaultFont")
         text_w = font.measure(self._text) if self._text else 0
         img_w = self._image.width() if self._image else 0
