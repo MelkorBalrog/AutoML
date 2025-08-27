@@ -1,6 +1,6 @@
 # Version History
-- 0.2.146 - Cancel pending callbacks before cloning detached tabs to prevent
-            exceptions and test tab detachment with active callbacks.
+- 0.2.146 - Recursively expand nested widgets in detached tabs and verify
+            window resizing keeps them visible.
 - 0.2.145 - Cancel Tk after callbacks referencing detached widgets and store
             animation identifiers for reliable tab closure.
 - 0.2.144 - Resolve _StyledButton detachment by inspecting base-class signatures and
