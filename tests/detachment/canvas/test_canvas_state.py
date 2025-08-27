@@ -19,31 +19,26 @@
 import os
 import sys
 import tkinter as tk
-from tkinter import ttk
 import pytest
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 sys.path.append(root_dir)
 sys.path.append(os.path.join(root_dir, "gui", "utils"))
 from closable_notebook import ClosableNotebook
 
 
-class TestLayoutPreservation:
-    def test_control_geometry_unchanged_after_detach(self) -> None:
+class TestCanvasState:
+    def test_canvas_items_preserved_after_detach(self) -> None:
         try:
             root = tk.Tk()
         except tk.TclError:
             pytest.skip("Tk not available")
         nb = ClosableNotebook(root)
-        container = ttk.Frame(nb)
-        text = tk.Text(container)
-        text.pack(side="left")
-        vsb = ttk.Scrollbar(container, orient="vertical")
-        vsb.pack(side="right", fill="y")
-        nb.add(container, text="Tab1")
+        canvas = tk.Canvas(nb, width=200, height=200)
+        canvas.create_rectangle(10, 10, 50, 50, fill="red")
+        canvas.create_oval(60, 60, 100, 100, fill="blue")
+        nb.add(canvas, text="Canvas")
         nb.update_idletasks()
-        text_before = text.pack_info()
-        vsb_before = vsb.pack_info()
 
         class Event: ...
 
@@ -56,43 +51,28 @@ class TestLayoutPreservation:
         nb._on_tab_release(release)
 
         assert nb._floating_windows, "Tab did not detach"
-        text_after = text.pack_info()
-        vsb_after = vsb.pack_info()
-        assert text_before == text_after
-        assert vsb_before == vsb_after
+        win = nb._floating_windows[-1]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_canvas = next(w for w in new_nb.winfo_children() if isinstance(w, tk.Canvas))
+        assert len(new_canvas.find_all()) == 2
         root.destroy()
 
-    def test_mixed_geometry_unchanged_after_detach(self) -> None:
+    def test_canvas_binding_and_scrollregion_preserved_after_detach(self) -> None:
         try:
             root = tk.Tk()
         except tk.TclError:
             pytest.skip("Tk not available")
         nb = ClosableNotebook(root)
-        container = ttk.Frame(nb)
-        nb.add(container, text="Tab1")
+        canvas = tk.Canvas(nb, width=100, height=100)
+        canvas.configure(scrollregion=(0, 0, 300, 300))
+        clicked: list[tk.Event] = []
 
-        pack_frame = ttk.Frame(container)
-        pack_frame.pack(side="top")
-        pack_lbl = ttk.Label(pack_frame, text="p")
-        pack_lbl.pack(side="left")
+        def on_click(event: tk.Event) -> None:
+            clicked.append(event)
 
-        grid_frame = ttk.Frame(container)
-        grid_frame.pack(side="top")
-        grid_lbl = ttk.Label(grid_frame, text="g")
-        grid_lbl.grid(row=0, column=0)
-
-        place_frame = ttk.Frame(container, width=20, height=20)
-        place_frame.pack(side="top")
-        place_lbl = ttk.Label(place_frame, text="pl")
-        place_lbl.place(x=5, y=5)
-
+        canvas.bind("<Button-1>", on_click)
+        nb.add(canvas, text="Canvas")
         nb.update_idletasks()
-        pack_before = pack_lbl.pack_info()
-        grid_before = grid_lbl.grid_info()
-        place_before = place_lbl.place_info()
-        for info in (grid_before, place_before):
-            for key in ("in", "in_", "before", "after"):
-                info.pop(key, None)
 
         class Event: ...
 
@@ -105,14 +85,10 @@ class TestLayoutPreservation:
         nb._on_tab_release(release)
 
         assert nb._floating_windows, "Tab did not detach"
-        pack_after = pack_lbl.pack_info()
-        grid_after = grid_lbl.grid_info()
-        place_after = place_lbl.place_info()
-        for info in (grid_after, place_after):
-            for key in ("in", "in_", "before", "after"):
-                info.pop(key, None)
-
-        assert pack_before == pack_after
-        assert grid_before == grid_after
-        assert place_before == place_after
+        win = nb._floating_windows[-1]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_canvas = next(w for w in new_nb.winfo_children() if isinstance(w, tk.Canvas))
+        assert new_canvas.cget("scrollregion") == canvas.cget("scrollregion")
+        new_canvas.event_generate("<Button-1>", x=1, y=1)
+        assert clicked
         root.destroy()
