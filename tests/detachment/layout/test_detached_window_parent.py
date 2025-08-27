@@ -43,3 +43,20 @@ class TestDetachedWindowParent:
         win = nb._floating_windows[0]
         assert win.master is root
         root.destroy()
+
+    def test_nested_detached_window_parent_is_root(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = tk.Frame(nb)
+        nb.add(frame, text="tab")
+        nb._detach_tab(nb.tabs()[0], 50, 50)
+        win = nb._floating_windows[0]
+        inner_nb = win.winfo_children()[0]
+        inner_nb._detach_tab(inner_nb.tabs()[0], 100, 100)
+        assert inner_nb._floating_windows, "Nested tab did not detach"
+        win2 = inner_nb._floating_windows[0]
+        assert win2.master is root
+        root.destroy()

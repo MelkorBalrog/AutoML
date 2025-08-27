@@ -19,7 +19,12 @@
 -->
 
 # Version History
+- 0.2.163 - Always parent detached windows to the main root so repeated
+          detachment yields windows owned by the primary application.
 - 0.2.162 - Parent detached windows to the main root so tab content remains
+          visible and callbacks operate on valid widgets.
+- 0.2.161 - Raise detached tab widgets so all elements remain visible in floating windows.
+          - Parent detached windows to the main root so tab content remains
           visible and callbacks operate on valid widgets.
           - Raise detached tab widgets so all elements remain visible in floating windows.
           - Generate high-definition executable icon and add scalable builder with

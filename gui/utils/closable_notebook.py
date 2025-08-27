@@ -115,6 +115,9 @@ class ClosableNotebook(ttk.Notebook):
         except ValueError:
             self._data_strategy = 4
         self._focused_tab: str | None = None
+        # Cache application root so floating windows always attach to the main
+        # window even when this notebook resides in a detached toplevel.
+        self._app_root = self._root()
         # ``_root_bindings`` store identifiers for bindings that temporarily
         # attach to the containing toplevel while a drag operation is active.
         # This ensures that we still receive ``<B1-Motion>`` and
@@ -731,7 +734,7 @@ class ClosableNotebook(ttk.Notebook):
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
         text = self.tab(tab_id, "text")
-        root_win = self.winfo_toplevel()
+        root_win = self._app_root
         win = tk.Toplevel(root_win)
         win.transient(root_win)
         win.geometry(f"{width}x{height}+{x}+{y}")
