@@ -641,28 +641,36 @@ class ClosableNotebook(ttk.Notebook):
             self._cancel_after_events(child)
             
     def _ensure_fills(self, widget: tk.Widget) -> None:
-        """Ensure *widget* expands to fill its container.
+        """Ensure *widget* expands to fill its immediate container.
 
-        The detached window should display its contents using all available
-        space and react to subsequent window resizes.  ``pack`` and ``grid``
-        layouts are supported; unsupported geometry managers are ignored so
-        detachment never raises an exception.
+        Only the geometry of ``widget`` itself is adjusted; child widgets keep
+        their original layout configuration.  ``pack`` and ``grid`` layouts are
+        supported.  Scrollbars expand only along their orientation so they
+        retain their intended shape.
         """
 
+        fill, expand, sticky, row_weight, col_weight = "both", True, "nsew", 1, 1
+        if isinstance(widget, (tk.Scrollbar, ttk.Scrollbar)):
+            orient = str(widget.cget("orient"))
+            mapping = {
+                "vertical": ("y", False, "ns", 1, 0),
+                "horizontal": ("x", False, "ew", 0, 1),
+            }
+            fill, expand, sticky, row_weight, col_weight = mapping.get(
+                orient, ("both", True, "nsew", 1, 1)
+            )
+
         try:
-            widget.pack_configure(expand=True, fill="both")
+            widget.pack_configure(expand=expand, fill=fill)
         except tk.TclError:
             try:
                 info = widget.grid_info()
-                widget.grid_configure(sticky="nsew")
+                widget.grid_configure(sticky=sticky)
                 parent = widget.master
-                parent.grid_rowconfigure(int(info.get("row", 0)), weight=1)
-                parent.grid_columnconfigure(int(info.get("column", 0)), weight=1)
+                parent.grid_rowconfigure(int(info.get("row", 0)), weight=row_weight)
+                parent.grid_columnconfigure(int(info.get("column", 0)), weight=col_weight)
             except Exception:
                 pass
-
-        for child in widget.winfo_children():
-            self._ensure_fills(child)
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
