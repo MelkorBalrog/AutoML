@@ -21,6 +21,7 @@ import sys
 import pytest
 import tkinter as tk
 from tkinter import ttk
+from gui import CapsuleButton
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from gui.closable_notebook import ClosableNotebook
@@ -197,6 +198,35 @@ class TestFloatingWindowBehavior:
 
 
 class TestFloatingWindowLayout:
+    def test_detached_tab_fits_initial_window(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        ttk.Label(frame, text="hi").pack(expand=True, fill="both")
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        new_nb.update_idletasks()
+        assert new_frame.winfo_width() == new_nb.winfo_width()
+        assert new_frame.winfo_height() == new_nb.winfo_height()
+        root.destroy()
+
     def test_detached_tab_resizes_with_window(self):
         try:
             root = tk.Tk()
@@ -359,4 +389,76 @@ class TestCloning:
         assert isinstance(new_label, ttk.Label)
         assert new_label.cget("text") == "hi"
         assert new_label.winfo_manager()
+        root.destroy()
+
+
+class TestDetachCleanup:
+    def test_clone_capsule_with_none_text(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        btn = CapsuleButton(nb, text="ok")
+        btn._text = None
+        nb.add(btn, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_btn = new_nb.nametowidget(new_nb.tabs()[0])
+        assert isinstance(new_btn, CapsuleButton)
+        root.destroy()
+
+    def test_detach_cancels_after_events(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+
+        class Blinker(ttk.Label):
+            def __init__(self, master):
+                super().__init__(master, text="hi")
+                self._anim = self.after(10, self._blink)
+
+            def _blink(self):
+                self._anim = self.after(10, self._blink)
+
+        lbl = Blinker(nb)
+        nb.add(lbl, text="Tab1")
+        nb.update_idletasks()
+
+        errors = []
+
+        def handler(exc, val, tb):
+            errors.append(val)
+
+        root.report_callback_exception = handler
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        root.update()
+        assert not errors
         root.destroy()
