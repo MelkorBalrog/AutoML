@@ -1,4 +1,5 @@
 # Version History
+- 0.2.146 - Handle string annotations when cloning widgets so CapsuleButton tabs detach even with missing text.
 - 0.2.145 - Cancel Tk after callbacks referencing detached widgets and store
             animation identifiers for reliable tab closure.
 - 0.2.144 - Resolve _StyledButton detachment by inspecting base-class signatures and
