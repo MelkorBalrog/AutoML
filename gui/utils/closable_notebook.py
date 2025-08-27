@@ -394,7 +394,10 @@ class ClosableNotebook(ttk.Notebook):
         )
 
     def _target_notebook(self, x: int, y: int) -> t.Optional["ClosableNotebook"]:
-        widget = self.winfo_containing(x, y)
+        try:
+            widget = self.winfo_containing(x, y)
+        except (tk.TclError, KeyError):
+            return None
         while widget is not None and not isinstance(widget, ClosableNotebook):
             widget = widget.master
         return widget

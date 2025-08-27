@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.165 - Guard target notebook lookup when widgets are destroyed during drag.
+          - Wrap ``winfo_containing`` in ``try/except`` and return ``None`` on failure.
+          - Add regression test verifying drag over destroyed widget raises no errors.
 - 0.2.164 - Split widget reference reassignment into helper methods and add unit
           tests for configuration rewiring and canvas window updates.
           - Cancel widget-specific Tk ``after`` callbacks during tab detachment
