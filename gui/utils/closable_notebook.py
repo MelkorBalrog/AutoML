@@ -405,10 +405,10 @@ class ClosableNotebook(ttk.Notebook):
     def _target_notebook(self, x: int, y: int) -> t.Optional["ClosableNotebook"]:
         try:
             widget = self.winfo_containing(x, y)
-            while widget is not None and not isinstance(widget, ClosableNotebook):
-                widget = widget.master
         except (tk.TclError, KeyError):
             return None
+        while widget is not None and not isinstance(widget, ClosableNotebook):
+            widget = widget.master
         return widget
 
     def _move_tab(self, tab_id: str, target: "ClosableNotebook") -> bool:

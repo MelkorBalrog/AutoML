@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.165 - Cancel pending callbacks for all descendant widgets when detaching or
+- 0.2.165 - Guard target notebook lookup when widgets are destroyed during drag.
+          - Wrap ``winfo_containing`` in ``try/except`` and return ``None`` on failure.
+          - Add regression test verifying drag over destroyed widget raises no errors.
+          - Cancel pending callbacks for all descendant widgets when detaching or
           closing tabs and guard Tcl command deletions.
           - Add regression tests for animated CapsuleButton detachment to
           prevent invalid command name and ``AttributeError`` exceptions.
