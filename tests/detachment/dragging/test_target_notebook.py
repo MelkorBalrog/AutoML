@@ -16,37 +16,32 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Tests for widget reference reassignment in ClosableNotebook."""
-
 import os
 import sys
-import pytest
 import tkinter as tk
-from tkinter import ttk
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+import pytest
+
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 sys.path.append(root_dir)
 sys.path.append(os.path.join(root_dir, "gui", "utils"))
 from closable_notebook import ClosableNotebook
 
 
-class NullConfigFrame(ttk.Frame):
-    """Frame whose configure() returns None when queried."""
-
-    def configure(self, *args, **kwargs):  # type: ignore[override]
-        if args or kwargs:
-            return super().configure(*args, **kwargs)
-        return None
-
-
-def test_reassign_handles_null_config():
-    try:
-        root = tk.Tk()
-    except tk.TclError:
-        pytest.skip("Tk not available")
-    nb = ClosableNotebook(root)
-    orig = ttk.Frame(nb)
-    clone = NullConfigFrame(nb)
-    mapping = {orig: clone}
-    nb._reassign_widget_references(mapping)
-    root.destroy()
+class TestTargetNotebook:
+    def test_drag_over_destroyed_widget(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        top = tk.Toplevel(root)
+        frame = tk.Frame(top, width=20, height=20)
+        frame.pack()
+        root.update_idletasks()
+        x = frame.winfo_rootx() + 1
+        y = frame.winfo_rooty() + 1
+        top.destroy()
+        assert nb._target_notebook(x, y) is None
+        root.destroy()
