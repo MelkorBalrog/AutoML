@@ -559,17 +559,18 @@ class ClosableNotebook(ttk.Notebook):
 
         try:
             widget.pack_configure(expand=True, fill="both")
-            return
         except tk.TclError:
-            pass
-        try:
-            info = widget.grid_info()
-            widget.grid_configure(sticky="nsew")
-            parent = widget.master
-            parent.grid_rowconfigure(int(info.get("row", 0)), weight=1)
-            parent.grid_columnconfigure(int(info.get("column", 0)), weight=1)
-        except Exception:
-            pass
+            try:
+                info = widget.grid_info()
+                widget.grid_configure(sticky="nsew")
+                parent = widget.master
+                parent.grid_rowconfigure(int(info.get("row", 0)), weight=1)
+                parent.grid_columnconfigure(int(info.get("column", 0)), weight=1)
+            except Exception:
+                pass
+
+        for child in widget.winfo_children():
+            self._ensure_fills(child)
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
