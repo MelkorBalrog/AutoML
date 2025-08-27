@@ -1,5 +1,6 @@
 # Version History
-- 0.2.153 - Guard tab widget reference rewrites when cloned widgets report no configuration.
+- 0.2.153 - Clone canvas items, scroll regions and bindings when detaching tabs.
+          - Guard tab widget reference rewrites when cloned widgets report no configuration.
           - Preserve mixed geometry layouts when detaching tabs.
 - 0.2.152 - Limit fill adjustments to detached tab container so child layouts remain intact.
           - Rewire cloned widgets during tab detachment and remove duplicate controls.

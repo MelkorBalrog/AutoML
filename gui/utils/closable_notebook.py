@@ -536,6 +536,25 @@ class ClosableNotebook(ttk.Notebook):
             elif isinstance(widget, ttk.Treeview):
                 for iid in widget.get_children(""):
                     self._copy_tree_item(widget, clone, iid, "")
+            elif isinstance(widget, tk.Canvas):
+                for item in widget.find_all():
+                    kind = widget.type(item)
+                    coords = widget.coords(item)
+                    config = {k: v[-1] for k, v in widget.itemconfig(item).items()}
+                    creator = getattr(clone, f"create_{kind}")
+                    creator(*coords, **config)
+                try:
+                    clone.configure(scrollregion=widget.cget("scrollregion"))
+                except Exception:
+                    pass
+                try:
+                    sequences = widget.tk.call("bind", widget._w).split()
+                    for seq in sequences:
+                        cmd = widget.bind(seq)
+                        if cmd:
+                            clone.bind(seq, cmd)
+                except Exception:
+                    pass
         except Exception:
             pass
 
