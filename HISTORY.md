@@ -1,4 +1,5 @@
 # Version History
+- 0.2.154 - Ignore destroyed widgets when measuring toolbox button width.
 - 0.2.153 - Reparent tabs via Tk ``winfo`` before cloning to simplify detachment.
           - Clone canvas items, scroll regions and bindings when detaching tabs.
           - Guard tab widget reference rewrites when cloned widgets report no configuration.

@@ -39,7 +39,7 @@ from gui.dialogs.gsn_connection_config import GSNConnectionConfig
 from gui.controls import messagebox
 from gui.styles.style_manager import StyleManager
 from gui.utils.icon_factory import create_icon
-from gui.controls.button_utils import set_uniform_button_width
+from gui.controls.button_utils import set_uniform_button_width, max_button_reqwidth
 from gui import TranslucidButton
 
 GSN_WINDOWS: set[weakref.ReferenceType] = set()
@@ -272,16 +272,7 @@ class GSNDiagramWindow(tk.Frame):
         """Resize toolbox to the smallest width that shows all button text."""
         self.toolbox.update_idletasks()
 
-        def max_button_width(widget: tk.Misc) -> int:
-            width = 0
-            for child in widget.winfo_children():
-                if isinstance(child, ttk.Button):
-                    width = max(width, child.winfo_reqwidth())
-                else:
-                    width = max(width, max_button_width(child))
-            return width
-
-        button_width = max_button_width(self.toolbox) + 4
+        button_width = max_button_reqwidth(self.toolbox) + 4
         scroll_width = self.toolbox_scroll.winfo_reqwidth()
         self.toolbox_container.configure(width=button_width + scroll_width)
         self.toolbox_canvas.configure(width=button_width)
