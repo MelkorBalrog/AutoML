@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.164 - Log failed widget clones and ensure every cloned control fills and
+- 0.2.164 - Cancel widget-specific Tk ``after`` callbacks during tab detachment
+          to prevent "invalid command name" errors when interacting with
+          floating-window widgets.
+          - Log failed widget clones and ensure every cloned control fills and
           raises in detached windows.
           - Cancel after callbacks referencing destroyed widgets during tab
           detachment and verify no invalid command messages remain.

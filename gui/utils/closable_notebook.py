@@ -684,40 +684,44 @@ class ClosableNotebook(ttk.Notebook):
 
         try:
             tcl_name = str(widget)
-            ids = widget.tk.call("after", "info")
-            if isinstance(ids, str):
-                ids = [ids]
-        except Exception:
-            ids = []
-
-        for ident in ids:
-            if ident in cancelled:
-                continue
+            tkapp = widget.tk
+            ids: set[str] = set()
             try:
-                cmd = widget.tk.call("after", "info", ident)
+                global_ids = tkapp.call("after", "info")
             except Exception:
-                cmd = ""
-            parts = cmd.split()
-            target = parts[0] if parts else ""
-            cancel = False
-            if tcl_name and tcl_name in cmd:
-                cancel = True
-            elif target:
+                global_ids = []
+            if isinstance(global_ids, str):
+                global_ids = [global_ids]
+            ids.update(global_ids)
+            try:
+                widget_ids = tkapp.call("after", "info", tcl_name)
+            except Exception:
+                widget_ids = []
+            if isinstance(widget_ids, str):
+                widget_ids = [widget_ids]
+            ids.update(widget_ids)
+            try:
+                tcl_cmds = {
+                    cmd for cmd in getattr(tkapp, "_tclCommands", []) if tcl_name in cmd
+                }
+            except Exception:
+                tcl_cmds = set()
+            for ident in ids:
                 try:
-                    exists = bool(int(widget.tk.call("winfo", "exists", target)))
+                    cmd = tkapp.call("after", "info", ident)
                 except Exception:
-                    exists = False
-                cancel = not exists
-            elif str(ident).endswith(("_animate", "_anim", "_after", "_timer")):
-                cancel = True
-            if cancel:
-                try:
-                    widget.after_cancel(ident)
-                except Exception:
-                    pass
-                else:
-                    cancelled.add(ident)
-
+                    cmd = ""
+                if (
+                    tcl_name in cmd
+                    or any(c in cmd for c in tcl_cmds)
+                    or str(ident).endswith(("_animate", "_anim", "_after", "_timer"))
+                ):
+                    try:
+                        widget.after_cancel(ident)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
         try:
             for name in dir(widget):
                 if name.endswith(("_anim", "_after", "_timer")):
