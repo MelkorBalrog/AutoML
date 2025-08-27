@@ -118,8 +118,8 @@ class SplashScreen(tk.Toplevel):
             fill="white",
         )
         # Start animation and fade-in effect
-        self.after(10, self._animate)
-        self.after(10, self._fade_in)
+        self._anim_after = self.after(10, self._animate)
+        self._fade_in_after = self.after(10, self._fade_in)
 
     def close(self):
         """Begin fade-out sequence and invoke on_close callback when done."""
@@ -131,7 +131,7 @@ class SplashScreen(tk.Toplevel):
     def _fade_in(self):
         if not getattr(self, "_alpha_supported", False):
             if self.duration > 0:
-                self.after(self.duration, self._close)
+                self._close_after = self.after(self.duration, self._close)
             return
         alpha = min(self.attributes("-alpha") + 0.05, 1.0)
         self.attributes("-alpha", alpha)
@@ -141,10 +141,10 @@ class SplashScreen(tk.Toplevel):
             except tk.TclError:
                 pass
         if alpha < 1.0:
-            self.after(50, self._fade_in)
+            self._fade_in_after = self.after(50, self._fade_in)
         else:
             if self.duration > 0:
-                self.after(self.duration, self._fade_out)
+                self._fade_out_after = self.after(self.duration, self._fade_out)
 
     def _fade_out(self):
         if not getattr(self, "_alpha_supported", False):
@@ -158,7 +158,7 @@ class SplashScreen(tk.Toplevel):
             except tk.TclError:
                 pass
         if alpha > 0.0:
-            self.after(50, self._fade_out)
+            self._fade_out_after = self.after(50, self._fade_out)
         else:
             self._close()
 
@@ -485,7 +485,7 @@ class SplashScreen(tk.Toplevel):
         self.angle = (self.angle + 2) % 360
         self._draw_gear()
         self._draw_cube()
-        self.after(50, self._animate)
+        self._anim_after = self.after(50, self._animate)
 
     def _close(self):
         """Destroy splash screen and accompanying shadow window."""

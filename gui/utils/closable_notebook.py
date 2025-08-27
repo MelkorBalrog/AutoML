@@ -518,6 +518,23 @@ class ClosableNotebook(ttk.Notebook):
     def _cancel_after_events(self, widget: tk.Widget) -> None:
         """Cancel common Tk ``after`` callbacks for *widget* and children."""
         try:
+            tcl_name = str(widget)
+            ids = widget.tk.call("after", "info")
+            if isinstance(ids, str):
+                ids = [ids]
+            for ident in ids:
+                try:
+                    cmd = widget.tk.call("after", "info", ident)
+                except Exception:
+                    continue
+                if tcl_name in cmd:
+                    try:
+                        widget.after_cancel(ident)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        try:
             for name in dir(widget):
                 if name.endswith(("_anim", "_after", "_timer")):
                     ident = getattr(widget, name, None)
