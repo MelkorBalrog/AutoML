@@ -138,6 +138,19 @@ class ClosableNotebook(ttk.Notebook):
         self.bind("<FocusIn>", self._on_focus_in, True)
 
     # ------------------------------------------------------------------
+    # Floating window helpers
+    # ------------------------------------------------------------------
+
+    def close_all_floating(self) -> None:
+        """Destroy every floating window detached from this notebook."""
+        for win in list(self._floating_windows):
+            try:
+                win.destroy()
+            except Exception:
+                pass
+        self._floating_windows.clear()
+
+    # ------------------------------------------------------------------
     # Backwards compatible helpers
     # ------------------------------------------------------------------
     #
