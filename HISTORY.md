@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.165 - Add regression tests for tab drag detachment including releases over void and destroyed widgets.
+
 - 0.2.164 - Split widget reference reassignment into helper methods and add unit
           tests for configuration rewiring and canvas window updates.
           - Cancel widget-specific Tk ``after`` callbacks during tab detachment
