@@ -731,7 +731,9 @@ class ClosableNotebook(ttk.Notebook):
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
         text = self.tab(tab_id, "text")
-        win = tk.Toplevel(self)
+        root_win = self.winfo_toplevel()
+        win = tk.Toplevel(root_win)
+        win.transient(root_win)
         win.geometry(f"{width}x{height}+{x}+{y}")
         self._floating_windows.append(win)
         win.bind(
