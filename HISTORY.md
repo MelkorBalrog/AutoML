@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.165 - Guard drag target resolution failures and default to tab detachment.
+- 0.2.165 - Preserve geometry options for all descendants when detaching tabs and raise cloned widgets before originals are destroyed to keep z-order.
+          - Verify detached labels, entries, canvases and more remain visible.
+          - Guard drag target resolution failures and default to tab detachment.
           - Skip Tk ``after`` cancellation when widgets lack roots and
           search identifiers referencing widget names to remove pending
           callbacks.  Add detachment event tests to ensure closing and

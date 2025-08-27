@@ -456,8 +456,6 @@ class ClosableNotebook(ttk.Notebook):
         mapping[widget] = clone
         self._copy_widget_config(widget, clone)
         self._copy_widget_state(widget, clone)
-        if not isinstance(widget.master, ttk.Notebook):
-            self._copy_widget_layout(widget, clone)
         for child in self._ordered_children(widget):
             try:
                 self._clone_widget(child, clone, mapping)
@@ -584,63 +582,134 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-    def _copy_widget_layout(self, widget: tk.Widget, clone: tk.Widget) -> None:
-        """Apply the same geometry management as *widget* uses."""
+    def _copy_widget_layout(
+        self,
+        widget: tk.Widget,
+        clone: tk.Widget,
+        mapping: dict[tk.Widget, tk.Widget],
+    ) -> None:
+        """Apply geometry options of *widget* to *clone* and descendants."""
 
+        def recurse(src: tk.Widget, dst: tk.Widget) -> None:
+            try:
+                manager = src.winfo_manager()
+            except Exception:
+                manager = ""
+            if manager == "pack":
+                self._apply_pack_layout(src, dst, mapping)
+            elif manager == "grid":
+                self._apply_grid_layout(src, dst, mapping)
+            elif manager == "place":
+                self._apply_place_layout(src, dst, mapping)
+            for child, child_clone in zip(
+                self._ordered_children(src), self._ordered_children(dst)
+            ):
+                recurse(child, child_clone)
+
+        recurse(widget, clone)
+
+    def _apply_pack_layout(
+        self, widget: tk.Widget, clone: tk.Widget, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
         try:
             info = widget.pack_info()
-            for key in ("in", "in_", "before", "after"):
+            for key in ("in", "in_"):
                 info.pop(key, None)
+            for key in ("before", "after"):
+                ref = info.get(key)
+                if ref:
+                    try:
+                        ref_widget = widget.nametowidget(ref)
+                    except Exception:
+                        ref_widget = None
+                    clone_ref = mapping.get(ref_widget) if ref_widget else None
+                    if clone_ref:
+                        info[key] = clone_ref
+                    else:
+                        info.pop(key, None)
             clone.pack(**info)
             try:
                 clone.pack_propagate(widget.pack_propagate())
             except Exception:
                 pass
-            return
         except tk.TclError:
             pass
+
+    def _apply_grid_layout(
+        self, widget: tk.Widget, clone: tk.Widget, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
         try:
             info = widget.grid_info()
-            for key in ("in", "in_", "before", "after"):
+            for key in ("in", "in_"):
                 info.pop(key, None)
-            clone.grid(**info)
-            try:
-                clone.grid_propagate(widget.grid_propagate())
-                cols, rows = widget.grid_size()
-                for r in range(rows):
-                    cfg = widget.grid_rowconfigure(r)
-                    if cfg:
-                        clone.grid_rowconfigure(r, **cfg)
-                for c in range(cols):
-                    cfg = widget.grid_columnconfigure(c)
-                    if cfg:
-                        clone.grid_columnconfigure(c, **cfg)
-                if widget is not clone:
-                    orig_parent = widget.master
-                    new_parent = clone.master
+            for key in ("before", "after"):
+                ref = info.get(key)
+                if ref:
                     try:
-                        pcols, prows = orig_parent.grid_size()
-                        for r in range(prows):
-                            pcfg = orig_parent.grid_rowconfigure(r)
-                            weight = pcfg.get("weight") if pcfg else 0
-                            if weight:
-                                new_parent.grid_rowconfigure(r, weight=weight)
-                        for c in range(pcols):
-                            pcfg = orig_parent.grid_columnconfigure(c)
-                            weight = pcfg.get("weight") if pcfg else 0
-                            if weight:
-                                new_parent.grid_columnconfigure(c, weight=weight)
+                        ref_widget = widget.nametowidget(ref)
                     except Exception:
-                        pass
-            except Exception:
-                pass
-            return
+                        ref_widget = None
+                    clone_ref = mapping.get(ref_widget) if ref_widget else None
+                    if clone_ref:
+                        info[key] = clone_ref
+                    else:
+                        info.pop(key, None)
+            clone.grid(**info)
+            self._configure_grid_weights(widget, clone)
         except tk.TclError:
             pass
+
+    def _configure_grid_weights(self, widget: tk.Widget, clone: tk.Widget) -> None:
+        try:
+            clone.grid_propagate(widget.grid_propagate())
+            cols, rows = widget.grid_size()
+            for r in range(rows):
+                cfg = widget.grid_rowconfigure(r)
+                if cfg:
+                    clone.grid_rowconfigure(r, **cfg)
+            for c in range(cols):
+                cfg = widget.grid_columnconfigure(c)
+                if cfg:
+                    clone.grid_columnconfigure(c, **cfg)
+            if widget is not clone:
+                orig_parent = widget.master
+                new_parent = clone.master
+                try:
+                    pcols, prows = orig_parent.grid_size()
+                    for r in range(prows):
+                        pcfg = orig_parent.grid_rowconfigure(r)
+                        weight = pcfg.get("weight") if pcfg else 0
+                        if weight:
+                            new_parent.grid_rowconfigure(r, weight=weight)
+                    for c in range(pcols):
+                        pcfg = orig_parent.grid_columnconfigure(c)
+                        weight = pcfg.get("weight") if pcfg else 0
+                        if weight:
+                            new_parent.grid_columnconfigure(c, weight=weight)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    def _apply_place_layout(
+        self, widget: tk.Widget, clone: tk.Widget, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
         try:
             info = widget.place_info()
-            for key in ("in", "in_", "before", "after"):
+            for key in ("in", "in_"):
                 info.pop(key, None)
+            for key in ("before", "after"):
+                ref = info.get(key)
+                if ref:
+                    try:
+                        ref_widget = widget.nametowidget(ref)
+                    except Exception:
+                        ref_widget = None
+                    clone_ref = mapping.get(ref_widget) if ref_widget else None
+                    if clone_ref:
+                        info[key] = clone_ref
+                    else:
+                        info.pop(key, None)
             clone.place(**info)
         except tk.TclError:
             pass
@@ -801,12 +870,13 @@ class ClosableNotebook(ttk.Notebook):
                 self.forget(tab_id)
                 mapping: dict[tk.Widget, tk.Widget] = {}
                 new_widget, mapping = self._clone_widget(orig, nb, mapping)
+                self._copy_widget_layout(orig, new_widget, mapping)
+                self._raise_widgets(new_widget)
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 for cloned in mapping.values():
                     self._ensure_fills(cloned)
-                    self._raise_widgets(cloned)
                 self._reassign_widget_references(mapping)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
