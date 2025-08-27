@@ -379,6 +379,8 @@ class ClosableNotebook(ttk.Notebook):
         clone = cls(parent, **kwargs)
         self._copy_widget_config(widget, clone)
         self._copy_widget_state(widget, clone)
+        if not isinstance(widget.master, ttk.Notebook):
+            self._copy_widget_layout(widget, clone)
         for child in widget.winfo_children():
             self._clone_widget(child, clone)
         return clone
@@ -435,6 +437,27 @@ class ClosableNotebook(ttk.Notebook):
                 for iid in widget.get_children(""):
                     self._copy_tree_item(widget, clone, iid, "")
         except Exception:
+            pass
+
+    def _copy_widget_layout(self, widget: tk.Widget, clone: tk.Widget) -> None:
+        """Apply the same geometry management as *widget* uses."""
+        try:
+            info = widget.pack_info()
+            clone.pack(**info)
+            return
+        except tk.TclError:
+            pass
+        try:
+            info = widget.grid_info()
+            info.pop("in", None)
+            clone.grid(**info)
+            return
+        except tk.TclError:
+            pass
+        try:
+            info = widget.place_info()
+            clone.place(**info)
+        except tk.TclError:
             pass
 
     def _copy_tree_item(

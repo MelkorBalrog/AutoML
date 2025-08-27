@@ -195,6 +195,40 @@ class TestFloatingWindowBehavior:
         assert new_frame is frame
         root.destroy()
 
+
+class TestFloatingWindowLayout:
+    def test_detached_tab_resizes_with_window(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        ttk.Label(frame, text="hi").pack(expand=True, fill="both")
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        old_w, old_h = new_frame.winfo_width(), new_frame.winfo_height()
+        win.geometry("400x400")
+        win.update_idletasks()
+        new_nb.update_idletasks()
+        assert new_frame.winfo_width() == new_nb.winfo_width() >= old_w
+        assert new_frame.winfo_height() == new_nb.winfo_height() >= old_h
+        root.destroy()
+
 class TestCloning:
     def test_clone_handles_required_args(self, monkeypatch):
         try:
@@ -290,4 +324,39 @@ class TestCloning:
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_entry = new_nb.nametowidget(new_nb.tabs()[0])
         assert new_entry.get() == "data"
+        root.destroy()
+
+    def test_clone_preserves_layout(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        label = ttk.Label(frame, text="hi")
+        label.pack()
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        children = new_frame.winfo_children()
+        assert len(children) == 1
+        new_label = children[0]
+        assert isinstance(new_label, ttk.Label)
+        assert new_label.cget("text") == "hi"
+        assert new_label.winfo_manager()
         root.destroy()
