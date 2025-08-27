@@ -423,7 +423,7 @@ class ClosableNotebook(ttk.Notebook):
                 if name == "master" or param.default is not inspect._empty:
                     continue
                 value = self._get_widget_value(widget, name)
-                if value is None and param.annotation is str:
+                if value is None and param.annotation in (str, "str"):
                     value = ""
                 if value is not None:
                     kwargs[name] = value
@@ -564,17 +564,18 @@ class ClosableNotebook(ttk.Notebook):
 
         try:
             widget.pack_configure(expand=True, fill="both")
-            return
         except tk.TclError:
-            pass
-        try:
-            info = widget.grid_info()
-            widget.grid_configure(sticky="nsew")
-            parent = widget.master
-            parent.grid_rowconfigure(int(info.get("row", 0)), weight=1)
-            parent.grid_columnconfigure(int(info.get("column", 0)), weight=1)
-        except Exception:
-            pass
+            try:
+                info = widget.grid_info()
+                widget.grid_configure(sticky="nsew")
+                parent = widget.master
+                parent.grid_rowconfigure(int(info.get("row", 0)), weight=1)
+                parent.grid_columnconfigure(int(info.get("column", 0)), weight=1)
+            except Exception:
+                pass
+
+        for child in widget.winfo_children():
+            self._ensure_fills(child)
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
@@ -595,9 +596,9 @@ class ClosableNotebook(ttk.Notebook):
         try:
             if not self._move_tab(tab_id, nb):
                 orig = self.nametowidget(tab_id)
+                self._cancel_after_events(orig)
                 clone = self._clone_widget(orig, nb)
                 self.forget(tab_id)
-                self._cancel_after_events(orig)
                 orig.destroy()
                 nb.add(clone, text=text)
                 nb.select(clone)
