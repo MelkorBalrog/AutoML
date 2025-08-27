@@ -1,6 +1,5 @@
 # Version History
-- 0.2.150 - Strip geometry manager before/after references when cloning widgets
-            and mirror grid parent weights so detached tabs retain layout.
+- 0.2.150 - Track detached tab hosts and refocus floating windows on reopen.
 - 0.2.149 - Close floating project windows when loading or creating projects.
 - 0.2.148 - Reparent detached tab widgets when possible and clone with full
             geometry metadata replication to preserve layout.
