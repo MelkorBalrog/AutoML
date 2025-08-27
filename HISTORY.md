@@ -1,4 +1,6 @@
 # Version History
+- 0.2.144 - Resolve _StyledButton detachment by inspecting base-class signatures and
+            falling back to widget text options when cloning tabs.
 - 0.2.143 - Cancel widget animations when detaching tabs and default missing text when cloning capsule buttons.
 - 0.2.142 - Ensure detached tabs fill newly opened windows and resize with them.
 - 0.2.141 - Let detached tabs resize with their windows so cloned widgets expand to fit.
