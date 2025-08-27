@@ -51,7 +51,6 @@ class TestCapsuleButtonColor:
         monkeypatch.setattr(ctypes, "windll", types.SimpleNamespace(user32=DummyUser32()))
         assert _hex_to_rgb("SystemButtonFace") == (0x11, 0x22, 0x33)
 
-
 class TestCapsuleButtonDimensions:
     def test_accepts_string_dimensions(self):
         try:
