@@ -469,7 +469,10 @@ class ClosableNotebook(ttk.Notebook):
         Some subclasses only expose ``*args``/``**kwargs`` in ``__init__``.  Walk
         the method resolution order to inspect base-class signatures for required
         parameters and fall back to widget introspection for known families like
-        ``CapsuleButton`` when no signature information is available.
+        ``CapsuleButton`` when no signature information is available.  Optional
+        parameters are copied when the widget defines a non-``None`` attribute
+        with the same name so detached explorers retain external data sources
+        such as ``app`` or ``toolbox``.
         """
 
         kwargs: dict[str, t.Any] = {}
@@ -480,21 +483,23 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             params = list(sig.parameters.items())[1:]
             # Skip bases that only accept *args/**kwargs and provide no
-            # information about required parameters.
+            # information about available parameters.
             if all(
                 p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
                 or name == "master"
-                or p.default is not inspect._empty
                 for name, p in params
             ):
                 continue
             for name, param in params:
-                if name == "master" or param.default is not inspect._empty:
+                if name == "master":
                     continue
                 value = self._get_widget_value(widget, name)
-                if value is None and param.annotation in (str, "str"):
-                    value = ""
-                if value is not None:
+                if param.default is inspect._empty:
+                    if value is None and param.annotation in (str, "str"):
+                        value = ""
+                    if value is not None:
+                        kwargs[name] = value
+                elif value is not None:
                     kwargs[name] = value
             if kwargs:
                 break
@@ -642,6 +647,8 @@ class ClosableNotebook(ttk.Notebook):
                 "end",
                 text=src.item(item, "text"),
                 values=src.item(item, "values"),
+                image=src.item(item, "image"),
+                open=src.item(item, "open"),
             )
             for child in src.get_children(item):
                 self._copy_tree_item(src, dst, child, new_id)
