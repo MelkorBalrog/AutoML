@@ -1,4 +1,6 @@
 # Version History
+- 0.2.148 - Reparent detached tab widgets when possible and clone with full
+            geometry metadata replication to preserve layout.
 - 0.2.147 - Drop parent references when cloning packed widgets so detached tabs
             keep layouts confined to their floating windows.
 - 0.2.146 - Debounce explorer hover events and serialize animations to prevent

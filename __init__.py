@@ -17,40 +17,46 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Expose AutoML application classes at the package root."""
+
 import tkinter as tk
 from tkinter import ttk, simpledialog, filedialog, scrolledtext
 
-# Import application core from the dedicated core package
-from .mainappsrc.core.automl_core import (
-    AutoMLApp,
-    FaultTreeNode,
-    AutoML_Helper,
-    messagebox,
-    GATE_NODE_TYPES,
-)
-from .mainappsrc.safety_analysis import SafetyAnalysis_FTA_FMEA
-if __package__ and __package__.startswith("AutoML"):
-    from AutoML.config.automl_constants import PMHF_TARGETS
-else:  # pragma: no cover - script context
-    from config.automl_constants import PMHF_TARGETS
-from analysis.models import HazopDoc
-from gui.dialogs.edit_node_dialog import EditNodeDialog
-from analysis.risk_assessment import AutoMLHelper
-
-__all__ = [
-    "AutoMLApp",
-    "FaultTreeNode",
-    "AutoML_Helper",
-    "AutoMLHelper",
-    "messagebox",
-    "tk",
-    "ttk",
-    "simpledialog",
-    "filedialog",
-    "scrolledtext",
-    "GATE_NODE_TYPES",
-    "PMHF_TARGETS",
-    "HazopDoc",
-    "EditNodeDialog",
-    "SafetyAnalysis_FTA_FMEA",
-]
+try:  # pragma: no cover - optional heavy dependencies
+    from .mainappsrc.core.automl_core import (
+        AutoMLApp,
+        FaultTreeNode,
+        AutoML_Helper,
+        messagebox,
+        GATE_NODE_TYPES,
+    )
+    from .mainappsrc.safety_analysis import SafetyAnalysis_FTA_FMEA
+    if __package__ and __package__.startswith("AutoML"):
+        from AutoML.config.automl_constants import PMHF_TARGETS
+    else:
+        from config.automl_constants import PMHF_TARGETS
+    from analysis.models import HazopDoc
+    from gui.dialogs.edit_node_dialog import EditNodeDialog
+    from analysis.risk_assessment import AutoMLHelper
+except Exception:  # pragma: no cover - allow importing package without extras
+    AutoMLApp = FaultTreeNode = AutoML_Helper = messagebox = None
+    GATE_NODE_TYPES = SafetyAnalysis_FTA_FMEA = PMHF_TARGETS = None
+    HazopDoc = EditNodeDialog = AutoMLHelper = None
+    __all__ = []
+else:
+    __all__ = [
+        "AutoMLApp",
+        "FaultTreeNode",
+        "AutoML_Helper",
+        "AutoMLHelper",
+        "messagebox",
+        "tk",
+        "ttk",
+        "simpledialog",
+        "filedialog",
+        "scrolledtext",
+        "GATE_NODE_TYPES",
+        "PMHF_TARGETS",
+        "HazopDoc",
+        "EditNodeDialog",
+        "SafetyAnalysis_FTA_FMEA",
+    ]
