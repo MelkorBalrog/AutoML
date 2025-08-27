@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.166 - Recursively raise cloned widgets in original stacking order.
+          - Add regression tests to verify detached labels, canvases and buttons
+            remain visible when overlapping.
 - 0.2.165 - Guard target notebook lookup when widgets are destroyed during drag.
           - Wrap ``winfo_containing`` in ``try/except`` and return ``None`` on failure.
           - Add regression test verifying drag over destroyed widget raises no errors.
