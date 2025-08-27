@@ -23,6 +23,13 @@
           closing tabs and guard Tcl command deletions.
           - Add regression tests for animated CapsuleButton detachment to
           prevent invalid command name and ``AttributeError`` exceptions.
+          - Preserve geometry options for all descendants when detaching tabs and raise cloned widgets before originals are destroyed to keep z-order.
+          - Verify detached labels, entries, canvases and more remain visible.
+          - Guard drag target resolution failures and default to tab detachment.
+          - Skip Tk ``after`` cancellation when widgets lack roots and
+          search identifiers referencing widget names to remove pending
+          callbacks.  Add detachment event tests to ensure closing and
+          destroying tabs leaves no residual callbacks or ``TclError``.
 - 0.2.164 - Split widget reference reassignment into helper methods and add unit
           tests for configuration rewiring and canvas window updates.
           - Cancel widget-specific Tk ``after`` callbacks during tab detachment
