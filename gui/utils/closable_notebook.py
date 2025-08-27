@@ -664,43 +664,75 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-    def _cancel_after_events(self, widget: tk.Widget) -> None:
-        """Cancel common Tk ``after`` callbacks for *widget* and children."""
+    def _cancel_after_events(
+        self, widget: tk.Widget, cancelled: set[str] | None = None
+    ) -> None:
+        """Cancel Tk ``after`` callbacks tied to *widget* or dead commands.
+
+        Parameters
+        ----------
+        widget:
+            Widget whose callbacks should be cancelled.
+        cancelled:
+            Set of identifiers that have already been cancelled.  This avoids
+            issuing multiple ``after_cancel`` calls for the same callback when
+            widgets share identifiers.
+        """
+
+        if cancelled is None:
+            cancelled = set()
+
         try:
             tcl_name = str(widget)
             ids = widget.tk.call("after", "info")
             if isinstance(ids, str):
                 ids = [ids]
-            for ident in ids:
-                try:
-                    cmd = widget.tk.call("after", "info", ident)
-                except Exception:
-                    cmd = ""
-                if (
-                    tcl_name in cmd
-                    or str(ident).endswith(
-                        ("_animate", "_anim", "_after", "_timer")
-                    )
-                ):
-                    try:
-                        widget.after_cancel(ident)
-                    except Exception:
-                        pass
         except Exception:
-            pass
+            ids = []
+
+        for ident in ids:
+            if ident in cancelled:
+                continue
+            try:
+                cmd = widget.tk.call("after", "info", ident)
+            except Exception:
+                cmd = ""
+            parts = cmd.split()
+            target = parts[0] if parts else ""
+            cancel = False
+            if tcl_name and tcl_name in cmd:
+                cancel = True
+            elif target:
+                try:
+                    exists = bool(int(widget.tk.call("winfo", "exists", target)))
+                except Exception:
+                    exists = False
+                cancel = not exists
+            elif str(ident).endswith(("_animate", "_anim", "_after", "_timer")):
+                cancel = True
+            if cancel:
+                try:
+                    widget.after_cancel(ident)
+                except Exception:
+                    pass
+                else:
+                    cancelled.add(ident)
+
         try:
             for name in dir(widget):
                 if name.endswith(("_anim", "_after", "_timer")):
                     ident = getattr(widget, name, None)
-                    if isinstance(ident, str):
+                    if isinstance(ident, str) and ident not in cancelled:
                         try:
                             widget.after_cancel(ident)
                         except Exception:
                             pass
+                        else:
+                            cancelled.add(ident)
         except Exception:
             pass
         for child in widget.winfo_children():
-            self._cancel_after_events(child)
+            self._cancel_after_events(child, cancelled)
             
     def _ensure_fills(self, widget: tk.Widget) -> None:
         """Ensure *widget* expands to fill its immediate container.
@@ -924,6 +956,10 @@ class ClosableNotebook(ttk.Notebook):
             for child in widget.winfo_children():
                 prune(child)
             if str(widget) not in keep:
+                try:
+                    self._cancel_after_events(widget)
+                except Exception:
+                    pass
                 try:
                     widget.destroy()
                 except Exception:
