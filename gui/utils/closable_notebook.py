@@ -449,7 +449,11 @@ class ClosableNotebook(ttk.Notebook):
         # this option which results in a ``TclError`` when cloning detached tabs.
         # Drop it from the keyword arguments so cloning remains robust.
         kwargs.pop("widgetName", None)
-        clone = cls(parent, **kwargs)
+        try:
+            clone = cls(parent, **kwargs)
+        except Exception as exc:  # pragma: no cover - extremely rare
+            logger.error("Failed to instantiate %s under %s: %s", widget, parent, exc)
+            raise
         mapping[widget] = clone
         self._copy_widget_config(widget, clone)
         self._copy_widget_state(widget, clone)
@@ -457,9 +461,12 @@ class ClosableNotebook(ttk.Notebook):
             self._copy_widget_layout(widget, clone)
         for child in self._ordered_children(widget):
             try:
-                self._clone_widget(child, clone, mapping)
+                child_clone, mapping = self._clone_widget(child, clone, mapping)
             except Exception as exc:
-                logger.warning("Failed to clone child %s: %s", child, exc)
+                logger.error("Failed to clone child %s: %s", child, exc)
+            else:
+                if child not in mapping:
+                    logger.error("Child %s was not added to mapping", child)
         return clone, mapping
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
@@ -958,24 +965,28 @@ class ClosableNotebook(ttk.Notebook):
         nb: ttk.Notebook,
         mapping: dict[tk.Widget, tk.Widget],
     ) -> None:
-        """Remove any widgets that were inadvertently created during cloning."""
+        """Remove widgets that were inadvertently duplicated during cloning."""
 
-        keep = {str(win), str(nb)} | {str(w) for w in mapping.values()}
+        inverse = {clone: orig for orig, clone in mapping.items()}
+        roots = [orig for orig in mapping if orig.master not in mapping]
 
-        def prune(widget: tk.Widget) -> None:
-            for child in widget.winfo_children():
-                prune(child)
-            if str(widget) not in keep:
-                try:
-                    self._cancel_after_events(widget)
-                except Exception:
-                    pass
-                try:
-                    widget.destroy()
-                except Exception:
-                    pass
+        def prune(orig: tk.Widget, clone: tk.Widget) -> None:
+            expected = {mapping[c] for c in orig.winfo_children() if c in mapping}
+            for child in list(clone.winfo_children()):
+                if child in expected:
+                    prune(inverse[child], child)
+                else:
+                    try:
+                        self._cancel_after_events(child)
+                    except Exception:
+                        pass
+                    try:
+                        child.destroy()
+                    except Exception:
+                        pass
 
-        prune(win)
+        for root in roots:
+            prune(root, mapping[root])
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}

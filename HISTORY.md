@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.165 - Refine duplicate widget pruning and enforce clone mapping.
+          - Prune only widgets that duplicate mapping relationships during
+            detachment.
+          - Ensure cloned widgets register in the mapping and log failures.
+          - Add layout regression tests verifying frame, label, treeview and
+            canvas visibility after detachment.
 - 0.2.164 - Split widget reference reassignment into helper methods and add unit
           tests for configuration rewiring and canvas window updates.
           - Cancel widget-specific Tk ``after`` callbacks during tab detachment
