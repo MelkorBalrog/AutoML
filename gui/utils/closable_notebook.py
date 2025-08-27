@@ -815,18 +815,13 @@ class ClosableNotebook(ttk.Notebook):
             win.destroy()
             raise
 
-    def _reassign_widget_references(
+    def _rewrite_config_options(
         self, mapping: dict[tk.Widget, tk.Widget]
     ) -> None:
-        """Rewrite widget option references to point to clones.
-
-        Tk stores widget relationships such as scroll commands as textual widget
-        paths.  When a tab is detached and its widgets cloned, these options must
-        be rewritten so they reference the cloned siblings instead of the now
-        destroyed originals.
-        """
+        """Rewrite widget configuration options to point at cloned widgets."""
 
         ref_opts = {"command", "yscrollcommand", "xscrollcommand", "textvariable", "variable"}
+        name_map = {str(o): str(c) for o, c in mapping.items()}
         for _orig, clone in mapping.items():
             try:
                 config = clone.configure() or {}
@@ -843,30 +838,12 @@ class ClosableNotebook(ttk.Notebook):
                     continue
                 if not isinstance(value, str):
                     continue
-                for src, dst in mapping.items():
-                    src_name = str(src)
-                    dst_name = str(dst)
+                for src_name, dst_name in name_map.items():
                     if src_name in value:
                         try:
                             clone.configure({opt: value.replace(src_name, dst_name)})
                         except Exception:
                             pass
-
-        name_map = {str(o): str(c) for o, c in mapping.items()}
-        for _orig, clone in mapping.items():
-            if not isinstance(clone, tk.Canvas):
-                continue
-            for item in clone.find_all():
-                if clone.type(item) != "window":
-                    continue
-                old = clone.itemcget(item, "window")
-                new = name_map.get(old)
-                if not new:
-                    continue
-                try:
-                    clone.itemconfigure(item, window=new)
-                except Exception:
-                    pass
 
         for _orig, clone in mapping.items():
             if not isinstance(clone, tk.Scrollbar):
@@ -905,6 +882,35 @@ class ClosableNotebook(ttk.Notebook):
                         pass
             except Exception:
                 continue
+
+    def _update_canvas_window_items(
+        self, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
+        """Update canvas window items to point at cloned windows."""
+
+        name_map = {str(o): str(c) for o, c in mapping.items()}
+        for _orig, clone in mapping.items():
+            if not isinstance(clone, tk.Canvas):
+                continue
+            for item in clone.find_all():
+                if clone.type(item) != "window":
+                    continue
+                old = clone.itemcget(item, "window")
+                new = name_map.get(old)
+                if not new:
+                    continue
+                try:
+                    clone.itemconfigure(item, window=new)
+                except Exception:
+                    pass
+
+    def _reassign_widget_references(
+        self, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
+        """Rewrite internal widget references after cloning."""
+
+        self._rewrite_config_options(mapping)
+        self._update_canvas_window_items(mapping)
 
     def _reassign_container_attributes(
         self, mapping: dict[tk.Widget, tk.Widget]

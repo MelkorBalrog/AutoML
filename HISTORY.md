@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.164 - Cancel widget-specific Tk ``after`` callbacks during tab detachment
+- 0.2.164 - Split widget reference reassignment into helper methods and add unit
+          tests for configuration rewiring and canvas window updates.
+          - Cancel widget-specific Tk ``after`` callbacks during tab detachment
           to prevent "invalid command name" errors when interacting with
           floating-window widgets.
           - Log failed widget clones and ensure every cloned control fills and

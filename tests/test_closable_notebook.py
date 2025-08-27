@@ -40,7 +40,7 @@ def test_cancel_after_events_cancels_animate(monkeypatch):
 
 
 @pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
-def test_clone_canvas_window_widgets():
+def test_update_canvas_window_items():
     root = tk.Tk()
     root.withdraw()
     nb = ClosableNotebook(root)
@@ -51,7 +51,7 @@ def test_clone_canvas_window_widgets():
     lst.pack()
     canvas.create_window(0, 0, window=frame, anchor="nw")
     clone, mapping = nb._clone_widget(canvas, nb)
-    nb._reassign_widget_references(mapping)
+    nb._update_canvas_window_items(mapping)
     item = clone.find_all()[0]
     win_path = clone.itemcget(item, "window")
     assert win_path
