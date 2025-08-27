@@ -19,7 +19,8 @@
 -->
 
 # Version History
-- 0.2.165 - Refine duplicate widget pruning and enforce clone mapping.
+- 0.2.165 - Add regression tests for tab drag detachment including releases over void and destroyed widgets.
+          - Refine duplicate widget pruning and enforce clone mapping.
           - Prune only widgets that duplicate mapping relationships during
             detachment.
           - Ensure cloned widgets register in the mapping and log failures.
