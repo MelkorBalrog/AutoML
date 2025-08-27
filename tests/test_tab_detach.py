@@ -492,3 +492,80 @@ class TestDetachCleanup:
         root.update()
         assert not errors
         root.destroy()
+
+
+class TestAnimatedWidgetDetach:
+    def test_detach_untracked_animation(self, monkeypatch, capsys):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+
+        class Untracked(ttk.Frame):
+            def __init__(self, master):
+                super().__init__(master)
+                self.after(1, self._spin)
+
+            def _spin(self):
+                self.after(1, self._spin)
+
+        widget = Untracked(nb)
+        nb.add(widget, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        root.update()
+        err = capsys.readouterr().err
+        assert "invalid command name" not in err
+        root.destroy()
+
+    def test_detach_child_untracked_animation(self, monkeypatch, capsys):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+
+        class Parent(ttk.Frame):
+            def __init__(self, master):
+                super().__init__(master)
+                child = ttk.Frame(self)
+                child.pack()
+                child.after(1, self._bounce)
+                self.child = child
+
+            def _bounce(self):
+                self.child.after(1, self._bounce)
+
+        widget = Parent(nb)
+        nb.add(widget, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        root.update()
+        err = capsys.readouterr().err
+        assert "invalid command name" not in err
+        root.destroy()

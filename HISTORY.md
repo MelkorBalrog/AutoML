@@ -1,4 +1,6 @@
 # Version History
+- 0.2.145 - Cancel Tk after callbacks referencing detached widgets and store
+            animation identifiers for reliable tab closure.
 - 0.2.144 - Resolve _StyledButton detachment by inspecting base-class signatures and
             falling back to widget text options when cloning tabs.
 - 0.2.143 - Cancel widget animations when detaching tabs and default missing text when cloning capsule buttons.
