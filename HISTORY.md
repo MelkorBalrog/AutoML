@@ -19,6 +19,18 @@
 -->
 
 # Version History
+- 0.2.166 - Define root list when pruning clones so tab detachment no longer
+          raises `NameError` in `_remove_duplicate_widgets`.
+- 0.2.165 - Accept optional clone mappings in `_raise_widgets` to prevent
+          `TypeError` during tab detachment and ensure all widgets lift to
+          the top of their stacks.
+- 0.2.164 - Guard duplicate-pruning against destroyed widgets and retain
+          all tab contents when detaching to floating windows.
+- 0.2.163 - Always parent detached windows to the main root so repeated
+          detachment yields windows owned by the primary application.
+- 0.2.162 - Parent detached windows to the main root so tab content remains
+          visible and callbacks operate on valid widgets.
+- 0.2.161 - Raise detached tab widgets so all elements remain visible in floating windows.
 - 0.2.160 - Map Windows system colour names via GetSysColor to avoid invalid
           command errors from temporary Tk roots when darkening capsule buttons.
 - 0.2.159 - Coerce capsule button width and height to integers so string
