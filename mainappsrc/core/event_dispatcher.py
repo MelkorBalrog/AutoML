@@ -98,7 +98,15 @@ class EventDispatcher:
     def register_tab_events(self) -> None:
         """Bind events for explorer, tools and document tabs."""
         app = self.app
-        app._explorer_tab.bind("<Enter>", lambda _e: app.show_explorer(animate=True))
+        lifecycle = getattr(app, "lifecycle_ui", app)
+        app._explorer_tab.bind(
+            "<Enter>",
+            getattr(lifecycle, "on_explorer_tab_enter", lambda _e: app.show_explorer(animate=True)),
+        )
+        app._explorer_tab.bind(
+            "<Leave>",
+            getattr(lifecycle, "on_explorer_tab_leave", lambda _e: None),
+        )
         app.explorer_pane.bind("<Enter>", lambda _e: app._cancel_explorer_hide())
         app.explorer_pane.bind("<Leave>", lambda _e: app._schedule_explorer_hide())
         app.explorer_pane.bind("<Configure>", lambda _e: app._limit_explorer_size())

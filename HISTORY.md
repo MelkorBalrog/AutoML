@@ -1,5 +1,6 @@
 # Version History
-- 0.2.146 - Ignore widgetName option when cloning tabs to avoid TclError.
+- 0.2.146 - Debounce explorer hover events and serialize animations to prevent
+            runaway expansion and ensure predictable auto-hide behavior.
 - 0.2.145 - Cancel Tk after callbacks referencing detached widgets and store
             animation identifiers for reliable tab closure.
 - 0.2.144 - Resolve _StyledButton detachment by inspecting base-class signatures and

@@ -45,6 +45,9 @@ from analysis.user_config import CURRENT_USER_NAME
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 
 
+EXPLORER_HOVER_DELAY = 200
+
+
 class AppLifecycleUI:
     """Collection of UI lifecycle helper methods.
 
@@ -58,6 +61,10 @@ class AppLifecycleUI:
         # for animation callbacks.
         self.app = app
         self.root = root
+        self._explorer_hover_job = None
+        self._explorer_animating = False
+        self._explorer_animation_id = None
+        self._explorer_pending_action = None
 
     def __getattr__(self, name):  # pragma: no cover - simple delegation
         return getattr(self.app, name)
@@ -224,8 +231,31 @@ class AppLifecycleUI:
 
     # ------------------------------------------------------------------
     # Explorer panel show/hide helpers
+    def on_explorer_tab_enter(self, _event=None):
+        if (
+            self._explorer_hover_job
+            or self.explorer_pane.winfo_manager()
+            or self._explorer_animating
+        ):
+            return
+        self._explorer_hover_job = self.root.after(
+            EXPLORER_HOVER_DELAY, self._show_explorer_from_hover
+        )
+
+    def _show_explorer_from_hover(self):
+        self._explorer_hover_job = None
+        self.show_explorer(animate=True)
+
+    def on_explorer_tab_leave(self, _event=None):
+        if self._explorer_hover_job:
+            self.root.after_cancel(self._explorer_hover_job)
+            self._explorer_hover_job = None
+
     def show_explorer(self, animate=False):
         """Display the explorer pane."""
+        if self._explorer_animating:
+            self._explorer_pending_action = "show"
+            return
         if self.explorer_pane.winfo_manager():
             self._cancel_explorer_hide()
             return
@@ -238,19 +268,24 @@ class AppLifecycleUI:
             self.main_pane.paneconfig(self.explorer_pane, width=self._explorer_width)
 
     def _animate_explorer_show(self, width):
+        self._explorer_animating = True
         if width >= self._explorer_width:
             self.main_pane.paneconfig(self.explorer_pane, width=self._explorer_width)
+            self._explorer_animating = False
+            self._explorer_animation_id = None
+            self._run_pending_explorer_action()
             return
         self.main_pane.paneconfig(self.explorer_pane, width=width)
-        self.root.after(
-            15,
-            lambda: self._animate_explorer_show(
-                width + max(self._explorer_width // 10, 1)
-            ),
+        step = max(self._explorer_width // 10, 1)
+        self._explorer_animation_id = self.root.after(
+            15, lambda: self._animate_explorer_show(width + step)
         )
 
     def hide_explorer(self, animate=False):
         """Hide the explorer pane."""
+        if self._explorer_animating:
+            self._explorer_pending_action = "hide"
+            return
         if self._explorer_pinned or not self.explorer_pane.winfo_manager():
             return
         self._cancel_explorer_hide()
@@ -261,16 +296,18 @@ class AppLifecycleUI:
             self._explorer_tab.pack(side=tk.LEFT, fill=tk.Y)
 
     def _animate_explorer_hide(self, width):
+        self._explorer_animating = True
         if width <= 0:
             self.main_pane.forget(self.explorer_pane)
             self._explorer_tab.pack(side=tk.LEFT, fill=tk.Y)
+            self._explorer_animating = False
+            self._explorer_animation_id = None
+            self._run_pending_explorer_action()
             return
         self.main_pane.paneconfig(self.explorer_pane, width=width)
-        self.root.after(
-            15,
-            lambda: self._animate_explorer_hide(
-                width - max(self._explorer_width // 10, 1)
-            ),
+        step = max(self._explorer_width // 10, 1)
+        self._explorer_animation_id = self.root.after(
+            15, lambda: self._animate_explorer_hide(width - step)
         )
 
     def _schedule_explorer_hide(self, delay=1000):
@@ -295,6 +332,14 @@ class AppLifecycleUI:
             self._cancel_explorer_hide()
         else:
             self._schedule_explorer_hide()
+
+    def _run_pending_explorer_action(self):
+        action = self._explorer_pending_action
+        self._explorer_pending_action = None
+        if action == "show":
+            self.show_explorer(animate=True)
+        elif action == "hide":
+            self.hide_explorer(animate=True)
 
     def _limit_explorer_size(self):
         """Ensure the explorer pane does not exceed the maximum width."""
