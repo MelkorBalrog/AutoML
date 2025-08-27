@@ -918,6 +918,10 @@ class ClosableNotebook(ttk.Notebook):
                 prune(child)
             if str(widget) not in keep:
                 try:
+                    self._cancel_after_events(widget)
+                except Exception:
+                    pass
+                try:
                     widget.destroy()
                 except Exception:
                     pass
