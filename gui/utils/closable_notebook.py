@@ -484,7 +484,9 @@ class ClosableNotebook(ttk.Notebook):
 
         for method in ("pack_slaves", "grid_slaves", "place_slaves"):
             try:
-                return getattr(widget, method)()
+                children = getattr(widget, method)()
+                if children:
+                    return children
             except Exception:
                 continue
         return widget.winfo_children()

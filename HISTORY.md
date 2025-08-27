@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.167 - Clone children managed by grid/place so all tab contents appear in
+          detached windows.
 - 0.2.166 - Define root list when pruning clones so tab detachment no longer
           raises `NameError` in `_remove_duplicate_widgets`.
 - 0.2.165 - Accept optional clone mappings in `_raise_widgets` to prevent
