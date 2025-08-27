@@ -511,7 +511,8 @@ class ClosableNotebook(ttk.Notebook):
 
         try:
             info = widget.pack_info()
-            info.pop("in", None)
+            for key in ("in", "in_", "before", "after"):
+                info.pop(key, None)
             clone.pack(**info)
             try:
                 clone.pack_propagate(widget.pack_propagate())
@@ -522,7 +523,8 @@ class ClosableNotebook(ttk.Notebook):
             pass
         try:
             info = widget.grid_info()
-            info.pop("in", None)
+            for key in ("in", "in_", "before", "after"):
+                info.pop(key, None)
             clone.grid(**info)
             try:
                 clone.grid_propagate(widget.grid_propagate())
@@ -535,6 +537,23 @@ class ClosableNotebook(ttk.Notebook):
                     cfg = widget.grid_columnconfigure(c)
                     if cfg:
                         clone.grid_columnconfigure(c, **cfg)
+                if widget is not clone:
+                    orig_parent = widget.master
+                    new_parent = clone.master
+                    try:
+                        pcols, prows = orig_parent.grid_size()
+                        for r in range(prows):
+                            pcfg = orig_parent.grid_rowconfigure(r)
+                            weight = pcfg.get("weight") if pcfg else 0
+                            if weight:
+                                new_parent.grid_rowconfigure(r, weight=weight)
+                        for c in range(pcols):
+                            pcfg = orig_parent.grid_columnconfigure(c)
+                            weight = pcfg.get("weight") if pcfg else 0
+                            if weight:
+                                new_parent.grid_columnconfigure(c, weight=weight)
+                    except Exception:
+                        pass
             except Exception:
                 pass
             return
@@ -542,7 +561,8 @@ class ClosableNotebook(ttk.Notebook):
             pass
         try:
             info = widget.place_info()
-            info.pop("in", None)
+            for key in ("in", "in_", "before", "after"):
+                info.pop(key, None)
             clone.place(**info)
         except tk.TclError:
             pass
