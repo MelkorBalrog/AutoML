@@ -1194,7 +1194,31 @@ class AutoMLApp(
         return self.lifecycle_ui._select_prev_tool_tab(*args, **kwargs)
 
     def _new_tab(self, *args, **kwargs):
-        return self.lifecycle_ui._new_tab(*args, **kwargs)
+        if hasattr(self, "lifecycle_ui"):
+            return self.lifecycle_ui._new_tab(*args, **kwargs)
+        # Fallback for simplified test instances that bypass full UI setup.
+        nb = getattr(self, "doc_nb", None)
+        if nb is None:
+            raise AttributeError("AutoMLApp missing lifecycle_ui and doc_nb")
+        if not hasattr(self, "_tab_titles"):
+            self._tab_titles = {}
+        title = args[0] if args else ""
+        for tab_id in nb.tabs():
+            if self._tab_titles.get(tab_id, nb.tab(tab_id, "text")) == title:
+                nb.select(tab_id)
+                return nb.nametowidget(tab_id)
+        try:
+            import AutoML as _launcher
+            frame = _launcher.ttk.Frame(nb)  # type: ignore[attr-defined]
+        except Exception:  # pragma: no cover - fallback to standard ttk
+            frame = ttk.Frame(nb)
+        max_len = getattr(self, "MAX_TAB_TEXT_LENGTH", 20)
+        display = title if len(title) <= max_len else title[: max_len - 1] + "…"
+        nb.add(frame, text=display)
+        tab_id = nb.tabs()[-1]
+        self._tab_titles[tab_id] = title
+        nb.select(tab_id)
+        return frame
 
     # ------------------------------------------------------------------
     # Label editing and styling helper wrappers

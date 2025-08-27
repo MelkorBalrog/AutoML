@@ -380,6 +380,11 @@ class ClosableNotebook(ttk.Notebook):
 
         cls = widget.__class__
         kwargs = self._collect_required_kwargs(widget, cls)
+        # ``widgetName`` is an internal Tk option that propagates to the underlying
+        # widget constructor as ``-widgetName``.  Most ttk widgets do not support
+        # this option which results in a ``TclError`` when cloning detached tabs.
+        # Drop it from the keyword arguments so cloning remains robust.
+        kwargs.pop("widgetName", None)
         clone = cls(parent, **kwargs)
         self._copy_widget_config(widget, clone)
         self._copy_widget_state(widget, clone)

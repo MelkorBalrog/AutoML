@@ -33,6 +33,7 @@ import sys
 import types
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from tkinter import ttk
 
 # Ensure bundled executables can import sibling packages
 if getattr(sys, "frozen", False):
