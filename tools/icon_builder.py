@@ -19,11 +19,12 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-"""Utility to programmatically generate an AutoML icon.
+"""Utility to programmatically generate a high-definition AutoML icon.
 
 Provides four drawing strategies, each producing a small 3D cube with a gear
 inside.  Strategy ``v4`` offers the most detailed rendering and is the default
-used by build scripts.
+used by build scripts.  Icons may be scaled via a ``--scale`` option to improve
+their definition for executable packages.
 """
 
 import struct
@@ -32,7 +33,7 @@ from typing import Callable, Dict, List, Tuple
 
 Size = Tuple[int, int]
 Color = Tuple[int, int, int, int]
-SIZE: Size = (32, 32)
+BASE_SIZE: Size = (32, 32)
 
 # cube layout constants
 _CUBE_OX = 6
@@ -43,9 +44,10 @@ _GEAR_CX = _CUBE_OX + _CUBE_SIZE // 2
 _GEAR_CY = _CUBE_OY + _CUBE_OFFSET + _CUBE_SIZE // 2
 _GEAR_R = 4
 
-def _write_ico(path: Path, pixels: List[List[Color]], size: Size = SIZE) -> None:
+def _write_ico(path: Path, pixels: List[List[Color]]) -> None:
     """Write *pixels* to *path* as a 32-bit ICO file."""
-    width, height = size
+    height = len(pixels)
+    width = len(pixels[0]) if height else 0
     row_bytes = width * 4
     bmp_header_size = 40
     and_mask = b"\x00" * ((row_bytes // 4) * height)
@@ -76,12 +78,29 @@ def _write_ico(path: Path, pixels: List[List[Color]], size: Size = SIZE) -> None
     Path(path).write_bytes(data)
 
 
-def _blank(color: Color) -> List[List[Color]]:
-    return [[color for _ in range(SIZE[0])] for _ in range(SIZE[1])]
+def _blank(color: Color, size: Size = BASE_SIZE) -> List[List[Color]]:
+    return [[color for _ in range(size[0])] for _ in range(size[1])]
+
+
+def _scale_pixels(pixels: List[List[Color]], scale: int) -> List[List[Color]]:
+    """Return *pixels* scaled by *scale* using nearest-neighbour sampling."""
+    if scale <= 1:
+        return pixels
+    height = len(pixels)
+    width = len(pixels[0]) if height else 0
+    scaled = [[(0, 0, 0, 0) for _ in range(width * scale)] for _ in range(height * scale)]
+    for y in range(height):
+        for x in range(width):
+            color = pixels[y][x]
+            for sy in range(scale):
+                row = scaled[y * scale + sy]
+                for sx in range(scale):
+                    row[x * scale + sx] = color
+    return scaled
 
 
 def _put(pixels: List[List[Color]], x: int, y: int, color: Color) -> None:
-    if 0 <= x < SIZE[0] and 0 <= y < SIZE[1]:
+    if 0 <= x < BASE_SIZE[0] and 0 <= y < BASE_SIZE[1]:
         pixels[y][x] = color
 
 
@@ -199,7 +218,12 @@ def _cube_with_gear(
     return pixels
 
 
-def build_icon_v1(path: Path) -> None:
+def _save_icon(path: Path, pixels: List[List[Color]], scale: int) -> None:
+    scaled = _scale_pixels(pixels, scale)
+    _write_ico(path, scaled)
+
+
+def build_icon_v1(path: Path, scale: int) -> None:
     pixels = _cube_with_gear(
         bg=(30, 30, 30, 255),
         front=(0, 0, 0, 0),
@@ -210,10 +234,10 @@ def build_icon_v1(path: Path) -> None:
         gear_teeth=(255, 255, 255, 255),
         wireframe=True,
     )
-    _write_ico(path, pixels)
+    _save_icon(path, pixels, scale)
 
 
-def build_icon_v2(path: Path) -> None:
+def build_icon_v2(path: Path, scale: int) -> None:
     pixels = _cube_with_gear(
         bg=(20, 20, 20, 255),
         front=(60, 120, 200, 255),
@@ -223,10 +247,10 @@ def build_icon_v2(path: Path) -> None:
         gear_inner=(200, 200, 200, 255),
         gear_teeth=(255, 255, 255, 255),
     )
-    _write_ico(path, pixels)
+    _save_icon(path, pixels, scale)
 
 
-def build_icon_v3(path: Path) -> None:
+def build_icon_v3(path: Path, scale: int) -> None:
     pixels = _cube_with_gear(
         bg=(20, 20, 20, 255),
         front=(60, 120, 200, 255),
@@ -237,10 +261,10 @@ def build_icon_v3(path: Path) -> None:
         gear_teeth=(255, 255, 255, 255),
         hole=True,
     )
-    _write_ico(path, pixels)
+    _save_icon(path, pixels, scale)
 
 
-def build_icon_v4(path: Path) -> None:
+def build_icon_v4(path: Path, scale: int) -> None:
     pixels = _cube_with_gear(
         bg=(20, 20, 20, 255),
         front=(70, 130, 210, 255),
@@ -252,9 +276,9 @@ def build_icon_v4(path: Path) -> None:
         hole=True,
         teeth_width=2,
     )
-    _write_ico(path, pixels)
+    _save_icon(path, pixels, scale)
 
-_BUILDERS: Dict[str, Callable[[Path], None]] = {
+_BUILDERS: Dict[str, Callable[[Path, int], None]] = {
     "v1": build_icon_v1,
     "v2": build_icon_v2,
     "v3": build_icon_v3,
@@ -262,10 +286,10 @@ _BUILDERS: Dict[str, Callable[[Path], None]] = {
 }
 
 
-def build_icon(path: Path, strategy: str = "v4") -> Path:
+def build_icon(path: Path, strategy: str = "v4", scale: int = 4) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    _BUILDERS[strategy](path)
+    _BUILDERS[strategy](path, scale)
     return path
 
 
@@ -275,8 +299,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("bin/AutoML.ico"))
     parser.add_argument("--strategy", choices=sorted(_BUILDERS), default="v4")
+    parser.add_argument(
+        "--scale",
+        type=int,
+        default=4,
+        help="Scale factor applied to base 32x32 icon (default: 4 for 128x128)",
+    )
     args = parser.parse_args()
-    build_icon(args.output, args.strategy)
+    build_icon(args.output, args.strategy, scale=args.scale)
     print(f"Icon written to {args.output}")
 
 
