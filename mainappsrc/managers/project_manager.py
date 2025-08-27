@@ -106,6 +106,8 @@ class ProjectManager:
                 return
             if result:
                 self.save_model()
+        if hasattr(app, "doc_nb"):
+            app.doc_nb.close_all_floating()
         if hasattr(app, "page_diagram") and app.page_diagram is not None:
             app.close_page_diagram()
         for tab_id in list(app.doc_nb.tabs()):
@@ -162,6 +164,8 @@ class ProjectManager:
     def _reset_on_load(self) -> None:
         model_loader.cleanup()
         app = self.app
+        if hasattr(app, "doc_nb"):
+            app.doc_nb.close_all_floating()
         if getattr(app, "page_diagram", None) is not None:
             app.close_page_diagram()
         for tab_id in list(getattr(app.doc_nb, "tabs", lambda: [])()):
