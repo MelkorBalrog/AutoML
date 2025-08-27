@@ -16,8 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Tests for cancelling lingering Tk ``after`` callbacks."""
 
-VERSION = "0.2.155"
+import os
+import tkinter as tk
 
-__all__ = ["VERSION"]
+import pytest
+
+from gui.utils.closable_notebook import ClosableNotebook
+
+
+@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+def test_cancel_after_events_cancels_animate(monkeypatch):
+    root = tk.Tk()
+    root.withdraw()
+    btn = tk.Button(root)
+    # Schedule a bogus Tcl command ending with ``_animate`` to mirror real-world animations
+    ident = btn.tk.call("after", "1000000", "12345_animate")
+    nb = ClosableNotebook(root)
+    nb._cancel_after_events(btn)
+    assert ident not in btn.tk.call("after", "info")
+    root.destroy()
