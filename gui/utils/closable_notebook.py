@@ -857,8 +857,15 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             pass
 
-    def _raise_widgets(self, widget: tk.Widget) -> None:
-        """Recursively lift *widget* and all descendants to the top of their stacks."""
+    def _raise_widgets(
+        self, widget: tk.Widget, _mapping: t.Optional[dict[tk.Widget, tk.Widget]] = None
+    ) -> None:
+        """Recursively lift *widget* and descendants to the top of their stacks.
+
+        The optional *_mapping* parameter is accepted for backward compatibility
+        with earlier implementations that supplied the clone mapping. It is
+        ignored but kept to avoid ``TypeError`` when older call sites pass it.
+        """
 
         try:
             widget.lift()
@@ -898,7 +905,7 @@ class ClosableNotebook(ttk.Notebook):
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
-                self._raise_widgets(new_widget)
+                self._raise_widgets(new_widget, mapping)
                 self._reassign_widget_references(mapping)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
