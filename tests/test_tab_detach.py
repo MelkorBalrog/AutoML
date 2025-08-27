@@ -458,7 +458,7 @@ class TestCloning:
         root.destroy()
 
 
-class TestDetachCleanup:
+class TestCapsuleButtonDetach:
     def test_clone_capsule_with_none_text(self, monkeypatch):
         try:
             root = tk.Tk()
@@ -488,6 +488,38 @@ class TestDetachCleanup:
         assert isinstance(new_btn, CapsuleButton)
         root.destroy()
 
+    def test_detach_capsule_with_none_text(self, monkeypatch):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        btn = CapsuleButton(nb, text="ok")
+        btn._text = None
+        nb.add(btn, text="Tab1")
+        nb.update_idletasks()
+
+        monkeypatch.setattr(nb, "_move_tab", lambda tab_id, target: False)
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_btn = new_nb.nametowidget(new_nb.tabs()[0])
+        assert isinstance(new_btn, CapsuleButton)
+        assert new_btn.cget("text") == ""
+        root.destroy()
+
+
+class TestDetachCleanup:
     def test_detach_cancels_after_events(self, monkeypatch):
         try:
             root = tk.Tk()
@@ -565,6 +597,34 @@ class TestAnimatedWidgetDetach:
         root.update()
         err = capsys.readouterr().err
         assert "invalid command name" not in err
+        root.destroy()
+
+
+class TestTabDetachCallbacks:
+    def test_detach_tab_with_after_callback(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        root.report_callback_exception = lambda exc, val, tb: (_ for _ in ()).throw(val)
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        frame.after(1, lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        root.update()
         root.destroy()
 
     def test_detach_child_untracked_animation(self, monkeypatch, capsys):
