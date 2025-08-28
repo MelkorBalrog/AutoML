@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.170 - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
+          during drag target resolution and detach tabs safely when widgets
+          vanish.  Add regression test simulating release over a destroyed
+          widget.
 - 0.2.169 - Prune only widgets that duplicate original parent/child relationships,
           ensure all cloned descendants register in the mapping and add layout
           tests verifying frame, label, canvas and treeview retention after

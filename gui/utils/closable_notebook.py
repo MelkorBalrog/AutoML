@@ -403,6 +403,14 @@ class ClosableNotebook(ttk.Notebook):
         )
 
     def _target_notebook(self, x: int, y: int) -> t.Optional["ClosableNotebook"]:
+        """Return the notebook under screen coordinates ``(x, y)``.
+
+        ``winfo_containing`` may raise ``TclError`` or ``KeyError`` when the
+        underlying widget hierarchy changes during a drag operation (for
+        instance if a widget is destroyed mid-drag).  In such cases ``None`` is
+        returned so callers can gracefully fall back to detaching the tab.
+        """
+
         try:
             widget = self.winfo_containing(x, y)
         except (tk.TclError, KeyError):
