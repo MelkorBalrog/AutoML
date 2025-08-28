@@ -19,7 +19,13 @@
 -->
 
 # Version History
-- 0.2.174 - Guard drag target resolution against ``TclError`` or ``KeyError``
+- 0.2.174 - Guard duplicate pruning against missing originals and orphaned
+          clones.
+          - Skip ``winfo_children`` lookups when originals vanish and ignore
+            clones whose parents are absent from the mapping.
+          - Add grouped detachment tests confirming frames, treeviews,
+            canvases and buttons appear only once after detachment.
+          - Guard drag target resolution against ``TclError`` or ``KeyError``
           and detach tabs safely when widgets vanish.
           - Update ``_finalize_drag`` to gracefully handle missing targets.
           - Add regression tests simulating release over destroyed widgets that
