@@ -600,6 +600,7 @@ class ClosableNotebook(ttk.Notebook):
                     )
                     mapping[child] = child_clone
             self._copy_widget_state(widget, clone)
+            self._copy_widget_bindings(widget, clone)
             self._copy_widget_layout(widget, clone, mapping, layouts)
             try:
                 self._cancel_after_events(widget)
@@ -623,6 +624,7 @@ class ClosableNotebook(ttk.Notebook):
         except Exception as exc:  # pragma: no cover - log and continue
             logger.exception("Failed to copy config for %s: %s", widget, exc)
         self._copy_widget_state(widget, clone)
+        self._copy_widget_bindings(widget, clone)
         for child in self._ordered_children(widget):
             try:
                 child_clone, mapping, layouts = self._clone_widget(
@@ -883,22 +885,32 @@ class ClosableNotebook(ttk.Notebook):
                     clone.configure(scrollregion=widget.cget("scrollregion"))
                 except Exception:
                     pass
-                try:
-                    sequences = widget.tk.call("bind", widget._w).split()
-                    for seq in sequences:
-                        cmd = widget.bind(seq)
-                        if cmd:
-                            clone.bind(seq, cmd)
-                except Exception:
-                    pass
-                if widget.__class__.__name__ == "CapsuleButton":
-                    try:
-                        clone.bind("<Enter>", getattr(clone, "_on_enter"))
-                        clone.bind("<Leave>", getattr(clone, "_on_leave"))
-                    except Exception:
-                        pass
         except Exception:
             pass
+
+    def _copy_widget_bindings(self, widget: tk.Widget, clone: tk.Widget) -> None:
+        """Replicate event bindings and tags from *widget* to *clone*."""
+        try:
+            clone.bindtags(widget.bindtags())
+        except Exception:
+            pass
+        try:
+            sequences = widget.tk.call("bind", widget._w).split()
+        except Exception:
+            sequences = []
+        for seq in sequences:
+            try:
+                cmd = widget.bind(seq)
+                if cmd:
+                    clone.bind(seq, cmd)
+            except Exception:
+                continue
+        if widget.__class__.__name__ == "CapsuleButton":
+            try:
+                clone.bind("<Enter>", getattr(clone, "_on_enter"))
+                clone.bind("<Leave>", getattr(clone, "_on_leave"))
+            except Exception:
+                pass
 
     def _copy_widget_layout(
         self,

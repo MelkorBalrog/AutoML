@@ -19,7 +19,12 @@
 -->
 
 # Version History
-- 0.2.196 - Clone toolbar frames during tab detachment, removing originals and
+- 0.2.196 - Preserve hover bindings when cloning widgets.
+          - Replicate `<Enter>`/`<Leave>` events and `bindtags` during widget
+            cloning so hover state resets correctly.
+          - Add grouped regression tests verifying standard Button hover state
+            normalises after detachment.
+          - Clone toolbar frames during tab detachment, removing originals and
           rebinding button command and hover events so detached toolbars remain
           functional.
           - Add grouped regression tests ensuring a single toolbar row exists
