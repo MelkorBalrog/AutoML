@@ -1201,6 +1201,9 @@ class ClosableNotebook(ttk.Notebook):
         """Remove widgets that duplicate originals based on parent/child relationships."""
 
         keep: set[tk.Widget] = {win, nb} | set(mapping.values())
+        # Record expected child names for every cloned parent *before* any
+        # widgets are destroyed so pruning has a complete view of the original
+        # hierarchy. This prevents lookups on partially destroyed widget trees.
         expected: dict[tk.Widget, set[str]] = {}
         for orig, clone in mapping.items():
             parent_clone = mapping.get(orig.master)
@@ -1217,7 +1220,9 @@ class ClosableNotebook(ttk.Notebook):
                 if child in keep:
                     continue
                 names = expected.get(parent, set())
-                if child.winfo_name() in names:
+                if child.winfo_name() in names or isinstance(
+                    child, (tk.Frame, ttk.Frame, ttk.Treeview)
+                ):
                     try:
                         self._cancel_after_events(child)
                     except Exception:

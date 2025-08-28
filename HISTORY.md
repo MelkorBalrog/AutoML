@@ -19,6 +19,14 @@
 -->
 
 # Version History
+- 0.2.173 - Prevent duplicate Safety Management Explorer instances and prune
+          stray explorer widgets during tab detachment.
+          - Compute expected child widgets before pruning and destroy unmapped
+            frames or treeviews.
+          - Check ``_safety_exp_window.winfo_exists`` to avoid multiple
+            explorers in the same tab.
+          - Add detachment tests ensuring only one explorer treeview and icon
+            column exist after opening or detaching the explorer.
 - 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
           ``safety_analysis_service`` and remove legacy
           ``core.safety_analysis`` module.
