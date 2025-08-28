@@ -56,12 +56,10 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             root = widget._root()
         except Exception:
             root = None
-        if root is not None and getattr(root, "_tclCommands", None):
-            try:
-                if getattr(root, "_tclCommands", None):
-                    root.deletecommand(ident)
-            except Exception:
-                pass
+        if root is not None:
+            cmds = getattr(root, "_tclCommands", None)
+            if isinstance(cmds, set):
+                cmds.discard(ident)
         cancelled.add(ident)
 
     tkapp = getattr(widget, "tk", None)
@@ -83,11 +81,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
         if isinstance(all_ids, str):
             all_ids = (all_ids,)
         for ident in all_ids:
-            if (
-                isinstance(ident, str)
-                and ident.startswith(str(widget))
-                and ident not in cancelled
-            ):
+            if isinstance(ident, str) and ident not in cancelled:
                 _cancel_ident(ident)
 
     try:
@@ -726,18 +720,22 @@ class ClosableNotebook(ttk.Notebook):
         back to ``winfo_children`` for any remaining widgets.
         """
 
+        # Collect children from all geometry managers
         ordered: list[tk.Widget] = []
         for method in ("pack_slaves", "grid_slaves", "place_slaves"):
             try:
-                for child in getattr(widget, method)():
-                    if child not in ordered:
-                        ordered.append(child)
+                ordered.extend(getattr(widget, method)())
             except Exception:
                 continue
 
+        # Include any remaining widgets that might not be managed yet
         for child in widget.winfo_children():
             if child not in ordered:
                 ordered.append(child)
+
+        # Preserve the original creation order so relative stacking remains
+        creation_order = {w: i for i, w in enumerate(widget.winfo_children())}
+        ordered.sort(key=lambda w: creation_order.get(w, len(creation_order)))
 
         return ordered
 
