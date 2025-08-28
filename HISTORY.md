@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.174 - Guard CapsuleButton callbacks against ``TclError`` after
+- 0.2.174 - Harden canvas window updates against destroyed widgets and
+          call them only for surviving clones.
+          - Add regression tests detaching canvas tabs with embedded windows
+            to ensure no ``TclError`` occurs.
+          - Guard CapsuleButton callbacks against ``TclError`` after
           widget destruction and add grouped detachment event tests.
           - Guard duplicate pruning against missing originals and orphaned
           clones.
