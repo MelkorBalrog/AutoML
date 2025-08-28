@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.179 - Refresh diagram mapping before opening safety management diagrams and
+          display an error when the diagram is missing. Add double-click tests
+          verifying architecture windows open for existing diagrams.
 - 0.2.178 - Reparent governance diagram canvases during tab detachment and
           rebuild toolboxes so detached windows display canvases and toolboxes
           correctly.
