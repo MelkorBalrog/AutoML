@@ -27,6 +27,15 @@
             explorers in the same tab.
           - Add detachment tests ensuring only one explorer treeview and icon
             column exist after opening or detaching the explorer.
+          - Reparent canvases during tab detachment or clone and discard
+          originals after copying item colors and tags. Skip reparented
+          canvases during duplicate pruning and add regression test
+          ensuring detached governance diagrams retain a single
+          interactive canvas.
+          - Rebuild toolboxes and activate parent phase when detaching tabs
+          and ensure detached diagram toolboxes pack left before canvases so
+          buttons remain visible. Add grouped toolbox detachment tests
+          confirming selector visibility and Select tool persistence.
 - 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
           ``safety_analysis_service`` and remove legacy
           ``core.safety_analysis`` module.
