@@ -26,6 +26,8 @@ from .diagnostics_manager import (
     PassiveDiagnosticsManager,
     PollingDiagnosticsManager,
 )
+from .crash_report_logger import start_watchdog_thread, stop_watchdog_thread
+from .model_loader import start_cleanup_thread, stop_cleanup_thread
 from .trash_eater import TrashEater, manager_eater
 
 __all__ = [
@@ -35,6 +37,10 @@ __all__ = [
     "EventDiagnosticsManager",
     "PassiveDiagnosticsManager",
     "PollingDiagnosticsManager",
+    "start_watchdog_thread",
+    "stop_watchdog_thread",
+    "start_cleanup_thread",
+    "stop_cleanup_thread",
     "TrashEater",
     "manager_eater",
 ]

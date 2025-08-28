@@ -35,6 +35,7 @@ import json
 import re
 import sys
 import importlib.resources as resources
+from tools.memory_manager import manager as memory_manager
 
 
 def _ensure_list_of_strings(val: Any, name: str) -> None:
@@ -339,9 +340,8 @@ def _strip_comments(text: str) -> str:
     return "".join(result)
 
 
-def load_json_with_comments(path: str | Path) -> Any:
-    """Load a JSON file allowing // and /* */ comments and trailing commas."""
-    p = Path(path)
+def _load_json_with_comments_uncached(p: Path) -> Any:
+    """Internal helper performing the actual file reading."""
     candidates = [p]
     if getattr(sys, "frozen", False):  # pragma: no cover - only in bundled app
         exe_dir = Path(sys.executable).resolve().parent
@@ -359,14 +359,6 @@ def load_json_with_comments(path: str | Path) -> Any:
         except FileNotFoundError:
             continue
     if text is None:
-        # When running from a bundled executable the configuration files may be
-        # packaged as importlib resources. Attempt to load the file from the
-        # corresponding package if it is not found on disk.
-
-        # Determine the package containing the resource.  The configuration
-        # files reside within a ``config`` package somewhere in the path.  By
-        # locating this segment we can construct the fully-qualified package
-        # name without relying on the current working directory.
         try:
             idx = p.parts.index("config")
             pkg = ".".join(p.parts[idx:-1])
@@ -378,9 +370,19 @@ def load_json_with_comments(path: str | Path) -> Any:
                 text = _strip_comments(res.read_text())
         except ModuleNotFoundError as exc:  # pragma: no cover - resources missing
             raise FileNotFoundError(f"Unable to locate resource for {p}") from exc
-    # Remove trailing commas left after comment stripping
     text = re.sub(r",\s*(?=[}\]])", "", text)
     return json.loads(text)
+
+
+def load_json_with_comments(path: str | Path) -> Any:
+    """Load a JSON file allowing // and /* */ comments and trailing commas.
+
+    Results are cached via :mod:`tools.memory_manager` to avoid repeated disk
+    reads when the same configuration file is requested multiple times.
+    """
+    p = Path(path)
+    key = f"json:{p.resolve()}"
+    return memory_manager.lazy_load(key, lambda: _load_json_with_comments_uncached(p))
 
 
 def load_diagram_rules(path: str | Path) -> dict[str, Any]:

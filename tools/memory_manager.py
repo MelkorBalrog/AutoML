@@ -28,7 +28,10 @@ visible data.
 
 import gc
 import importlib
+import threading
+import time
 from typing import Any, Callable, Dict, Set
+import atexit
 
 try:  # pragma: no cover - optional dependency
     import psutil
@@ -41,13 +44,19 @@ class MemoryManager:
 
     Objects are loaded on demand via :meth:`lazy_load`.  Keys can be marked as
     active with :meth:`mark_active`; any remaining cached objects and processes
-    are discarded by :meth:`cleanup`.
+    are discarded by :meth:`cleanup`.  A background thread periodically invokes
+    :meth:`cleanup` so stale resources are removed even if clients forget to
+    call it explicitly.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, interval: float = 60.0) -> None:
         self._cache: Dict[str, Any] = {}
         self._active: Set[str] = set()
         self._procs: Dict[str, Any] = {}
+        self._interval = interval
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._monitor, daemon=True)
+        self._thread.start()
 
     def lazy_load(self, key: str, loader: Callable[[], Any]) -> Any:
         """Return cached object for *key*, loading it if necessary."""
@@ -99,6 +108,18 @@ class MemoryManager:
                     self._procs.pop(key, None)
         self._active.clear()
 
+    def _monitor(self) -> None:
+        """Background thread periodically running :meth:`cleanup`."""
+        while not self._stop_event.is_set():
+            time.sleep(self._interval)
+            self.cleanup()
+
+    def shutdown(self) -> None:
+        """Stop the monitoring thread."""
+        self._stop_event.set()
+        if self._thread.is_alive():
+            self._thread.join(timeout=1)
+
 
 def lazy_import(name: str) -> Any:
     """Return a proxy module lazily imported on first attribute access."""
@@ -117,3 +138,4 @@ def lazy_widget(key: str, loader: Callable[[], Any]) -> Any:
 
 
 manager = MemoryManager()
+atexit.register(manager.shutdown)

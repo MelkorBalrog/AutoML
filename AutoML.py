@@ -31,6 +31,7 @@ import os
 import subprocess
 import sys
 import types
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tkinter import ttk
@@ -65,8 +66,14 @@ else:
     sys.modules["config.automl_constants"] = _automl_constants
 
 import tools  # noqa: F401  # ensure package is bundled
-from tools.crash_report_logger import install_best
+from tools.crash_report_logger import (
+    install_best,
+    start_watchdog_thread,
+    stop_watchdog_thread,
+)
+from tools.diagnostics_manager import PollingDiagnosticsManager
 from tools.memory_manager import manager as memory_manager
+from tools.model_loader import start_cleanup_thread, stop_cleanup_thread
 from tools.splash_launcher import SplashLauncher
 from tools.trash_eater import manager_eater
 from mainappsrc.version import VERSION
@@ -120,6 +127,11 @@ REQUIRED_PACKAGES = [
 ]
 
 GS_PATH = Path(r"C:\\Program Files\\gs\\gs10.04.0\\bin\\gswin64c.exe")
+
+
+_watchdog_stop: threading.Event | None = None
+_model_cleanup_stop: threading.Event | None = None
+_diagnostics_manager: PollingDiagnosticsManager | None = None
 
 
 def parse_args() -> None:
@@ -245,8 +257,13 @@ def _bootstrap() -> object:
         The main application module which provides a ``main`` entry point.
     """
 
+    global _watchdog_stop, _model_cleanup_stop, _diagnostics_manager
     parse_args()
     install_best()
+    _watchdog_stop = start_watchdog_thread()
+    _diagnostics_manager = PollingDiagnosticsManager(lambda: None)
+    _diagnostics_manager.start()
+    _model_cleanup_stop = start_cleanup_thread()
     with ThreadPoolExecutor() as executor:
         futures = [
             executor.submit(ensure_packages),
@@ -270,6 +287,12 @@ def main() -> None:
     """Entry point used by both source and bundled executions."""
     SplashLauncher(loader=_bootstrap, post_delay=5000).launch()
     memory_manager.cleanup()
+    if _diagnostics_manager:
+        _diagnostics_manager.stop()
+    if _watchdog_stop:
+        stop_watchdog_thread(_watchdog_stop)
+    if _model_cleanup_stop:
+        stop_cleanup_thread(_model_cleanup_stop)
     manager_eater.stop()
 
 if __name__ == "__main__":

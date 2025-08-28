@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.190 - Run crash logger and model loader maintenance in background threads.
+          - Add grouped tests covering threaded services.
+- 0.2.189 - Cache JSON configuration loads and run memory cleanup in a
+          background thread to improve performance.
+          - Group config loader tests and add caching regression check.
 - 0.2.188 - Re-establish hover image bindings after cloning or detaching buttons
           so highlight effects persist across detached windows.
           - Extend grouped tests validating hover behaviour after detachment.
