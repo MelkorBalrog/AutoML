@@ -1065,20 +1065,20 @@ class SafetyAnalysis_FTA_FMEA(FMEAService):
 
     def calculate_cut_sets(self, node):
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.calculate_cut_sets(self, self.app, node)
+        return FTASubApp().calculate_cut_sets(self.app, node)
 
     def build_simplified_fta_model(self, top_event):
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.build_simplified_fta_model(self, self.app, top_event)
+        return FTASubApp().build_simplified_fta_model(self.app, top_event)
 
     def get_all_basic_events(self, app=None):
         """Return all basic events in the current fault tree model."""
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.get_all_basic_events(self, app or self.app)
+        return FTASubApp().get_all_basic_events(app or self.app)
 
     def all_children_are_base_events(self, node):
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.all_children_are_base_events(self, self.app, node)
+        return FTASubApp().all_children_are_base_events(self.app, node)
 
     def add_fault(self, name: str) -> None:
         self.app.risk_app.add_fault(self.app, name)
@@ -1186,15 +1186,15 @@ class SafetyAnalysis_FTA_FMEA(FMEAService):
 
     def generate_top_event_summary(self, top_event):
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.generate_top_event_summary(self, self.app, top_event)
+        return FTASubApp().generate_top_event_summary(self.app, top_event)
 
     def generate_recommendations_for_top_event(self, node):
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.generate_recommendations_for_top_event(self, self.app, node)
+        return FTASubApp().generate_recommendations_for_top_event(self.app, node)
 
     def derive_requirements_for_event(self, event):
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.derive_requirements_for_event(self, self.app, event)
+        return FTASubApp().derive_requirements_for_event(self.app, event)
 
     def get_available_failure_modes_for_gates(self, current_gate=None):
         modes = self.app.get_non_basic_failure_modes()
@@ -1235,15 +1235,15 @@ class SafetyAnalysis_FTA_FMEA(FMEAService):
 
     def get_top_event(self, node):
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.get_top_event(self, self.app, node)
+        return FTASubApp().get_top_event(self.app, node)
 
     def move_top_event_up(self):
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.move_top_event_up(self, self.app)
+        return FTASubApp().move_top_event_up(self.app)
 
     def move_top_event_down(self):
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.move_top_event_down(self, self.app)
+        return FTASubApp().move_top_event_down(self.app)
 
     def delete_top_events_for_malfunction(self, name: str) -> None:
         app = self.app
@@ -1474,7 +1474,7 @@ class SafetyAnalysis_FTA_FMEA(FMEAService):
     def get_all_gates(self, app=None):
         """Return all gate nodes in the current fault tree model."""
         FTASubApp = _get_fta_subapp()
-        return FTASubApp.get_all_gates(self, app or self.app)
+        return FTASubApp().get_all_gates(app or self.app)
 
     def get_all_failure_modes(self):
         return self.app.data_access_queries.get_all_failure_modes()
