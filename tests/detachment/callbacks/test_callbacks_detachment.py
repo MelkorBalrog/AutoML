@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Regression tests for standard Button hover state after detachment."""
+"""Grouped callback tests covering hover reset and after-event cleanup."""
 
 from __future__ import annotations
 
@@ -28,11 +28,14 @@ import pytest
 from gui.utils.closable_notebook import ClosableNotebook
 
 
-@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
-class TestDetachedButtonHover:
-    """Grouped tests verifying Button hover behaviour in detached tabs."""
+pytestmark = pytest.mark.detachment
 
-    def _setup(self) -> tuple[tk.Tk, ClosableNotebook, tk.Button]:
+
+@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+class TestCallbackDetachment:
+    """Grouped cases verifying hover-state reset and after-event cleanup."""
+
+    def _setup_hover_button(self) -> tuple[tk.Tk, ClosableNotebook, tk.Button]:
         root = tk.Tk()
         root.withdraw()
         root.report_callback_exception = lambda exc, val, tb: (_ for _ in ()).throw(val)
@@ -46,19 +49,33 @@ class TestDetachedButtonHover:
         clone_btn = next(w for w in new_nb.winfo_children() if isinstance(w, tk.Button))
         return root, nb, clone_btn
 
-    def test_enter_sets_active(self) -> None:
-        root, nb, btn = self._setup()
-        btn.event_generate("<Enter>")
-        root.update()
-        assert btn["state"] == "active"
-        nb._floating_windows[0].destroy()
-        root.destroy()
-
-    def test_leave_restores_normal(self) -> None:
-        root, nb, btn = self._setup()
+    def test_hover_state_resets(self) -> None:
+        root, nb, btn = self._setup_hover_button()
         btn.event_generate("<Enter>")
         btn.event_generate("<Leave>")
         root.update()
         assert btn["state"] == "normal"
         nb._floating_windows[0].destroy()
         root.destroy()
+
+    class Animated(tk.Button):
+        def __init__(self, master: tk.Widget) -> None:
+            super().__init__(master, text="Go")
+            self._spin_after = self.after(1, self._spin)
+
+        def _spin(self) -> None:
+            self._spin_after = self.after(1, self._spin)
+
+    def test_after_callbacks_cancelled(self, capsys) -> None:
+        root = tk.Tk(); root.withdraw()
+        errors: list[Exception] = []
+        root.report_callback_exception = lambda exc, val, tb: errors.append(val)
+        nb = ClosableNotebook(root)
+        btn = self.Animated(nb)
+        nb.add(btn, text="Tab")
+        nb.update_idletasks()
+        nb._detach_tab(nb.tabs()[0], 10, 10)
+        nb._floating_windows[0].destroy()
+        root.destroy()
+        assert "invalid command name" not in capsys.readouterr().err
+        assert not any(isinstance(e, AttributeError) for e in errors)

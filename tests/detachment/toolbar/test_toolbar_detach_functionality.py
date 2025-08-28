@@ -28,6 +28,9 @@ import pytest
 from gui.utils.closable_notebook import ClosableNotebook
 
 
+pytestmark = pytest.mark.detachment
+
+
 def _detach_toolbar(
     ) -> tuple[tk.Tk, tk.Toplevel, tk.Frame, tk.Frame, ttk.Button, ttk.Button, dict[str, int]]:
     """Create a notebook with toolbar, detach it and return widgets."""
@@ -62,7 +65,7 @@ def _detach_toolbar(
     return root, win, toolbar, clone_toolbar, clone_click, clone_hover, clicks
 
 
-class TestToolbarDetachFunctionality:
+class TestToolbarDetachment:
     """Grouped cases covering toolbar duplicates, hover state and callbacks."""
 
     def test_duplicate_buttons_removed(self) -> None:
