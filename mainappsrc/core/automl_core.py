@@ -249,11 +249,16 @@ class AutoMLApp(
 
     @property
     def fmedas(self):
-        return self.safety_analysis.fmedas
+        if hasattr(self, "safety_analysis"):
+            return self.safety_analysis.fmedas
+        return getattr(self, "_fmedas", [])
 
     @fmedas.setter
     def fmedas(self, value):
-        self.safety_analysis.fmedas = value
+        if hasattr(self, "safety_analysis"):
+            self.safety_analysis.fmedas = value
+        else:
+            self._fmedas = value
 
     #: Maximum characters shown for tool notebook tab titles. Tool tabs use
     #: a fixed width so they remain readable but long names are capped at this
@@ -1288,11 +1293,16 @@ class AutoMLApp(
 
     @property
     def fmeas(self):
-        return self.safety_analysis.fmeas
+        if hasattr(self, "safety_analysis"):
+            return self.safety_analysis.fmeas
+        return getattr(self, "_fmeas", [])
 
     @fmeas.setter
     def fmeas(self, value):
-        self.safety_analysis.fmeas = value
+        if hasattr(self, "safety_analysis"):
+            self.safety_analysis.fmeas = value
+        else:
+            self._fmeas = value
 
     def show_fmea_list(self):
         """Delegate to the safety analysis facade to display FMEA manager."""
