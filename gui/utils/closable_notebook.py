@@ -789,56 +789,37 @@ class ClosableNotebook(ttk.Notebook):
             cancelled = set()
 
         try:
-            tkapp = getattr(widget, "tk", None)
-            if tkapp is None or getattr(tkapp, "_tclCommands", None) is None:
-                return
-            tcl_name = str(widget)
-            ids: set[str] = set()
-            try:
-                global_ids = tkapp.call("after", "info")
-            except Exception:
-                global_ids = []
-            if isinstance(global_ids, str):
-                global_ids = [global_ids]
-            ids.update(global_ids)
-            try:
-                widget_ids = tkapp.call("after", "info", tcl_name)
-            except Exception:
-                widget_ids = []
-            if isinstance(widget_ids, str):
-                widget_ids = [widget_ids]
-            ids.update(widget_ids)
-            try:
-                commands = getattr(tkapp, "_tclCommands", None) or []
-                tcl_cmds = {cmd for cmd in commands if tcl_name in cmd}
-            except Exception:
-                tcl_cmds = set()
-            for ident in ids:
-                try:
-                    cmd = tkapp.call("after", "info", ident)
-                except Exception:
-                    cmd = ""
-                if (
-                    ident in widget_ids
-                    or tcl_name in cmd
-                    or any(c in cmd for c in tcl_cmds)
-                    or str(ident).endswith(("_animate", "_anim", "_after", "_timer"))
-                ):
-                    try:
-                        widget.after_cancel(ident)
-                    except Exception:
-                        pass
-            if getattr(tkapp, "_tclCommands", None):
-                for cmd in tcl_cmds:
-                    try:
-                        tkapp.deletecommand(cmd)
-                    except Exception:
-                        pass
+            root = widget._root()
         except Exception:
-            pass
+            return
+
+        try:
+            ids = root.tk.call("after", "info")
+        except Exception:
+            ids = []
+        if isinstance(ids, str):
+            ids = [ids]
+
+        wpath = str(widget)
+        suffixes = ("_animate", "_anim", "_after", "_timer")
+        for ident in ids:
+            if ident in cancelled:
+                continue
+            try:
+                cmd = root.tk.call("after", "info", ident)
+            except Exception:
+                cmd = ""
+            if wpath in cmd or str(ident).endswith(suffixes) or cmd.endswith(suffixes):
+                try:
+                    root.after_cancel(ident)
+                except Exception:
+                    pass
+                else:
+                    cancelled.add(ident)
+
         try:
             for name in dir(widget):
-                if name.endswith(("_anim", "_after", "_timer")):
+                if name.endswith(suffixes):
                     ident = getattr(widget, name, None)
                     if isinstance(ident, str) and ident not in cancelled:
                         try:
@@ -849,6 +830,7 @@ class ClosableNotebook(ttk.Notebook):
                             cancelled.add(ident)
         except Exception:
             pass
+
         for child in widget.winfo_children():
             self._cancel_after_events(child, cancelled)
             
@@ -919,6 +901,7 @@ class ClosableNotebook(ttk.Notebook):
                 new_widget, mapping = self._clone_widget(orig, nb, mapping)
                 self._copy_widget_layout(orig, new_widget, mapping)
                 self._raise_widgets(new_widget, mapping)
+                self._cancel_after_events(orig)
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
@@ -934,7 +917,10 @@ class ClosableNotebook(ttk.Notebook):
                 self._raise_widgets(child)
                 nb.select(tab)
         except Exception:
-            win.destroy()
+            try:
+                self._cancel_after_events(win)
+            finally:
+                win.destroy()
             raise
 
     def _rewrite_config_options(
@@ -1102,6 +1088,7 @@ class ClosableNotebook(ttk.Notebook):
                 prune(child)
                 if child not in expected and str(child) not in keep:
                     try:
+                        self._cancel_after_events(child)
                         child.destroy()
                     except Exception:
                         pass

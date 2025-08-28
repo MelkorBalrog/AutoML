@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.169 - Cancel Tk ``after`` callbacks referencing detached widgets and ensure
+          all widgets clear pending animations before destruction.
+          - Invoke `_cancel_after_events` for every widget slated for
+            destruction in `_detach_tab`.
+          - Add regression tests verifying animated `CapsuleButton`
+            detachment triggers no `TclError` or `AttributeError`.
 - 0.2.168 - Accumulate children from all geometry managers so every widget
           in a tab transfers to the detached window.
 - 0.2.167 - Clone children managed by grid/place so all tab contents appear in
