@@ -250,8 +250,12 @@ class SafetyManagementExplorer(tk.Frame):
         typ, obj = self.item_map.get(sel[0], (None, None))
         if typ != "diagram":
             return
+        self.toolbox.list_diagrams()
         diag_id = self.toolbox.diagrams.get(obj)
-        if diag_id and self.app:
+        if not diag_id:
+            messagebox.showerror("Open Diagram", f"Diagram '{obj}' not found")
+            return
+        if self.app:
             self.app.window_controllers.open_arch_window(diag_id)
 
     # ------------------------------------------------------------------

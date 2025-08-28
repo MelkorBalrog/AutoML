@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.179 - Rebuild and activate governance toolboxes when detaching tabs so
+- 0.2.179 - Refresh diagram mapping before opening safety management diagrams and
+          display an error when the diagram is missing. Add double-click tests
+          verifying architecture windows open for existing diagrams.
+          - Rebuild and activate governance toolboxes when detaching tabs so
           detached governance diagrams display the toolbox selector and remain
           interactive.
           - Invoke ``_switch_toolbox`` on detached governance clones and pack
