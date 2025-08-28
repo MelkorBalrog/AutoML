@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.174 - Harden canvas window updates against destroyed widgets and
+          call them only for surviving clones.
+          - Add regression tests detaching canvas tabs with embedded windows
+            to ensure no ``TclError`` occurs.
 - 0.2.173 - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
           ``safety_analysis_service`` methods.
           - Prevent duplicate Safety Management Explorer instances and prune

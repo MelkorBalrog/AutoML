@@ -1160,17 +1160,22 @@ class ClosableNotebook(ttk.Notebook):
         for _orig, clone in mapping.items():
             if not isinstance(clone, tk.Canvas):
                 continue
-            for item in clone.find_all():
-                if clone.type(item) != "window":
-                    continue
-                old = clone.itemcget(item, "window")
-                new = name_map.get(old)
-                if not new:
-                    continue
-                try:
-                    clone.itemconfigure(item, window=new)
-                except Exception:
-                    pass
+            if not clone.winfo_exists():
+                return
+            try:
+                for item in clone.find_all():
+                    if clone.type(item) != "window":
+                        continue
+                    old = clone.itemcget(item, "window")
+                    new = name_map.get(old)
+                    if not new:
+                        continue
+                    try:
+                        clone.itemconfigure(item, window=new)
+                    except Exception:
+                        pass
+            except tk.TclError:
+                continue
 
     def _reassign_widget_references(
         self, mapping: dict[tk.Widget, tk.Widget]
@@ -1178,7 +1183,9 @@ class ClosableNotebook(ttk.Notebook):
         """Rewrite internal widget references after cloning."""
 
         self.rewrite_option_references(mapping)
-        self.update_canvas_windows(mapping)
+        live_mapping = {o: c for o, c in mapping.items() if c.winfo_exists()}
+        if live_mapping:
+            self.update_canvas_windows(live_mapping)
         self.rebind_scrollbars(mapping)
 
     def _reassign_container_attributes(
