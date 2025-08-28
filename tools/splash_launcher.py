@@ -22,10 +22,19 @@ from __future__ import annotations
 """Utility for displaying a splash screen during application start-up."""
 
 import importlib
+import sys
+from pathlib import Path
 import threading
 import tkinter as tk
 from types import ModuleType
 from typing import Callable, Optional
+
+if getattr(sys, "frozen", False):  # pragma: no cover - path handling for executables
+    _ROOT = Path(sys._MEIPASS)
+else:
+    _ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 try:
     from config.automl_constants import AUTHOR, AUTHOR_EMAIL, AUTHOR_LINKEDIN
@@ -33,7 +42,10 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for bundled executabl
     AUTHOR = "Miguel Marina"
     AUTHOR_EMAIL = "karel.capek.robotics@gmail.com"
     AUTHOR_LINKEDIN = "https://www.linkedin.com/in/progman32/"
-from mainappsrc.version import VERSION
+try:
+    from mainappsrc.version import VERSION
+except ModuleNotFoundError:  # pragma: no cover - fallback when version missing
+    VERSION = "0.0.0"
 
 
 class SplashLauncher:
