@@ -17,10 +17,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 import datetime
 from typing import Optional
 from analysis.user_config import CURRENT_USER_NAME, CURRENT_USER_EMAIL
+
+
+class Serializable:
+    """Mixin providing dataclass serialisation helpers."""
+
+    def to_dict(self) -> dict:
+        """Return a ``dict`` representation of the dataclass."""
+        return asdict(self)
 
 
 @dataclass
@@ -162,14 +170,14 @@ class HaraEntry:
     cyber: Optional["CyberRiskEntry"] = None
 
 @dataclass
-class HazopDoc:
+class HazopDoc(Serializable):
     """Container for a HAZOP with a name and list of entries."""
     name: str
     entries: list
     meta: Metadata = field(default_factory=Metadata)
 
 @dataclass
-class HaraDoc:
+class HaraDoc(Serializable):
     """Container for a HARA derived from one or more HAZOPs."""
     name: str
     hazops: list
@@ -193,21 +201,21 @@ class StpaEntry:
 
 
 @dataclass
-class StpaDoc:
+class StpaDoc(Serializable):
     name: str
     diagram: str
     entries: list
     meta: Metadata = field(default_factory=Metadata)
 
 @dataclass
-class FI2TCDoc:
+class FI2TCDoc(Serializable):
     """Container for an FI2TC analysis."""
     name: str
     entries: list
     meta: Metadata = field(default_factory=Metadata)
 
 @dataclass
-class TC2FIDoc:
+class TC2FIDoc(Serializable):
     """Container for a TC2FI analysis."""
     name: str
     entries: list
