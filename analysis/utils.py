@@ -18,11 +18,18 @@
 
 """Utility helpers for analysis package."""
 
-import csv
-import datetime
+from typing import Iterable, List, Dict, Tuple
+import math
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog, ttk
-from typing import List
+from tkinter import ttk, font as tkFont
+
+from analysis.constants import CHECK_MARK, CROSS_MARK
+from analysis.fmeda_utils import compute_fmeda_metrics as _compute_fmeda_metrics
+
+try:  # pragma: no cover - fallback for script context
+    from AutoML.config.automl_constants import PMHF_TARGETS
+except Exception:  # pragma: no cover - fallback for script context
+    from config.automl_constants import PMHF_TARGETS
 
 from analysis.user_config import CURRENT_USER_NAME
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
@@ -184,244 +191,417 @@ def derive_validation_target(acceptance_rate: float,
     return acceptance_rate / denominator
 
 
-def load_fmeas(service, data: dict) -> None:
-    """Load FMEA documents into *service* from project *data*."""
-
-    service.fmeas.clear()
-    for fmea_data in data.get("fmeas", []):
-        entries = [
-            FaultTreeNode.from_dict(e) for e in fmea_data.get("entries", [])
-        ]
-        service.fmeas.append(
-            {
-                "name": fmea_data.get("name", "FMEA"),
-                "file": fmea_data.get("file", f"fmea_{len(service.fmeas)}.csv"),
-                "entries": entries,
-                "created": fmea_data.get(
-                    "created", datetime.datetime.now().isoformat()
-                ),
-                "author": fmea_data.get("author", CURRENT_USER_NAME),
-                "modified": fmea_data.get(
-                    "modified", datetime.datetime.now().isoformat()
-                ),
-                "modified_by": fmea_data.get(
-                    "modified_by", CURRENT_USER_NAME
-                ),
-            }
-        )
-    if not service.fmeas and "fmea_entries" in data:
-        entries = [FaultTreeNode.from_dict(e) for e in data.get("fmea_entries", [])]
-        service.fmeas.append(
-            {"name": "Default FMEA", "file": "fmea_default.csv", "entries": entries}
-        )
+# ---------------------------------------------------------------------------
+# Safety analysis helpers moved from ``safety_analysis_service``
+# ---------------------------------------------------------------------------
 
 
-def show_fmea_list(service) -> None:
-    """Display the list of FMEA documents for *service*."""
+def compute_fmeda_metrics(
+    events: Iterable[object],
+    reliability_components: Iterable[object],
+    get_safety_goal_asil,
+):
+    """Compute FMEDA metrics for ``events``."""
 
-    app = service.app
-    if service._fmea_tab is not None and service._fmea_tab.winfo_exists():
-        app.doc_nb.select(service._fmea_tab)
-        return
-    service._fmea_tab = app._new_tab("FMEA List")
-    win = service._fmea_tab
-    columns = ("Name", "Created", "Author", "Modified", "ModifiedBy")
-    tree = ttk.Treeview(win, columns=columns, show="headings")
-    for c in columns:
-        tree.heading(c, text=c)
-        width = 150 if c == "Name" else 120
-        tree.column(c, width=width)
-    tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    return _compute_fmeda_metrics(
+        list(events), reliability_components, get_safety_goal_asil
+    )
 
-    item_map: dict[str, dict] = {}
-    toolbox = getattr(app, "safety_mgmt_toolbox", None)
-    for fmea in service.fmeas:
-        name = fmea.get("name", "")
-        if toolbox and not toolbox.document_visible("FMEA", name):
+
+def compute_failure_prob(
+    app: object,
+    node: object,
+    failure_mode_ref: object | None = None,
+    formula: str | None = None,
+):
+    """Return probability of failure for ``node`` based on FIT rate."""
+
+    tau = 1.0
+    if getattr(app, "mission_profiles", None):
+        tau = app.mission_profiles[0].tau
+    if tau <= 0:
+        tau = 1.0
+    fm = (
+        app.find_node_by_id_all(failure_mode_ref)
+        if failure_mode_ref
+        else app.get_failure_mode_node(node)
+    )
+    if (
+        getattr(node, "fault_ref", "")
+        and failure_mode_ref is None
+        and getattr(node, "failure_mode_ref", None) is None
+    ):
+        fit = app.get_fit_for_fault(node.fault_ref)
+    else:
+        fit = getattr(fm, "fmeda_fit", getattr(node, "fmeda_fit", 0.0))
+    t = tau
+    formula = formula or getattr(node, "prob_formula", getattr(fm, "prob_formula", "linear"))
+    f = str(formula).strip().lower()
+    if f == "constant":
+        try:
+            return float(getattr(node, "failure_prob", 0.0))
+        except (TypeError, ValueError):
+            return 0.0
+    if fit <= 0:
+        return 0.0
+    comp_name = app.get_component_name_for_node(fm)
+    qty = next(
+        (c.quantity for c in getattr(app, "reliability_components", []) if c.name == comp_name),
+        1,
+    )
+    if qty <= 0:
+        qty = 1
+    lam = (fit / qty) / 1e9
+    if f == "exponential":
+        return 1 - math.exp(-lam * t)
+    return lam * t
+
+
+def update_basic_event_probabilities(app: object) -> None:
+    """Update failure probabilities for all basic events."""
+
+    for be in app.get_all_basic_events():
+        be.failure_prob = compute_failure_prob(app, be)
+
+
+def calculate_pmfh(app: object) -> None:
+    """Calculate probabilistic metric for hardware failures."""
+
+    update_basic_event_probabilities(app)
+    spf = 0.0
+    lpf = 0.0
+    for be in app.get_all_basic_events():
+        fm = app.get_failure_mode_node(be)
+        fit = getattr(be, "fmeda_fit", None)
+        if fit is None or fit == 0.0:
+            fit = getattr(fm, "fmeda_fit", 0.0)
+            if (
+                not fit
+                and getattr(be, "fault_ref", "")
+                and getattr(be, "failure_mode_ref", None) is None
+            ):
+                fault = be.fault_ref
+                for entry in app.get_all_fmea_entries():
+                    causes = [
+                        c.strip()
+                        for c in getattr(entry, "fmea_cause", "").split(";")
+                        if c.strip()
+                    ]
+                    if fault in causes:
+                        fit += getattr(entry, "fmeda_fit", 0.0)
+        dc = getattr(be, "fmeda_diag_cov", getattr(fm, "fmeda_diag_cov", 0.0))
+        if getattr(be, "fmeda_fault_type", "") == "permanent":
+            spf += fit * (1 - dc)
+        else:
+            lpf += fit * (1 - dc)
+    app.spfm = spf
+    app.lpfm = lpf
+
+    pmhf = 0.0
+    for te in getattr(app, "top_events", []):
+        asil = getattr(te, "safety_goal_asil", "") or ""
+        if asil in PMHF_TARGETS:
+            prob = app.helper.calculate_probability_recursive(te)
+            te.probability = prob
+            pmhf += prob
+
+    app.update_views()
+    lines = [f"Total PMHF: {pmhf:.2e}"]
+    overall_ok = True
+    for te in getattr(app, "top_events", []):
+        asil = getattr(te, "safety_goal_asil", "") or ""
+        if asil not in PMHF_TARGETS:
             continue
-        iid = tree.insert(
-            "",
-            "end",
-            values=(
-                name,
-                fmea.get("created", ""),
-                fmea.get("author", ""),
-                fmea.get("modified", ""),
-                fmea.get("modified_by", ""),
-            ),
+        target = PMHF_TARGETS.get(asil, 1.0)
+        ok = te.probability <= target
+        overall_ok = overall_ok and ok
+        symbol = CHECK_MARK if ok else CROSS_MARK
+        lines.append(
+            f"{te.user_name or te.display_label}: {te.probability:.2e} <= {target:.1e} {symbol}"
         )
-        item_map[iid] = fmea
+    app.pmhf_var.set("\n".join(lines))
+    app.pmhf_label.config(
+        foreground="green" if overall_ok else "red",
+        font=("Segoe UI", 10, "bold"),
+    )
 
-    def open_selected(event=None):
-        iid = tree.focus()
-        doc = item_map.get(iid)
-        if not doc:
-            return
-        win.destroy()
-        service._fmea_tab = None
-        app.show_fmea_table(doc)
+    app.refresh_safety_case_table()
+    app.refresh_safety_performance_indicators()
 
-    def add_fmea():
-        name = simpledialog.askstring("New FMEA", "Enter FMEA name:")
-        if name:
-            file_name = f"fmea_{name}.csv"
-            now = datetime.datetime.now().isoformat()
-            doc = {
-                "name": name,
-                "entries": [],
-                "file": file_name,
-                "created": now,
-                "author": CURRENT_USER_NAME,
-                "modified": now,
-                "modified_by": CURRENT_USER_NAME,
-            }
-            service.fmeas.append(doc)
-            if hasattr(app, "safety_mgmt_toolbox"):
-                app.safety_mgmt_toolbox.register_created_work_product("FMEA", doc["name"])
-            iid = tree.insert(
-                "",
-                "end",
-                values=(name, now, CURRENT_USER_NAME, now, CURRENT_USER_NAME),
+
+def calculate_overall(app: object) -> None:
+    """Calculate overall assurance levels for top events."""
+
+    helper = app.helper
+    for top_event in getattr(app, "top_events", []):
+        helper.calculate_assurance_recursive(top_event, app.top_events)
+    app.update_views()
+    results = ""
+    for top_event in getattr(app, "top_events", []):
+        if getattr(top_event, "quant_value", None) is not None:
+            disc = helper.discretize_level(top_event.quant_value)
+            results += (
+                f"Top Event {top_event.display_label}\n"
+                f"(Continuous: {top_event.quant_value:.2f}, Discrete: {disc})\n\n"
             )
-            item_map[iid] = doc
-            app.update_views()
+    app.messagebox.showinfo("Calculation", results.strip())
 
-    def delete_fmea():
-        iid = tree.focus()
-        doc = item_map.get(iid)
-        if not doc:
-            return
-        if toolbox and toolbox.document_read_only("FMEA", doc["name"]):
-            messagebox.showinfo("Read-only", "Re-used FMEAs cannot be deleted")
-            return
-        service.fmeas.remove(doc)
-        if toolbox:
-            toolbox.register_deleted_work_product("FMEA", doc["name"])
-        tree.delete(iid)
-        item_map.pop(iid, None)
-        app.update_views()
 
-    def rename_fmea():
-        iid = tree.focus()
-        doc = item_map.get(iid)
-        if not doc:
-            return
-        if toolbox and toolbox.document_read_only("FMEA", doc["name"]):
-            messagebox.showinfo("Read-only", "Re-used FMEAs cannot be renamed")
-            return
-        current = doc.get("name", "")
-        name = simpledialog.askstring(
-            "Rename FMEA", "Enter new name:", initialvalue=current
+def build_probability_frame(
+    app: object,
+    parent: tk.Misc,
+    title: str,
+    levels: range,
+    values: Dict[int, float],
+    row: int,
+    dialog_font: tkFont.Font,
+) -> Dict[int, tk.StringVar]:
+    """Create a labelled frame of probability entries."""
+
+    try:
+        frame = ttk.LabelFrame(parent, text=title, style="Toolbox.TLabelframe")
+    except TypeError:
+        frame = ttk.LabelFrame(parent, text=title)
+    frame.grid(row=row, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
+
+    vars_dict: Dict[int, tk.StringVar] = {}
+    for idx, lvl in enumerate(levels):
+        ttk.Label(frame, text=f"{lvl}:", font=dialog_font).grid(
+            row=0, column=idx * 2, padx=2, pady=2
         )
-        if not name:
-            return
-        old = doc["name"]
-        doc["name"] = name
-        if toolbox:
-            toolbox.rename_document("FMEA", old, name)
-        app.touch_doc(doc)
-        tree.item(
-            iid,
-            values=(
-                name,
-                doc["created"],
-                doc["author"],
-                doc["modified"],
-                doc["modified_by"],
-            ),
-        )
-        app.update_views()
-
-    tree.bind("<Double-1>", open_selected)
-    btn_frame = ttk.Frame(win)
-    btn_frame.pack(side=tk.RIGHT, fill=tk.Y)
-    ttk.Button(btn_frame, text="Open", command=open_selected).pack(fill=tk.X)
-    ttk.Button(btn_frame, text="Add", command=add_fmea).pack(fill=tk.X)
-    ttk.Button(btn_frame, text="Rename", command=rename_fmea).pack(fill=tk.X)
-    ttk.Button(btn_frame, text="Delete", command=delete_fmea).pack(fill=tk.X)
+        var = tk.StringVar(value=str(values.get(lvl, 0.0)))
+        ttk.Entry(
+            frame,
+            textvariable=var,
+            width=8,
+            font=dialog_font,
+            validate="key",
+            validatecommand=(parent.register(app.validate_float), "%P"),
+        ).grid(row=0, column=idx * 2 + 1, padx=2, pady=2)
+        vars_dict[lvl] = var
+    return vars_dict
 
 
-def get_fmea_settings_dict(service) -> dict:
-    """Return a serialisable representation of FMEA settings."""
+def assurance_level_text(app: object, level):
+    """Return assurance level description."""
 
-    return {}
-
-
-def create_fta_diagram(service) -> None:
-    """Initialize a new FTA diagram with a single top level event."""
-
-    app = service.app
-    app._create_fta_tab("FTA")
-    app.add_top_level_event()
-    if getattr(app, "fta_root_node", None):
-        app.window_controllers.open_page_diagram(app.fta_root_node)
+    return app.fta_app.assurance_level_text(level)
 
 
-def auto_generate_fta_diagram(fta_model, output_path):
-    """Delegate auto-generation of FTA diagrams."""
+def metric_to_text(app: object, metric_type, value):
+    """Return textual representation for metric."""
 
-    return FTASubApp.auto_generate_fta_diagram(fta_model, output_path)
-
-
-def enable_fta_actions(service, enabled: bool) -> None:
-    """Enable or disable FTA-related menu actions on the main app."""
-
-    app = service.app
-    if hasattr(app, "fta_menu"):
-        state = tk.NORMAL if enabled else tk.DISABLED
-        for key in (
-            "add_gate",
-            "add_basic_event",
-            "add_gate_from_failure_mode",
-            "add_fault_event",
-        ):
-            app.fta_menu.entryconfig(app._fta_menu_indices[key], state=state)
+    return app.fta_app.metric_to_text(app, metric_type, value)
 
 
-def show_cut_sets(service) -> None:
-    """Display minimal cut sets for all top level events."""
+def analyze_common_causes(app: object, node):
+    """Delegate common cause analysis to FTA app."""
 
-    app = service.app
-    top_events = getattr(app, "top_events", [])
-    if not top_events:
-        return
-    win = tk.Toplevel(app.root)
-    win.title("FTA Cut Sets")
-    columns = ("Top Event", "Cut Set #", "Basic Events")
-    tree = ttk.Treeview(win, columns=columns, show="headings")
-    for c in columns:
-        tree.heading(c, text=c)
-    tree.pack(fill=tk.BOTH, expand=True)
+    return app.fta_app.analyze_common_causes(app, node)
 
-    for te in top_events:
-        nodes_by_id = {}
 
-        def map_nodes(n):
-            nodes_by_id[n.unique_id] = n
-            for child in n.children:
-                map_nodes(child)
+def build_cause_effect_data(app: object) -> Dict[Tuple[str, str], Dict[str, object]]:
+    """Collect cause and effect chain information."""
 
-        map_nodes(te)
-        cut_sets = service.calculate_cut_sets(app, te)
-        te_label = te.user_name or f"Top Event {te.unique_id}"
-        for idx, cs in enumerate(cut_sets, start=1):
-            names = ", ".join(
-                f"{nodes_by_id[uid].user_name or nodes_by_id[uid].node_type} [{uid}]"
-                for uid in sorted(cs)
+    rows: Dict[Tuple[str, str], Dict[str, object]] = {}
+    for doc in getattr(app, "hara_docs", []):
+        for e in getattr(doc, "entries", []):
+            haz = getattr(e, "hazard", "").strip()
+            mal = getattr(e, "malfunction", "").strip()
+            if not haz or not mal:
+                continue
+            key = (haz, mal)
+            info = rows.setdefault(
+                key,
+                {
+                    "hazard": haz,
+                    "malfunction": mal,
+                    "fis": set(),
+                    "tcs": set(),
+                    "failure_modes": {},
+                    "faults": set(),
+                    "threats": {},
+                    "attack_paths": set(),
+                },
             )
-            tree.insert("", "end", values=(te_label, idx, names))
-            te_label = ""
+            info = rows[key]
+            cyber = getattr(e, "cyber", None)
+            if cyber:
+                threat = getattr(cyber, "threat_scenario", "").strip()
+                if threat:
+                    paths = [
+                        p.get("path", "").strip()
+                        for p in getattr(cyber, "attack_paths", [])
+                        if p.get("path", "").strip()
+                    ]
+                    info["threats"].setdefault(threat, set()).update(paths)
+                    info["attack_paths"].update(paths)
 
-    def export_csv():
-        path = filedialog.asksaveasfilename(
-            defaultextension=".csv", filetypes=[("CSV", "*.csv")]
-        )
-        if not path:
-            return
-        with open(path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Top Event", "Cut Set #", "Basic Events"])
-            for iid in tree.get_children():
-                writer.writerow(tree.item(iid, "values"))
+    for doc in getattr(app, "fi2tc_docs", []) + getattr(app, "tc2fi_docs", []):
+        for e in getattr(doc, "entries", []):
+            haz = e.get("vehicle_effect", "").strip()
+            if not haz:
+                continue
+            fis = [f.strip() for f in e.get("functional_insufficiencies", "").split(";") if f.strip()]
+            tcs = [t.strip() for t in e.get("triggering_conditions", "").split(";") if t.strip()]
+            for (hz, mal), info in rows.items():
+                if hz == haz:
+                    info["fis"].update(fis)
+                    info["tcs"].update(tcs)
 
-    ttk.Button(win, text="Export CSV", command=export_csv).pack(pady=5)
+    for be in app.get_all_basic_events():
+        mals = [m.strip() for m in getattr(be, "fmeda_malfunction", "").split(";") if m.strip()]
+        for (hz, mal), info in rows.items():
+            if mal in mals:
+                fm = app.get_failure_mode_node(be)
+                fm_name = fm.user_name or f"FM {fm.unique_id}"
+                info.setdefault("failure_modes", {}).setdefault(fm_name, set()).add(
+                    be.user_name or f"BE {be.unique_id}"
+                )
+                fault = getattr(be, "fault_ref", "").strip()
+                if fault:
+                    info.setdefault("faults", set()).add(fault)
+
+    return rows
+
+
+def build_cause_effect_graph(
+    row: Dict[str, object]
+) -> Tuple[Dict[str, Tuple[str, str]], List[Tuple[str, str]], Dict[str, Tuple[int, int]]]:
+    """Return nodes, edges and positions for a cause-and-effect diagram."""
+
+    nodes: Dict[str, Tuple[str, str]] = {}
+    edges: List[Tuple[str, str]] = []
+
+    haz_label = row["hazard"]
+    mal_label = row["malfunction"]
+    haz_id = f"haz:{haz_label}"
+    mal_id = f"mal:{mal_label}"
+    nodes[haz_id] = (haz_label, "hazard")
+    nodes[mal_id] = (mal_label, "malfunction")
+    edges.append((haz_id, mal_id))
+
+    for fm, faults in sorted(row.get("failure_modes", {}).items()):
+        fm_id = f"fm:{fm}"
+        nodes[fm_id] = (fm, "failure_mode")
+        edges.append((mal_id, fm_id))
+        for fault in sorted(faults):
+            fault_id = f"fault:{fault}"
+            nodes[fault_id] = (fault, "fault")
+            edges.append((fm_id, fault_id))
+    for fi in sorted(row.get("fis", [])):
+        fi_id = f"fi:{fi}"
+        nodes[fi_id] = (fi, "fi")
+        edges.append((haz_id, fi_id))
+    for tc in sorted(row.get("tcs", [])):
+        tc_id = f"tc:{tc}"
+        nodes[tc_id] = (tc, "tc")
+        edges.append((haz_id, tc_id))
+
+    for threat, paths in sorted(row.get("threats", {}).items()):
+        thr_id = f"thr:{threat}"
+        nodes[thr_id] = (threat, "threat")
+        edges.append((mal_id, thr_id))
+        for path in sorted(paths):
+            ap_id = f"ap:{path}"
+            nodes[ap_id] = (path, "attack_path")
+            edges.append((thr_id, ap_id))
+
+    pos = {haz_id: (0, 0), mal_id: (4, 0)}
+    y_fm = 0
+    for fm, faults in sorted(row.get("failure_modes", {}).items()):
+        fm_y = y_fm * 4
+        pos[f"fm:{fm}"] = (8, fm_y)
+        y_fault = fm_y
+        for fault in sorted(faults):
+            pos[f"fault:{fault}"] = (12, y_fault)
+            y_fault += 2
+        y_fm += 1
+    y_fi = -2
+    for fi in sorted(row.get("fis", [])):
+        pos[f"fi:{fi}"] = (2, y_fi)
+        y_fi -= 2
+    y_tc = y_fi
+    for tc in sorted(row.get("tcs", [])):
+        pos[f"tc:{tc}"] = (2, y_tc)
+        y_tc -= 2
+
+    for threat, paths in sorted(row.get("threats", {}).items()):
+        thr_y = 0
+        pos[f"thr:{threat}"] = (8, thr_y)
+        y_path = thr_y
+        for path in sorted(paths):
+            pos[f"ap:{path}"] = (12, y_path)
+            y_path += 2
+
+    used_nodes: set[str] = set()
+    for u, v in edges:
+        used_nodes.add(u)
+        used_nodes.add(v)
+    for key in list(nodes.keys()):
+        if key not in used_nodes:
+            nodes.pop(key, None)
+    for key in list(pos.keys()):
+        if key not in used_nodes:
+            pos.pop(key, None)
+
+    min_x = min(x for x, _ in pos.values())
+    min_y = min(y for _, y in pos.values())
+    if min_x < 0 or min_y < 0:
+        for key, (x, y) in list(pos.items()):
+            pos[key] = (x - min_x, y - min_y)
+
+    return nodes, edges, pos
+
+
+def render_cause_effect_diagram(row: Dict[str, object]):
+    """Render *row* as a PIL image matching the on-screen diagram."""
+
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception:  # pragma: no cover - optional dependency
+        return None
+    import textwrap
+
+    nodes, edges, pos = build_cause_effect_graph(row)
+    color_map = {
+        "hazard": "#F08080",
+        "malfunction": "#ADD8E6",
+        "failure_mode": "#FFA500",
+        "fault": "#D3D3D3",
+        "fi": "#FFFFE0",
+        "tc": "#E6E6FA",
+        "threat": "#FFC0CB",
+        "attack_path": "#FFFACD",
+    }
+
+    width = (max(x for x, _ in pos.values()) + 1) * 200
+    height = (max(y for _, y in pos.values()) + 1) * 100
+    img = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.load_default()
+
+    for u, v in edges:
+        x1, y1 = pos[u]
+        x2, y2 = pos[v]
+        draw.line((x1 * 200 + 100, y1 * 100 + 50, x2 * 200 + 100, y2 * 100 + 50), fill="black")
+
+    for key, (label, typ) in nodes.items():
+        x, y = pos[key]
+        cx, cy = x * 200 + 100, y * 100 + 50
+        r = 40
+        fill = color_map.get(typ, "#FFFFFF")
+        draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill=fill, outline="black")
+        text = textwrap.fill(str(label), 20)
+        bbox = draw.multiline_textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        draw.multiline_text((cx - tw / 2, cy - th / 2), text, font=font, align="center")
+
+    return img
+
+
+def sync_cyber_risk_to_goals(app: object):
+    """Synchronise cyber risk to goals via risk application."""
+
+    return app.risk_app.sync_cyber_risk_to_goals(app)
