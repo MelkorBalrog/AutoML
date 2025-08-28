@@ -178,6 +178,10 @@ class ClosableNotebook(ttk.Notebook):
         """Destroy every floating window detached from this notebook."""
         for win in list(self._floating_windows):
             try:
+                self._cancel_after_events(win)
+            except Exception:
+                pass
+            try:
                 win.destroy()
             except Exception:
                 pass
@@ -827,6 +831,26 @@ class ClosableNotebook(ttk.Notebook):
                         widget.after_cancel(ident)
                     except Exception:
                         pass
+            try:
+                root_ids = widget._root().tk.call("after", "info")
+            except Exception:
+                root_ids = []
+            if isinstance(root_ids, str):
+                root_ids = [root_ids]
+            for ident in root_ids:
+                if ident in cancelled:
+                    continue
+                try:
+                    cmd = widget._root().tk.call("after", "info", ident)
+                except Exception:
+                    cmd = ""
+                if tcl_name in cmd:
+                    try:
+                        widget._root().after_cancel(ident)
+                    except Exception:
+                        pass
+                    else:
+                        cancelled.add(ident)
             if getattr(tkapp, "_tclCommands", None):
                 for cmd in tcl_cmds:
                     try:
@@ -919,12 +943,15 @@ class ClosableNotebook(ttk.Notebook):
         win.transient(root_win)
         win.geometry(f"{width}x{height}+{x}+{y}")
         self._floating_windows.append(win)
-        win.bind(
-            "<Destroy>",
-            lambda _e, w=win: self._floating_windows.remove(w)
-            if w in self._floating_windows
-            else None,
-        )
+        def _on_destroy(_e, w=win) -> None:
+            try:
+                self._cancel_after_events(w)
+            except Exception:
+                pass
+            if w in self._floating_windows:
+                self._floating_windows.remove(w)
+
+        win.bind("<Destroy>", _on_destroy)
         nb = ClosableNotebook(win)
         nb.pack(expand=True, fill="both")
         try:
@@ -1112,6 +1139,10 @@ class ClosableNotebook(ttk.Notebook):
                     continue
                 names = expected.get(parent, set())
                 if child.winfo_name() in names:
+                    try:
+                        self._cancel_after_events(child)
+                    except Exception:
+                        pass
                     try:
                         child.destroy()
                     except Exception:

@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.170 - Raise cloned widgets before originals are destroyed to avoid
+- 0.2.170 - Cancel root-scheduled ``after`` callbacks referencing widget paths
+          and invoke `_cancel_after_events` when detaching or closing floating
+          windows. Add regression tests to ensure animated widgets raise no
+          ``TclError`` or ``AttributeError`` after detachment and closure.
+          - Raise cloned widgets before originals are destroyed to avoid
           `TclError` and preserve visibility when detaching tabs.
           - Accept original and clone roots in `_raise_widgets` and traverse a
             cached child list while the original still exists.
