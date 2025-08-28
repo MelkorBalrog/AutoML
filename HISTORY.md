@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.195 - Cancel Tk ``after`` callbacks using direct Tcl calls to avoid
+- 0.2.195 - Introduce generic DLL bridge calling Python services.
+          - Expose automl_core functions through a dynamic library and add regression tests invoking standard library functions via the bridge.
+          - Cancel Tk ``after`` callbacks using direct Tcl calls to avoid
           AttributeError during root destruction and copy widget images with
           preserved dimensions to prevent duplicated button icons when detaching
           tabs.
