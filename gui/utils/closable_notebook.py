@@ -74,9 +74,23 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             if ident and ident not in cancelled:
                 _cancel_ident(ident)
 
+        try:
+            all_ids = tkapp.call("after", "info")
+        except Exception:
+            all_ids = ()
+        if isinstance(all_ids, str):
+            all_ids = (all_ids,)
+        for ident in all_ids:
+            if (
+                isinstance(ident, str)
+                and ident.startswith(str(widget))
+                and ident not in cancelled
+            ):
+                _cancel_ident(ident)
+
     try:
         for name in dir(widget):
-            if name.endswith(("_anim", "_after", "_timer")):
+            if name.endswith(("_anim", "_after", "_timer", "_animate")):
                 ident = getattr(widget, name, None)
                 if isinstance(ident, str) and ident not in cancelled:
                     _cancel_ident(ident)

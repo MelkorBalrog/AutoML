@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.191 - Cancel root-level Tk ``after`` callbacks tied to widget paths and
+          track identifiers stored in ``_animate`` attributes.
+          - Add grouped regression tests ensuring tab detachment and closure
+            leave no "invalid command name" messages.
 - 0.2.190 - Run crash logger and model loader maintenance in background threads.
           - Add grouped tests covering threaded services.
 - 0.2.189 - Cache JSON configuration loads and run memory cleanup in a
