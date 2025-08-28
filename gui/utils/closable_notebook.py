@@ -56,9 +56,10 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             root = widget._root()
         except Exception:
             root = None
-        if root is not None and getattr(root, "_tclCommands", None) is not None:
+        if root is not None and getattr(root, "_tclCommands", None):
             try:
-                root.deletecommand(ident)
+                if getattr(root, "_tclCommands", None):
+                    root.deletecommand(ident)
             except Exception:
                 pass
         cancelled.add(ident)
