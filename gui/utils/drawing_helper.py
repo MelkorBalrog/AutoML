@@ -16,25 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# Author: Miguel Marina <karel.capek.robotics@gmail.com>
 import math
 import tkinter as tk
 import tkinter.font as tkFont
+from typing import Any
 from gui.styles.style_manager import StyleManager
 
 TEXT_BOX_COLOR = "#CFD8DC"
 
-# Basic mapping of a few common color names to their hex equivalents. The
-# gradient routines expect ``#RRGGBB`` colors; previously passing a named color
-# such as ``"lightyellow"`` caused a ``ValueError`` when converting to integers.
-# The small table below covers the named colors used by the drawing helpers and
-# can be extended easily if additional names are required.
-_NAMED_COLORS = {
-    "lightgray": "#d3d3d3",
-    "lightgrey": "#d3d3d3",
-    "lightblue": "#add8e6",
-    "lightyellow": "#ffffe0",
-}
+# Tag used to attach diagram canvas event bindings that survive reparenting.
+DIAGRAM_CANVAS_TAG = "automl_diagram_canvas"
 
 # Basic mapping of a few common color names to their hex equivalents. The
 # gradient routines expect ``#RRGGBB`` colors; previously passing a named color
@@ -47,6 +38,26 @@ _NAMED_COLORS = {
     "lightblue": "#add8e6",
     "lightyellow": "#ffffe0",
 }
+
+
+def init_diagram_canvas(canvas: tk.Canvas, app: Any) -> None:
+    """Bind standard diagram events to *canvas* using a persistent tag."""
+    tags = list(canvas.bindtags())
+    if DIAGRAM_CANVAS_TAG not in tags:
+        tags.insert(1, DIAGRAM_CANVAS_TAG)
+        canvas.bindtags(tuple(tags))
+    bindings = {
+        "<ButtonPress-3>": app.on_right_mouse_press,
+        "<B3-Motion>": app.on_right_mouse_drag,
+        "<ButtonRelease-3>": app.on_right_mouse_release,
+        "<Button-1>": app.on_canvas_click,
+        "<B1-Motion>": app.on_canvas_drag,
+        "<ButtonRelease-1>": app.on_canvas_release,
+        "<Double-1>": app.on_canvas_double_click,
+        "<Control-MouseWheel>": app.on_ctrl_mousewheel,
+    }
+    for seq, func in bindings.items():
+        canvas.bind_class(DIAGRAM_CANVAS_TAG, seq, func)
 
 class FTADrawingHelper:
     """

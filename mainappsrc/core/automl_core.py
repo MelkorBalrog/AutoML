@@ -2306,16 +2306,12 @@ class AutoMLApp(
         hbar.pack(side=tk.BOTTOM, fill=tk.X)
         vbar = ttk.Scrollbar(canvas_tab, orient=tk.VERTICAL, command=canvas.yview)
         vbar.pack(side=tk.RIGHT, fill=tk.Y)
-        canvas.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set,
-                      scrollregion=(0, 0, 2000, 2000))
-        canvas.bind("<ButtonPress-3>", self.on_right_mouse_press)
-        canvas.bind("<B3-Motion>", self.on_right_mouse_drag)
-        canvas.bind("<ButtonRelease-3>", self.on_right_mouse_release)
-        canvas.bind("<Button-1>", self.on_canvas_click)
-        canvas.bind("<B1-Motion>", self.on_canvas_drag)
-        canvas.bind("<ButtonRelease-1>", self.on_canvas_release)
-        canvas.bind("<Double-1>", self.on_canvas_double_click)
-        canvas.bind("<Control-MouseWheel>", self.on_ctrl_mousewheel)
+        canvas.config(
+            xscrollcommand=hbar.set,
+            yscrollcommand=vbar.set,
+            scrollregion=(0, 0, 2000, 2000),
+        )
+        self.drawing_manager.initialize_canvas(canvas)
 
         canvas.diagram_mode = diagram_mode
         self.analysis_tabs[diagram_mode] = {
