@@ -1021,12 +1021,27 @@ class ClosableNotebook(ttk.Notebook):
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
                 self._reassign_widget_references(mapping)
-                self._raise_widgets(orig, new_widget, mapping)
+                toolbox_canvas_orig = getattr(orig, "toolbox_canvas", None)
+                toolbox_canvas_clone = mapping.get(toolbox_canvas_orig) if mapping else None
+                toolbox_orig = getattr(orig, "toolbox", None)
+                toolbox_clone = mapping.get(toolbox_orig) if mapping else None
+                if isinstance(toolbox_clone, tk.Widget):
+                    try:
+                        toolbox_clone.pack(side="left")
+                    except Exception:
+                        pass
+                roots = {}
+                if (
+                    isinstance(toolbox_canvas_orig, tk.Widget)
+                    and isinstance(toolbox_canvas_clone, tk.Widget)
+                ):
+                    roots[toolbox_canvas_orig] = toolbox_canvas_clone
+                self._raise_widgets(orig, new_widget, mapping, roots)
                 self._cancel_after_events(orig, cancelled)
                 orig.destroy()
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
-                for name in ("_rebuild_toolboxes", "_fit_toolbox"):
+                for name in ("_rebuild_toolboxes", "_activate_parent_phase"):
                     func = getattr(new_widget, name, None)
                     if callable(func):
                         try:
