@@ -124,6 +124,11 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
 # constructor signature cannot be introspected (e.g. CapsuleButton subclasses)
 _KNOWN_TEXT_WIDGETS = {"CapsuleButton"}
 
+# Canvas subclasses that redraw themselves during ``__init__``.
+# Copying their canvas items would duplicate content, so cloning should rely on
+# their own drawing logic instead of ``_copy_canvas_items``.
+_SELF_DRAWING_CANVASES = {"CapsuleButton"}
+
 class ClosableNotebook(ttk.Notebook):
     """Notebook widget with an 'x' button on the left side of each tab."""
 
@@ -594,24 +599,25 @@ class ClosableNotebook(ttk.Notebook):
             clone = clone_cls(parent, **kwargs)
             mapping[widget] = clone
             self._copy_widget_config(widget, clone)
-            try:
-                widget.tk.call("tk::canvas", "copy", widget._w, clone._w)
-            except Exception:
-                mapping, layouts = self._copy_canvas_items(
-                    widget,
-                    clone,
-                    widget.find_all(),
-                    mapping,
-                    layouts,
-                    cancelled,
-                )
-            for child in self._ordered_children(widget):
-                if child in mapping:
-                    continue
-                child_clone, mapping, layouts = self._clone_widget(
-                    child, clone, mapping, layouts, cancelled
-                )
-                mapping[child] = child_clone
+            if clone_cls.__name__ not in _SELF_DRAWING_CANVASES:
+                try:
+                    widget.tk.call("tk::canvas", "copy", widget._w, clone._w)
+                except Exception:
+                    mapping, layouts = self._copy_canvas_items(
+                        widget,
+                        clone,
+                        widget.find_all(),
+                        mapping,
+                        layouts,
+                        cancelled,
+                    )
+                for child in self._ordered_children(widget):
+                    if child in mapping:
+                        continue
+                    child_clone, mapping, layouts = self._clone_widget(
+                        child, clone, mapping, layouts, cancelled
+                    )
+                    mapping[child] = child_clone
             self._copy_widget_state(widget, clone)
             self._copy_widget_layout(widget, clone, mapping, layouts)
             try:
@@ -715,6 +721,7 @@ class ClosableNotebook(ttk.Notebook):
             coords = widget.coords(item)
             item_type = widget.type(item)
             opts = widget.itemconfig(item)
+            tags = widget.gettags(item)
             if item_type == "window":
                 path = widget.itemcget(item, "window")
                 try:
@@ -731,7 +738,9 @@ class ClosableNotebook(ttk.Notebook):
                     if isinstance(v, tuple) and len(v) >= 5
                 }
                 cfg.pop("window", None)
-                clone.create_window(*coords, window=child_clone, **cfg)
+                new_item = clone.create_window(
+                    *coords, window=child_clone, **cfg
+                )
             else:
                 creator = getattr(clone, f"create_{item_type}")
                 new_item = creator(*coords)
@@ -740,6 +749,14 @@ class ClosableNotebook(ttk.Notebook):
                         clone.itemconfig(new_item, {key: val[4]})
                     elif isinstance(val, str):
                         clone.itemconfig(new_item, {key: val})
+            for tag in tags:
+                sequences = widget.tag_bind(tag)
+                if not sequences:
+                    continue
+                for seq in widget.tk.splitlist(sequences):
+                    cmd = widget.tag_bind(tag, seq)
+                    if cmd:
+                        clone.tag_bind(tag, seq, cmd)
         return mapping, layouts
 
     def _collect_required_kwargs(self, widget: tk.Widget, cls: type) -> dict[str, t.Any]:
