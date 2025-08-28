@@ -27,13 +27,12 @@ from gui.utils.closable_notebook import ClosableNotebook
 
 
 @pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
-def test_cancel_after_events_cancels_animate(monkeypatch):
+def test_cancel_after_events_cancels_widget_after():
     root = tk.Tk()
     root.withdraw()
     btn = tk.Button(root)
-    # Schedule a bogus Tcl command ending with ``_animate`` to mirror real-world animations
-    ident = btn.tk.call("after", "1000000", "12345_animate")
+    ident = btn.after(1000000, lambda: None)
     nb = ClosableNotebook(root)
     nb._cancel_after_events(btn)
-    assert ident not in btn.tk.call("after", "info")
+    assert ident not in btn.tk.call("after", "info", str(btn))
     root.destroy()
