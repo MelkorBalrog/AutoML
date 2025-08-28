@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.185 - Guard ``cancel_after_events`` against destroyed roots and silence
+          errors when closing detached windows.
+          - Add grouped regression tests ensuring no "invalid command name" or
+            ``AttributeError`` logs after detaching or destroying roots.
 - 0.2.184 - Create dedicated ``PhotoImage`` copies when detaching tabs to avoid
           shared Tk handles on reattached widgets.
           - Add regression test verifying toolbar button images keep size after

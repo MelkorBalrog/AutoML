@@ -43,8 +43,27 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
     if cancelled is None:
         cancelled = set()
 
+    def _cancel_ident(ident: str) -> None:
+        tkapp_local = getattr(widget, "tk", None)
+        if tkapp_local is None:
+            return
+        try:
+            widget.after_cancel(ident)
+        except Exception:
+            return
+        try:
+            root = widget._root()
+        except Exception:
+            root = None
+        if root is not None and getattr(root, "_tclCommands", None) is not None:
+            try:
+                root.deletecommand(ident)
+            except Exception:
+                pass
+        cancelled.add(ident)
+
     tkapp = getattr(widget, "tk", None)
-    if tkapp is not None:
+    if tkapp is not None and getattr(tkapp, "call", None) is not None:
         try:
             widget_ids = tkapp.call("after", "info", str(widget))
         except Exception:
@@ -53,24 +72,14 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             widget_ids = (widget_ids,)
         for ident in widget_ids:
             if ident and ident not in cancelled:
-                try:
-                    widget.after_cancel(ident)
-                except Exception:
-                    pass
-                else:
-                    cancelled.add(ident)
+                _cancel_ident(ident)
 
     try:
         for name in dir(widget):
             if name.endswith(("_anim", "_after", "_timer")):
                 ident = getattr(widget, name, None)
                 if isinstance(ident, str) and ident not in cancelled:
-                    try:
-                        widget.after_cancel(ident)
-                    except Exception:
-                        pass
-                    else:
-                        cancelled.add(ident)
+                    _cancel_ident(ident)
     except Exception:
         pass
 
