@@ -19,7 +19,12 @@
 -->
 
 # Version History
-- 0.2.170 - Cancel root-scheduled ``after`` callbacks referencing widget paths
+- 0.2.170 - Record geometry manager and options before cloning widgets and
+          restore layouts for every descendant when detaching tabs.
+          Refine duplicate pruning to compare parent/child relationships and
+          add nested layout tests covering frames, labels, canvases and
+          treeviews.
+          - Cancel root-scheduled ``after`` callbacks referencing widget paths
           and invoke `_cancel_after_events` when detaching or closing floating
           windows. Add regression tests to ensure animated widgets raise no
           ``TclError`` or ``AttributeError`` after detachment and closure.

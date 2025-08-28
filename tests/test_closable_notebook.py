@@ -50,7 +50,7 @@ def test_update_canvas_window_items():
     lst.insert("end", "item")
     lst.pack()
     canvas.create_window(0, 0, window=frame, anchor="nw")
-    clone, mapping = nb._clone_widget(canvas, nb)
+    clone, mapping, layouts = nb._clone_widget(canvas, nb)
     nb._update_canvas_window_items(mapping)
     item = clone.find_all()[0]
     win_path = clone.itemcget(item, "window")
