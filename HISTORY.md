@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.178 - Raise cloned widgets before originals are destroyed to preserve
+- 0.2.178 - Cancel CapsuleButton ``after`` callbacks before detaching tabs and
+          ensure no scheduled callbacks fire after detachment. Add grouped
+          tests for after-event cancellation.
+          - Raise cloned widgets before originals are destroyed to preserve
           stacking order during detachment.
           - Add regression tests verifying frames, canvases, and toolboxes
             remain visible after detachment.
