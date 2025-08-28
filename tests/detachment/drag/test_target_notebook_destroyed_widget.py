@@ -58,3 +58,33 @@ class TestTargetNotebookDestroyedWidget:
 
         assert nb._floating_windows
         root.destroy()
+
+    def test_release_over_destroyed_widget_tclerror(self) -> None:
+        """Simulate ``TclError`` from ``winfo_containing`` during release."""
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = tk.Frame(nb)
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event()
+        press.x = press.y = 0
+        nb._on_tab_press(press)
+        nb._dragging = True
+
+        def explode(_x: int, _y: int) -> tk.Widget:  # type: ignore[override]
+            raise tk.TclError("widget destroyed")
+
+        nb.winfo_containing = explode  # type: ignore[assignment]
+
+        release = Event()
+        release.x_root = release.y_root = 0
+        nb._on_tab_release(release)
+
+        assert nb._floating_windows
+        root.destroy()

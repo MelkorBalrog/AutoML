@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.174 - Guard drag target resolution against ``TclError`` or ``KeyError``
+          and detach tabs safely when widgets vanish.
+          - Update ``_finalize_drag`` to gracefully handle missing targets.
+          - Add regression tests simulating release over destroyed widgets that
+          raise ``TclError``.
 - 0.2.173 - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
           ``safety_analysis_service`` methods.
           - Prevent duplicate Safety Management Explorer instances and prune
