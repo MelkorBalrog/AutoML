@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.196 - Preserve hover bindings when cloning widgets.
+- 0.2.196 - Rebind toolbar button callbacks to cloned widgets during detachment.
+          - Add integration test ensuring detached toolbar buttons trigger container methods.
+          - Preserve hover bindings when cloning widgets.
           - Replicate `<Enter>`/`<Leave>` events and `bindtags` during widget
             cloning so hover state resets correctly.
           - Add grouped regression tests verifying standard Button hover state

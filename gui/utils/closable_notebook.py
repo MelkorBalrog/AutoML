@@ -32,6 +32,7 @@ import logging
 import typing as t
 import tkinter as tk
 import weakref
+import functools
 from tkinter import ttk
 
 logger = logging.getLogger(__name__)
@@ -624,7 +625,8 @@ class ClosableNotebook(ttk.Notebook):
         except Exception as exc:  # pragma: no cover - log and continue
             logger.exception("Failed to copy config for %s: %s", widget, exc)
         self._copy_widget_state(widget, clone)
-        self._copy_widget_bindings(widget, clone)
+        if isinstance(widget, (tk.Button, ttk.Button)):
+            self._rebind_button_command(widget, clone, mapping)
         for child in self._ordered_children(widget):
             try:
                 child_clone, mapping, layouts = self._clone_widget(
@@ -657,6 +659,55 @@ class ClosableNotebook(ttk.Notebook):
             pass
 
         return clone, mapping, layouts
+
+
+    def _rebind_button_command(
+        self,
+        widget: tk.Widget,
+        clone: tk.Widget,
+        mapping: dict[tk.Widget, tk.Widget],
+    ) -> None:
+        """Rebind button commands to cloned widgets or containers."""
+
+        try:
+            cmd = clone.cget("command")
+        except Exception:
+            return
+        if not cmd:
+            return
+        target = getattr(cmd, "__self__", None)
+        if target is widget:
+            try:
+                clone.configure(command=getattr(clone, cmd.__name__))
+            except Exception:
+                return
+            return
+        if target in mapping:
+            try:
+                clone.configure(command=getattr(mapping[target], cmd.__name__))
+            except Exception:
+                return
+            return
+        if isinstance(cmd, functools.partial):
+            args = list(cmd.args)
+            kwargs = dict(cmd.keywords or {})
+            replaced = False
+            for i, arg in enumerate(args):
+                if arg is widget:
+                    args[i] = clone
+                    replaced = True
+                elif arg in mapping:
+                    args[i] = mapping[arg]
+                    replaced = True
+            for key, val in list(kwargs.items()):
+                if val is widget:
+                    kwargs[key] = clone
+                    replaced = True
+                elif val in mapping:
+                    kwargs[key] = mapping[val]
+                    replaced = True
+            if replaced:
+                clone.configure(command=functools.partial(cmd.func, *args, **kwargs))
 
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
