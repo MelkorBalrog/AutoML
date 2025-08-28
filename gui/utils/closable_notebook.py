@@ -821,20 +821,26 @@ class ClosableNotebook(ttk.Notebook):
     def _copy_widget_config(self, widget: tk.Widget, clone: tk.Widget) -> None:
         try:
             config = widget.configure()
+            if config is None:
+                try:
+                    config = tk.Widget.configure(widget)
+                except Exception:
+                    config = {}
         except Exception:
-            return
+            config = {}
 
-        # Preserve standard options while handling image attributes separately
-        for opt in config:
-            if opt == "image":
-                continue
-            try:
-                clone.configure({opt: widget.cget(opt)})
-            except tk.TclError:
-                continue
+        if config:
+            # Preserve standard options while handling image attributes separately
+            for opt in config:
+                if opt == "image":
+                    continue
+                try:
+                    clone.configure({opt: widget.cget(opt)})
+                except tk.TclError:
+                    continue
 
         # Widgets using images should receive a unique copy of the PhotoImage
-        if "image" in config or "compound" in config:
+        if config and ("image" in config or "compound" in config):
             try:
                 img_name = widget.cget("image")
             except Exception:
