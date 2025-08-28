@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.169 - Traverse clone mappings when lifting widgets and raise clones
+          before pruning duplicates to preserve visibility of overlapping
+          widgets after detachment.
 - 0.2.168 - Accumulate children from all geometry managers so every widget
           in a tab transfers to the detached window.
 - 0.2.167 - Clone children managed by grid/place so all tab contents appear in
