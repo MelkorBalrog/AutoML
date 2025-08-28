@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.173 - Rebuild toolboxes and activate parent phase when detaching tabs
+          and ensure detached diagram toolboxes pack left before canvases so
+          buttons remain visible. Add grouped toolbox detachment tests
+          confirming selector visibility and Select tool persistence.
 - 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
           ``safety_analysis_service`` and remove legacy
           ``core.safety_analysis`` module.
