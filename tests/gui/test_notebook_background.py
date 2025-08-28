@@ -43,3 +43,18 @@ def test_background_visible_without_tabs():
     root.update_idletasks()
     assert nb._bg_canvas.winfo_ismapped()
     root.destroy()
+
+
+@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+def test_notebook_initializes_and_resizes_without_attribute_error():
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        nb = ClosableNotebook(root)
+        nb.configure(width=200, height=200)
+        root.update_idletasks()
+        nb.event_generate("<Configure>")
+    except AttributeError as exc:  # pragma: no cover - explicit assertion
+        pytest.fail(f"Unexpected AttributeError: {exc}")
+    finally:
+        root.destroy()
