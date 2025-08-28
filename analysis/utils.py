@@ -1795,4 +1795,3 @@ class SafetyAnalysis_FTA_FMEA(FMEAService):
         for child in node.children:
             reqs.extend(self.collect_requirements_recursive(child))
         return reqs
-

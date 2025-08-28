@@ -19,7 +19,6 @@
 """Service facade for safety analysis helpers."""
 
 from __future__ import annotations
-
 import tkinter as tk
 from tkinter import font as tkFont
 from typing import Iterable
@@ -40,7 +39,6 @@ class FMEAService:
 
     def __getattr__(self, name: str):
         return getattr(self._impl, name)
-
 
 class SafetyAnalysis_FTA_FMEA:
     """Thin wrapper around :class:`analysis.utils.SafetyAnalysis_FTA_FMEA`."""
