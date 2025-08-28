@@ -543,7 +543,10 @@ class ClosableNotebook(ttk.Notebook):
             except Exception as exc:
                 logger.exception("Failed to clone child %s: %s", child, exc)
                 raise
-            mapping.setdefault(child, child_clone)
+            if child_clone is None:
+                logger.error("Failed to clone descendant %s", child)
+                raise RuntimeError(f"Failed to clone descendant {child}")
+            mapping[child] = child_clone
         return clone, mapping, layouts
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
@@ -1254,7 +1257,11 @@ class ClosableNotebook(ttk.Notebook):
                 expected.setdefault(parent_clone, set()).add(clone.winfo_name())
 
         def prune(parent: tk.Widget) -> None:
+            if not parent.winfo_exists():
+                return
             for child in list(parent.winfo_children()):
+                if not child.winfo_exists():
+                    continue
                 prune(child)
                 if child in keep:
                     continue

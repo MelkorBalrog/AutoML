@@ -19,7 +19,13 @@
 -->
 
 # Version History
-- 0.2.171 - Rebuild or fit diagram toolboxes on detached clones, lifting
+- 0.2.171 - Compute expected child relationships from clone mapping before duplicate
+          pruning and avoid `winfo_children` calls on destroyed widgets.
+          - Ensure `_clone_widget` registers every descendant in the mapping and
+            raise when cloning fails so pruning has complete information.
+          - Add grouped layout tests verifying buttons, canvases, toolboxes and
+            scrollbars appear exactly once after detachment.
+          - Rebuild or fit diagram toolboxes on detached clones, lifting
           toolbox canvases and buttons prior to destroying originals and
           adding regression tests to ensure detached toolboxes remain
           visible and functional.
