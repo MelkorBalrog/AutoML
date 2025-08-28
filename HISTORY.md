@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.180 - Ensure cloned tabs preserve widget layout and state for all
+          descendants. Added grouped tests verifying that labels, buttons,
+          tree views, canvases, and toolboxes retain identical data after
+          detachment.
 - 0.2.179 - Refresh diagram mapping before opening safety management diagrams and
           display an error when the diagram is missing. Add double-click tests
           verifying architecture windows open for existing diagrams.

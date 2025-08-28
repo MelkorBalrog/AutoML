@@ -511,7 +511,6 @@ class ClosableNotebook(ttk.Notebook):
             clone = tk.Canvas(parent, **kwargs)
             mapping[widget] = clone
             self._copy_widget_config(widget, clone)
-            self._copy_widget_state(widget, clone)
             try:
                 widget.tk.call("tk::canvas", "copy", widget._w, clone._w)
             except Exception:
@@ -530,6 +529,8 @@ class ClosableNotebook(ttk.Notebook):
                     child, clone, mapping, layouts, cancelled
                 )
                 mapping[child] = child_clone
+            self._copy_widget_state(widget, clone)
+            self._copy_widget_layout(widget, clone, mapping, layouts)
             try:
                 self._cancel_after_events(widget)
             except Exception:
@@ -561,6 +562,7 @@ class ClosableNotebook(ttk.Notebook):
                 logger.error("Failed to clone descendant %s", child)
                 raise RuntimeError(f"Failed to clone descendant {child}")
             mapping[child] = child_clone
+        self._copy_widget_layout(widget, clone, mapping, layouts)
 
         try:  # Invoke toolbox rebuilds on governance diagram clones
             from gui.windows.architecture import GovernanceDiagramWindow
@@ -698,12 +700,6 @@ class ClosableNotebook(ttk.Notebook):
                 for iid in widget.get_children(""):
                     self._copy_tree_item(widget, clone, iid, "")
             elif isinstance(widget, tk.Canvas):
-                for item in widget.find_all():
-                    kind = widget.type(item)
-                    coords = widget.coords(item)
-                    config = {k: v[-1] for k, v in widget.itemconfig(item).items()}
-                    creator = getattr(clone, f"create_{kind}")
-                    creator(*coords, **config)
                 try:
                     clone.configure(scrollregion=widget.cget("scrollregion"))
                 except Exception:
