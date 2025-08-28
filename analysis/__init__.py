@@ -20,7 +20,6 @@
 
 from .sotif_validation import acceptance_rate, hazardous_behavior_rate, validation_time
 from .confusion_matrix import compute_metrics, compute_metrics_from_target
-from .safety_case import SafetyCase, SafetyCaseLibrary
 from .causal_bayesian_network import CausalBayesianNetwork, CausalBayesianNetworkDoc
 
 __all__ = [
@@ -30,9 +29,6 @@ __all__ = [
     "compute_metrics",
     "CausalBayesianNetwork",
     "CausalBayesianNetworkDoc",
-    "SafetyCase",
-    "SafetyCaseLibrary",
-    "SafetyManagementToolbox",
 ]
 
 
@@ -41,4 +37,8 @@ def __getattr__(name):
         from .safety_management import SafetyManagementToolbox as _SMT
 
         return _SMT
+    if name in {"SafetyCase", "SafetyCaseLibrary"}:
+        from .safety_case import SafetyCase, SafetyCaseLibrary
+
+        return {"SafetyCase": SafetyCase, "SafetyCaseLibrary": SafetyCaseLibrary}[name]
     raise AttributeError(name)
