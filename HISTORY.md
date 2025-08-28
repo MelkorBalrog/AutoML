@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.171 - Consolidate FMEA helpers into ``safety_analysis_service`` for
+          unified safety analysis management and remove ``fmea_service``
+          module.
 - 0.2.170 - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets
           vanish.  Add regression test simulating release over a destroyed
