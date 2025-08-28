@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.178 - Raise cloned widgets before originals are destroyed to preserve
+          stacking order during detachment.
+          - Add regression tests verifying frames, canvases, and toolboxes
+            remain visible after detachment.
 - 0.2.177 - Pack requirements editor frame so requirement list displays with columns.
           - Safeguard splash launcher against missing version metadata when
            executing bundled binaries.
