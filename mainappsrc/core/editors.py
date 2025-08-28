@@ -183,6 +183,7 @@ class Editors:
         hsb.grid(row=1, column=0, sticky="ew")
         tree_frame.grid_rowconfigure(0, weight=1)
         tree_frame.grid_columnconfigure(0, weight=1)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         def _get_requirement_allocations(rid: str) -> list[str]:
             repo = SysMLRepository.get_instance()
