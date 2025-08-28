@@ -19,6 +19,15 @@
 -->
 
 # Version History
+- 0.2.179 - Cancel root-level Tk ``after`` callbacks referencing widget paths and
+          invoke cancellation for all widgets before destruction during tab
+          detachment.
+          - Iterate over ``after info`` results to remove callbacks tied to a
+          widget's Tcl name.
+          - Call the improved cleanup routine prior to destroying widgets when
+          snapping out tabs.
+          - Add grouped regression tests ensuring no ``invalid command name``
+          errors after detaching animated buttons.
 - 0.2.178 - Reparent governance diagram canvases during tab detachment and
           rebuild toolboxes so detached windows display canvases and toolboxes
           correctly.
