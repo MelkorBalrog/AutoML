@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# Author: Miguel Marina <karel.capek.robotics@gmail.com>
 """Utility helpers for analysis package."""
 
 from typing import Iterable, List, Dict, Tuple
@@ -31,6 +30,10 @@ try:  # pragma: no cover - fallback for script context
     from AutoML.config.automl_constants import PMHF_TARGETS
 except Exception:  # pragma: no cover - fallback for script context
     from config.automl_constants import PMHF_TARGETS
+
+from analysis.user_config import CURRENT_USER_NAME
+from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
+from mainappsrc.subapps.fta_subapp import FTASubApp
 
 
 # Mapping tables from risk assessment ratings to probabilities.
@@ -602,4 +605,3 @@ def sync_cyber_risk_to_goals(app: object):
     """Synchronise cyber risk to goals via risk application."""
 
     return app.risk_app.sync_cyber_risk_to_goals(app)
-
