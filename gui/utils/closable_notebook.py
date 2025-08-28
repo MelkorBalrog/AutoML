@@ -1603,7 +1603,34 @@ class ClosableNotebook(ttk.Notebook):
         mapping: dict[tk.Widget, tk.Widget],
     ) -> None:
         """Remove widgets that duplicate originals based on parent/child relationships."""
+
         keep: set[tk.Widget] = {win, nb} | set(mapping.values())
+
+        def _gather_toolbars(widget: tk.Widget) -> set[tk.Widget]:
+            frames: set[tk.Widget] = set()
+            stack = [widget]
+            while stack:
+                w = stack.pop()
+                try:
+                    stack.extend(w.winfo_children())
+                except Exception:
+                    continue
+                toolbar = self._find_toolbar_frame(w)
+                if toolbar is not None:
+                    frames.add(toolbar)
+            return frames
+
+        for toolbar in _gather_toolbars(win):
+            if toolbar not in mapping.values():
+                try:
+                    self._cancel_after_events(toolbar)
+                except Exception:
+                    pass
+                try:
+                    toolbar.destroy()
+                except Exception:
+                    pass
+
         expected, reparented = self._collect_expected_children(mapping)
         self._prune_widget_tree(win, keep, expected, reparented)
 
