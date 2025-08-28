@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.171 - Cancel root-level ``after`` callbacks referencing widget paths by
+- 0.2.171 - Guard ``nametowidget`` lookups in Treeview hover handlers so
+          detached tabs emit no ``KeyError`` or ``TclError`` when moving the
+          cursor across tree items.  Add regression test covering detached
+          hover behaviour.
+          - Cancel root-level ``after`` callbacks referencing widget paths by
           parsing ``after info`` output. Invoke ``_cancel_after_events`` for
           every cloned or destroyed widget during tab detachment and when
           closing floating windows. Add regression test verifying no
