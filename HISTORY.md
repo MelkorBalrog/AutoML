@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.181 - Clone canvas window items recursively so detached tabs preserve
+          embedded widget layouts and content.
+          - Instantiate canvases using their original subclass to avoid
+            option mismatches.
+          - Copy canvas items through a dedicated helper that recreates
+            ``window`` entries with cloned widgets.
 - 0.2.180 - Ensure cloned tabs preserve widget layout and state for all
           descendants. Added grouped tests verifying that labels, buttons,
           tree views, canvases, and toolboxes retain identical data after
