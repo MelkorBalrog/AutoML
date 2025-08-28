@@ -1089,12 +1089,18 @@ class ClosableNotebook(ttk.Notebook):
             win.destroy()
             raise
 
-    def _rewrite_config_options(
+    def rewrite_option_references(
         self, mapping: dict[tk.Widget, tk.Widget]
     ) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
 
-        ref_opts = {"command", "yscrollcommand", "xscrollcommand", "textvariable", "variable"}
+        ref_opts = {
+            "command",
+            "yscrollcommand",
+            "xscrollcommand",
+            "textvariable",
+            "variable",
+        }
         name_map = {str(o): str(c) for o, c in mapping.items()}
         for _orig, clone in mapping.items():
             try:
@@ -1118,6 +1124,11 @@ class ClosableNotebook(ttk.Notebook):
                             clone.configure({opt: value.replace(src_name, dst_name)})
                         except Exception:
                             pass
+
+    def rebind_scrollbars(
+        self, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
+        """Rebind cloned scrollbars to their cloned targets."""
 
         for _orig, clone in mapping.items():
             if not isinstance(clone, tk.Scrollbar):
@@ -1157,7 +1168,7 @@ class ClosableNotebook(ttk.Notebook):
             except Exception:
                 continue
 
-    def _update_canvas_window_items(
+    def update_canvas_windows(
         self, mapping: dict[tk.Widget, tk.Widget]
     ) -> None:
         """Update canvas window items to point at cloned windows."""
@@ -1183,8 +1194,9 @@ class ClosableNotebook(ttk.Notebook):
     ) -> None:
         """Rewrite internal widget references after cloning."""
 
-        self._rewrite_config_options(mapping)
-        self._update_canvas_window_items(mapping)
+        self.rewrite_option_references(mapping)
+        self.update_canvas_windows(mapping)
+        self.rebind_scrollbars(mapping)
 
     def _reassign_container_attributes(
         self, mapping: dict[tk.Widget, tk.Widget]
