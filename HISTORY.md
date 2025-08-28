@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.201 - Factor tab detachment into `_create_floating_window`,
+           `_clone_tab_contents`, and `_post_clone_cleanup` helpers.
+           Split `_remove_duplicate_widgets` into traversal and pruning
+           utilities to lower cyclomatic complexity.
 - 0.2.200 - Group toolbar and callback detachment tests for duplicate removal,
            hover reset, click functionality and after-event cleanup.
 - 0.2.199 - Check root Tcl commands before deletion when cancelling callbacks and add regression test for destroying animated tabs.

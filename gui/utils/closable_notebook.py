@@ -1348,22 +1348,41 @@ class ClosableNotebook(ttk.Notebook):
                 except Exception:
                     pass
 
+    def _create_floating_window(
+        self, width: int, height: int, x: int, y: int
+    ) -> tuple[tk.Toplevel, ttk.Notebook]:
+        """Create and return a detached window and notebook."""
+
+        return self._create_detached_window(width, height, x, y)
+
+    def _clone_tab_contents(
+        self, tab_id: str, nb: "ClosableNotebook", text: str, win: tk.Toplevel
+    ) -> None:
+        """Clone *tab_id* into *nb* and handle toolbar setup."""
+
+        new_widget, mapping = self._clone_tab(tab_id, nb, text)
+        self._clone_toolbar(new_widget, mapping, win, nb)
+
+    def _post_clone_cleanup(self, nb: "ClosableNotebook") -> None:
+        """Finalize setup after moving a tab to *nb*."""
+
+        tab = nb.tabs()[-1]
+        child = nb.nametowidget(tab)
+        self._ensure_fills(child)
+        self._raise_widgets(child, child)
+        nb.select(tab)
+
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
         text = self.tab(tab_id, "text")
-        win, nb = self._create_detached_window(width, height, x, y)
+        win, nb = self._create_floating_window(width, height, x, y)
         try:
             if not self._move_tab(tab_id, nb):
-                new_widget, mapping = self._clone_tab(tab_id, nb, text)
-                self._clone_toolbar(new_widget, mapping, win, nb)
+                self._clone_tab_contents(tab_id, nb, text, win)
             else:
-                tab = nb.tabs()[-1]
-                child = nb.nametowidget(tab)
-                self._ensure_fills(child)
-                self._raise_widgets(child, child)
-                nb.select(tab)
+                self._post_clone_cleanup(nb)
         except Exception:
             win.destroy()
             raise
@@ -1599,6 +1618,43 @@ class ClosableNotebook(ttk.Notebook):
                 except Exception:
                     pass
 
+    def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
+        """Return a list of *widget* and all its descendants."""
+
+        stack = [widget]
+        result: list[tk.Widget] = []
+        while stack:
+            w = stack.pop()
+            result.append(w)
+            try:
+                stack.extend(w.winfo_children())
+            except Exception:
+                continue
+        return result
+
+    def _prune_duplicates(
+        self,
+        win: tk.Toplevel,
+        mapping: dict[tk.Widget, tk.Widget],
+        keep: set[tk.Widget],
+    ) -> None:
+        """Prune duplicate widgets under *win* using *mapping* and *keep* set."""
+
+        expected, reparented = self._collect_expected_children(mapping)
+        self._prune_widget_tree(win, keep, expected, reparented)
+
+    def _safe_destroy(self, widget: tk.Widget) -> None:
+        """Safely cancel callbacks and destroy *widget*."""
+
+        try:
+            self._cancel_after_events(widget)
+        except Exception:
+            pass
+        try:
+            widget.destroy()
+        except Exception:
+            pass
+
     def _remove_duplicate_widgets(
         self,
         win: tk.Toplevel,
@@ -1608,34 +1664,14 @@ class ClosableNotebook(ttk.Notebook):
         """Remove widgets that duplicate originals based on parent/child relationships."""
 
         keep: set[tk.Widget] = {win, nb} | set(mapping.values())
+        mapping_values = set(mapping.values())
 
-        def _gather_toolbars(widget: tk.Widget) -> set[tk.Widget]:
-            frames: set[tk.Widget] = set()
-            stack = [widget]
-            while stack:
-                w = stack.pop()
-                try:
-                    stack.extend(w.winfo_children())
-                except Exception:
-                    continue
-                toolbar = self._find_toolbar_frame(w)
-                if toolbar is not None:
-                    frames.add(toolbar)
-            return frames
+        for widget in self._traverse_widgets(win):
+            toolbar = self._find_toolbar_frame(widget)
+            if toolbar and toolbar not in mapping_values:
+                self._safe_destroy(toolbar)
 
-        for toolbar in _gather_toolbars(win):
-            if toolbar not in mapping.values():
-                try:
-                    self._cancel_after_events(toolbar)
-                except Exception:
-                    pass
-                try:
-                    toolbar.destroy()
-                except Exception:
-                    pass
-
-        expected, reparented = self._collect_expected_children(mapping)
-        self._prune_widget_tree(win, keep, expected, reparented)
+        self._prune_duplicates(win, mapping, keep)
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
