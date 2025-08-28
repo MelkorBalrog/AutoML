@@ -19,7 +19,12 @@
 -->
 
 # Version History
-- 0.2.171 - Compute expected child relationships from clone mapping before duplicate
+- 0.2.171 - Cancel root-level ``after`` callbacks referencing widget paths by
+          parsing ``after info`` output. Invoke ``_cancel_after_events`` for
+          every cloned or destroyed widget during tab detachment and when
+          closing floating windows. Add regression test verifying no
+          ``invalid command name`` messages after detaching animated buttons.
+          - Compute expected child relationships from clone mapping before duplicate
           pruning and avoid `winfo_children` calls on destroyed widgets.
           - Ensure `_clone_widget` registers every descendant in the mapping and
             raise when cloning fails so pruning has complete information.
