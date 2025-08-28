@@ -508,28 +508,38 @@ class ClosableNotebook(ttk.Notebook):
         kwargs.pop("widgetName", None)
 
         if isinstance(widget, tk.Canvas):
+            clone = tk.Canvas(parent, **kwargs)
+            mapping[widget] = clone
+            self._copy_widget_config(widget, clone)
+            self._copy_widget_state(widget, clone)
             try:
-                widget.master = parent  # Reparent existing canvas when possible
-                mapping[widget] = widget
-                for child in self._ordered_children(widget):
-                    child_clone, mapping, layouts = self._clone_widget(
-                        child, widget, mapping, layouts, cancelled
-                    )
-                    mapping[child] = child_clone
-                self._raise_widgets(widget)
-                return widget, mapping, layouts
+                widget.tk.call("tk::canvas", "copy", widget._w, clone._w)
             except Exception:
-                clone = tk.Canvas(parent, **kwargs)
-                mapping[widget] = clone
-                self._copy_widget_config(widget, clone)
-                self._copy_widget_state(widget, clone)
-                for child in self._ordered_children(widget):
-                    child_clone, mapping, layouts = self._clone_widget(
-                        child, clone, mapping, layouts, cancelled
-                    )
-                    mapping[child] = child_clone
-                self._raise_widgets(widget, clone, mapping)
-                return clone, mapping, layouts
+                for item in widget.find_all():
+                    coords = widget.coords(item)
+                    item_type = widget.type(item)
+                    opts = widget.itemconfig(item)
+                    new_item = getattr(clone, f"create_{item_type}")(*coords)
+                    for key, val in opts.items():
+                        if isinstance(val, tuple) and len(val) >= 5:
+                            clone.itemconfig(new_item, {key: val[4]})
+                        elif isinstance(val, str):
+                            clone.itemconfig(new_item, {key: val})
+            for child in self._ordered_children(widget):
+                child_clone, mapping, layouts = self._clone_widget(
+                    child, clone, mapping, layouts, cancelled
+                )
+                mapping[child] = child_clone
+            try:
+                self._cancel_after_events(widget)
+            except Exception:
+                pass
+            try:
+                widget.destroy()
+            except Exception:
+                pass
+            self._raise_widgets(widget, clone, mapping)
+            return clone, mapping, layouts
 
         try:
             clone = cls(parent, **kwargs)
@@ -1327,6 +1337,9 @@ class ClosableNotebook(ttk.Notebook):
         expected: dict[tk.Widget, set[str]] = {}
         reparented: set[tk.Widget] = set()
         for orig, clone in mapping.items():
+            if isinstance(orig, tk.Canvas) and not orig.winfo_exists():
+                reparented.add(clone)
+                continue
             if not orig.winfo_exists():
                 continue
             parent_clone = mapping.get(orig.master)

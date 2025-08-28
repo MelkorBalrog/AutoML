@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.179 - Recreate detached governance diagram canvases and transfer items,
+          destroying originals to prevent duplicate canvases.
+          - Skip reparented canvases during duplicate pruning.
+          - Add regression tests ensuring detached governance diagrams expose
+            a single populated canvas.
 - 0.2.178 - Reparent governance diagram canvases during tab detachment and
           rebuild toolboxes so detached windows display canvases and toolboxes
           correctly.
