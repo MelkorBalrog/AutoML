@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.173 - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
+          ``safety_analysis_service`` methods.
 - 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
           ``safety_analysis_service`` and remove legacy
           ``core.safety_analysis`` module.
