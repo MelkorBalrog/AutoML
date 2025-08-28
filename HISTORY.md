@@ -25,6 +25,10 @@
             raise when cloning fails so pruning has complete information.
           - Add grouped layout tests verifying buttons, canvases, toolboxes and
             scrollbars appear exactly once after detachment.
+          - Rebuild or fit diagram toolboxes on detached clones, lifting
+          toolbox canvases and buttons prior to destroying originals and
+          adding regression tests to ensure detached toolboxes remain
+          visible and functional.
 - 0.2.170 - Show splash-style background in workspace when no tabs are open.
           - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets
