@@ -86,3 +86,28 @@ class TestGovernanceDiagramDetachment:
         assert isinstance(toolbox, tk.Widget)
         assert toolbox.pack_info().get("side") == "left"
         root.destroy()
+
+    def test_detached_diagram_has_single_canvas_with_content(self) -> None:
+        SysMLRepository.reset_instance()
+        root = tk.Tk()
+        nb = ClosableNotebook(root)
+        repo = SysMLRepository.get_instance()
+        diag = repo.create_diagram("Governance", name="Gov")
+        win = GovernanceDiagramWindow(nb, app=SimpleNamespace(), diagram_id=diag.diag_id)
+        win.canvas.create_rectangle(5, 5, 20, 20, fill="red")
+        nb.add(win, text="Gov")
+        nb.update_idletasks()
+        clone = self._detach(nb)
+
+        def canvases(widget: tk.Widget) -> list[tk.Canvas]:
+            found: list[tk.Canvas] = []
+            for child in widget.winfo_children():
+                if isinstance(child, tk.Canvas):
+                    found.append(child)
+                found.extend(canvases(child))
+            return found
+
+        all_canvases = canvases(clone)
+        populated = [c for c in all_canvases if c.find_all()]
+        assert len(populated) == 1
+        root.destroy()
