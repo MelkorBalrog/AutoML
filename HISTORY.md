@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.197 - Explicitly destroy stray toolbar frames during tab detachment.
+          - Add grouped regression test ensuring detached windows contain
+            only a single toolbar frame.
 - 0.2.196 - Refactor tab detachment helpers to reduce complexity and remove
           duplicate widget pruning logic from `_detach_tab` and
           `_remove_duplicate_widgets`.
