@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.186 - Restore toolbox selector combobox bindings after detaching tabs so
+          switching toolboxes updates the visible toolbox.
+          - Add regression test confirming toolbox selection in detached
+            windows changes the displayed toolbox.
 - 0.2.185 - Guard ``cancel_after_events`` against destroyed roots and silence
           errors when closing detached windows.
           - Add grouped regression tests ensuring no "invalid command name" or
