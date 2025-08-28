@@ -547,6 +547,8 @@ class ClosableNotebook(ttk.Notebook):
                         elif isinstance(val, str):
                             clone.itemconfig(new_item, {key: val})
             for child in self._ordered_children(widget):
+                if child in mapping:
+                    continue
                 child_clone, mapping, layouts = self._clone_widget(
                     child, clone, mapping, layouts, cancelled
                 )
@@ -630,6 +632,53 @@ class ClosableNotebook(ttk.Notebook):
                 ordered.append(child)
 
         return ordered
+
+    def _copy_canvas_items(
+        self,
+        widget: tk.Canvas,
+        clone: tk.Canvas,
+        items: t.Iterable[int],
+        mapping: dict[tk.Widget, tk.Widget],
+        layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]],
+        cancelled: set[str] | None,
+    ) -> tuple[dict[tk.Widget, tk.Widget], dict[tk.Widget, tuple[str, dict[str, t.Any]]]]:
+        """Clone canvas *items* from *widget* into *clone*.
+
+        ``window`` items are cloned recursively and inserted using
+        :meth:`~tkinter.Canvas.create_window` while other item types are
+        recreated with the corresponding ``create_*`` method.
+        """
+
+        for item in items:
+            coords = widget.coords(item)
+            item_type = widget.type(item)
+            opts = widget.itemconfig(item)
+            if item_type == "window":
+                path = widget.itemcget(item, "window")
+                try:
+                    child = widget.nametowidget(path)
+                except Exception:
+                    continue
+                child_clone, mapping, layouts = self._clone_widget(
+                    child, clone, mapping, layouts, cancelled
+                )
+                mapping[child] = child_clone
+                cfg = {
+                    k: v[4]
+                    for k, v in opts.items()
+                    if isinstance(v, tuple) and len(v) >= 5
+                }
+                cfg.pop("window", None)
+                clone.create_window(*coords, window=child_clone, **cfg)
+            else:
+                creator = getattr(clone, f"create_{item_type}")
+                new_item = creator(*coords)
+                for key, val in opts.items():
+                    if isinstance(val, tuple) and len(val) >= 5:
+                        clone.itemconfig(new_item, {key: val[4]})
+                    elif isinstance(val, str):
+                        clone.itemconfig(new_item, {key: val})
+        return mapping, layouts
 
     def _collect_required_kwargs(self, widget: tk.Widget, cls: type) -> dict[str, t.Any]:
         """Return constructor kwargs required to recreate *widget* of type *cls*.
@@ -719,12 +768,6 @@ class ClosableNotebook(ttk.Notebook):
                 for iid in widget.get_children(""):
                     self._copy_tree_item(widget, clone, iid, "")
             elif isinstance(widget, tk.Canvas):
-                for item in widget.find_all():
-                    kind = widget.type(item)
-                    coords = widget.coords(item)
-                    config = {k: v[-1] for k, v in widget.itemconfig(item).items()}
-                    creator = getattr(clone, f"create_{kind}")
-                    creator(*coords, **config)
                 try:
                     clone.configure(scrollregion=widget.cget("scrollregion"))
                 except Exception:
