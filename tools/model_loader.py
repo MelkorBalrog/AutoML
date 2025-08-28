@@ -22,7 +22,10 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Any, Callable
 
+import threading
+
 from tools.memory_manager import manager as memory_manager
+from tools.thread_manager import manager as thread_manager
 
 
 class LazyModelLoader:
@@ -65,4 +68,36 @@ class LazyModelLoader:
         memory_manager.cleanup()
 
 
+def start_cleanup_thread(
+    interval: float = 60.0,
+) -> tuple[threading.Event, threading.Thread]:
+    """Run periodic model cleanup in a background thread."""
+
+    stop_event = threading.Event()
+
+    def _run() -> None:
+        while not stop_event.is_set():
+            memory_manager.cleanup()
+            stop_event.wait(interval)
+
+    thread = thread_manager.register("model_loader_cleanup", _run, daemon=True)
+    return stop_event, thread
+
+
+def stop_cleanup_thread(stop_event: threading.Event) -> None:
+    """Stop the model cleanup background thread."""
+
+    stop_event.set()
+    thread = thread_manager.unregister("model_loader_cleanup")
+    if thread:
+        thread.join()
+
+
 model_loader = LazyModelLoader()
+
+__all__ = [
+    "LazyModelLoader",
+    "model_loader",
+    "start_cleanup_thread",
+    "stop_cleanup_thread",
+]

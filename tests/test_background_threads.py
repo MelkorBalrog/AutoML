@@ -15,21 +15,26 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Grouped tests ensuring background service threads operate."""
 
-from pathlib import Path
-from config.config_loader import load_json_with_comments
+from __future__ import annotations
 
-def test_resource_fallback(monkeypatch):
-    cfg_path = Path(__file__).resolve().parents[1] / "config" / "rules" / "diagram_rules.json"
-    original = Path.read_text
-    call_count = {"count": 0}
+import time
 
-    def mock_read_text(self, *args, **kwargs):
-        if self == cfg_path and call_count["count"] == 0:
-            call_count["count"] += 1
-            raise FileNotFoundError
-        return original(self, *args, **kwargs)
+from tools.crash_report_logger import start_watchdog_thread, stop_watchdog_thread
+from tools.model_loader import start_cleanup_thread, stop_cleanup_thread, model_loader
 
-    monkeypatch.setattr(Path, "read_text", mock_read_text)
-    data = load_json_with_comments(cfg_path)
-    assert "ai_nodes" in data
+
+def test_crash_watchdog_thread() -> None:
+    stop, thread = start_watchdog_thread(timeout=0.2, interval=0.05)
+    time.sleep(0.1)
+    assert thread.is_alive()
+    stop_watchdog_thread(stop)
+
+
+def test_model_loader_cleanup_thread() -> None:
+    model_loader.get("dummy", lambda: object())
+    stop, thread = start_cleanup_thread(interval=0.05)
+    time.sleep(0.1)
+    assert thread.is_alive()
+    stop_cleanup_thread(stop)

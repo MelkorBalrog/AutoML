@@ -29,6 +29,8 @@ import threading
 import traceback
 from pathlib import Path
 
+from tools.thread_manager import manager as thread_manager
+
 # Default directory for crash logs
 LOG_DIR = Path(__file__).resolve().parent
 
@@ -173,6 +175,32 @@ def install_v4(directory: Path | str = LOG_DIR) -> None:
 # The most complete implementation is version 4
 install_best = install_v4
 
+
+def start_watchdog_thread(
+    timeout: float = 5.0, interval: float = 1.0
+) -> tuple[threading.Event, threading.Thread]:
+    """Start a background thread feeding the crash watchdog."""
+
+    wd = watchdog_best(timeout)
+    stop_event = threading.Event()
+
+    def _feed() -> None:
+        while not stop_event.is_set():
+            wd.feed()
+            stop_event.wait(interval)
+
+    thread = thread_manager.register("crash_watchdog", _feed, daemon=True)
+    return stop_event, thread
+
+
+def stop_watchdog_thread(stop_event: threading.Event) -> None:
+    """Stop the background watchdog feeding thread."""
+
+    stop_event.set()
+    thread = thread_manager.unregister("crash_watchdog")
+    if thread:
+        thread.join()
+
 __all__ = [
     "crash_handler_v1",
     "crash_handler_v2",
@@ -190,4 +218,6 @@ __all__ = [
     "install_v3",
     "install_v4",
     "install_best",
+    "start_watchdog_thread",
+    "stop_watchdog_thread",
 ]
