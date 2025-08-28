@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.180 - Ensure cloned tabs preserve widget layout and state for all
+- 0.2.180 - Introduce C-based arithmetic API compiled as DLL and expose
+          MathService using the library. Add regression test validating
+          DLL-backed addition.
+          - Ensure cloned tabs preserve widget layout and state for all
           descendants. Added grouped tests verifying that labels, buttons,
           tree views, canvases, and toolboxes retain identical data after
           detachment.
