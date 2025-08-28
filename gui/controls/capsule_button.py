@@ -34,6 +34,8 @@ _SYSTEM_COLORS = {
     "SystemWindowText": 8,  # COLOR_WINDOWTEXT
 }
 
+_CAPSULE_HOVER_TAG = "CapsuleButtonHover"
+
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
     """Return an RGB tuple for *value*.
@@ -261,13 +263,31 @@ class CapsuleButton(tk.Canvas):
         self._icon_highlight_item: Optional[int] = None
         self._animate_id: str | None = None
         self._draw_button()
-        self.bind("<Enter>", self._on_enter)
-        self.bind("<Leave>", self._on_leave)
+        self._add_hover_bindings()
         self.bind("<ButtonPress-1>", self._on_press)
         self.bind("<ButtonRelease-1>", self._on_release)
         self.bind("<Motion>", self._on_motion)
         # Apply the initial state after the button has been drawn.
         self._apply_state()
+
+    def _add_hover_bindings(self) -> None:
+        tags = self.bindtags()
+        if _CAPSULE_HOVER_TAG not in tags:
+            self.bindtags((_CAPSULE_HOVER_TAG,) + tags)
+        self.bind_class(_CAPSULE_HOVER_TAG, "<Enter>", self._enter_event)
+        self.bind_class(_CAPSULE_HOVER_TAG, "<Leave>", self._leave_event)
+
+    @staticmethod
+    def _enter_event(event: tk.Event) -> None:
+        widget = event.widget
+        if isinstance(widget, CapsuleButton):
+            widget._on_enter(event)
+
+    @staticmethod
+    def _leave_event(event: tk.Event) -> None:
+        widget = event.widget
+        if isinstance(widget, CapsuleButton):
+            widget._on_leave(event)
 
     def _content_width(self, height: int | str) -> int:
         """Return the minimum width to display current text and image."""
