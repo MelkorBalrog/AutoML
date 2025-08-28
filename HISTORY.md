@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.171 - Cancel root-level ``after`` callbacks referencing widget paths by
+          parsing ``after info`` output. Invoke ``_cancel_after_events`` for
+          every cloned or destroyed widget during tab detachment and when
+          closing floating windows. Add regression test verifying no
+          ``invalid command name`` messages after detaching animated buttons.
 - 0.2.170 - Show splash-style background in workspace when no tabs are open.
           - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets

@@ -486,6 +486,7 @@ class ClosableNotebook(ttk.Notebook):
         parent: tk.Widget,
         mapping: dict[tk.Widget, tk.Widget] | None = None,
         layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]] | None = None,
+        cancelled: set[str] | None = None,
     ) -> tuple[
         tk.Widget,
         dict[tk.Widget, tk.Widget],
@@ -503,6 +504,7 @@ class ClosableNotebook(ttk.Notebook):
             mapping = {}
         if layouts is None:
             layouts = {}
+        self._cancel_after_events(widget, cancelled)
 
         try:
             manager = widget.winfo_manager()
@@ -538,7 +540,7 @@ class ClosableNotebook(ttk.Notebook):
         for child in self._ordered_children(widget):
             try:
                 child_clone, mapping, layouts = self._clone_widget(
-                    child, clone, mapping, layouts
+                    child, clone, mapping, layouts, cancelled
                 )
             except Exception as exc:
                 logger.exception("Failed to clone child %s: %s", child, exc)
@@ -903,18 +905,14 @@ class ClosableNotebook(ttk.Notebook):
                     except Exception:
                         pass
             try:
-                root_ids = widget._root().tk.call("after", "info")
+                root_info = widget._root().tk.call("after", "info")
             except Exception:
-                root_ids = []
-            if isinstance(root_ids, str):
-                root_ids = [root_ids]
-            for ident in root_ids:
+                root_info = []
+            if isinstance(root_info, str):
+                root_info = [root_info]
+            for ident, cmd in zip(root_info[::2], root_info[1::2]):
                 if ident in cancelled:
                     continue
-                try:
-                    cmd = widget._root().tk.call("after", "info", ident)
-                except Exception:
-                    cmd = ""
                 if tcl_name in cmd:
                     try:
                         widget._root().after_cancel(ident)
@@ -1028,17 +1026,22 @@ class ClosableNotebook(ttk.Notebook):
         try:
             if not self._move_tab(tab_id, nb):
                 orig = self.nametowidget(tab_id)
-                self._cancel_after_events(orig)
+                cancelled: set[str] = set()
+                self._cancel_after_events(orig, cancelled)
                 self.forget(tab_id)
                 mapping: dict[tk.Widget, tk.Widget] = {}
-                new_widget, mapping, layouts = self._clone_widget(orig, nb, mapping)
+                new_widget, mapping, layouts = self._clone_widget(
+                    orig, nb, mapping, cancelled=cancelled
+                )
                 self._copy_widget_layout(orig, new_widget, mapping, layouts)
+                self._cancel_after_events(orig, cancelled)
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
                 self._reassign_widget_references(mapping)
                 self._raise_widgets(orig, new_widget, mapping)
+                self._cancel_after_events(orig, cancelled)
                 orig.destroy()
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
