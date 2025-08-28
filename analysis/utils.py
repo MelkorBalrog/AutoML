@@ -18,7 +18,7 @@
 
 """Utility helpers for analysis package."""
 
-from typing import Iterable, List, Dict, Tuple
+from typing import Iterable, List, Dict, Tuple, TYPE_CHECKING, Type
 import math
 import datetime
 import csv
@@ -34,11 +34,32 @@ from analysis.models import component_fit_map
 from analysis.user_config import CURRENT_USER_NAME
 from gui.controls.mac_button_style import apply_translucid_button_style
 from gui.styles.style_manager import StyleManager
-from gui.windows.fault_prioritization import SelectFaultDialog
-import gui.utils.config_utils as config_utils
-from mainappsrc.managers.fmeda_manager import FMEDAManager
-from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
-from mainappsrc.subapps.fta_subapp import FTASubApp
+
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from mainappsrc.models.fta.fault_tree_node import FaultTreeNode as FaultTreeNodeType
+
+_FAULT_TREE_NODE: "Type[FaultTreeNodeType] | None" = None
+_FTA_SUBAPP = None
+
+
+def _get_fault_tree_node() -> "Type[FaultTreeNodeType]":
+    """Return :class:`FaultTreeNode` lazily to avoid circular imports."""
+    global _FAULT_TREE_NODE
+    if _FAULT_TREE_NODE is None:
+        from mainappsrc.models.fta.fault_tree_node import FaultTreeNode as FTN
+
+        _FAULT_TREE_NODE = FTN
+    return _FAULT_TREE_NODE
+
+
+def _get_fta_subapp():
+    """Return :class:`FTASubApp` lazily to avoid circular imports."""
+    global _FTA_SUBAPP
+    if _FTA_SUBAPP is None:
+        from mainappsrc.subapps.fta_subapp import FTASubApp as _FSA
+
+        _FTA_SUBAPP = _FSA
+    return _FTA_SUBAPP
 
 try:  # pragma: no cover - fallback for script context
     from AutoML.config.automl_constants import PMHF_TARGETS
@@ -628,11 +649,9 @@ class FMEAService:
     def load_fmeas(self, data: dict) -> None:
         """Load FMEA documents from project data."""
         self.fmeas.clear()
+        FTN = _get_fault_tree_node()
         for fmea_data in data.get("fmeas", []):
-            entries = [
-                FaultTreeNode.from_dict(e)
-                for e in fmea_data.get("entries", [])
-            ]
+            entries = [FTN.from_dict(e) for e in fmea_data.get("entries", [])]
             self.fmeas.append(
                 {
                     "name": fmea_data.get("name", "FMEA"),
@@ -651,9 +670,7 @@ class FMEAService:
                 }
             )
         if not self.fmeas and "fmea_entries" in data:
-            entries = [
-                FaultTreeNode.from_dict(e) for e in data.get("fmea_entries", [])
-            ]
+            entries = [FTN.from_dict(e) for e in data.get("fmea_entries", [])]
             self.fmeas.append(
                 {"name": "Default FMEA", "file": "fmea_default.csv", "entries": entries}
             )
@@ -800,7 +817,7 @@ class FMEAService:
 
         return {}
 
-class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
+class SafetyAnalysis_FTA_FMEA(FMEAService):
     """Facade combining FTA, FMEA and FMEDA behaviours."""
 
     def __init__(self, app: tk.Misc) -> None:
@@ -808,12 +825,12 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
         # accessors defined later in this class.  Parent initialisers will
         # populate these via the property setters to avoid recursion.
         self._fmeas: list[dict] = []
-        self._fmedas: list[dict] = []
 
-        # Initialise parent helper classes that require the application
-        # instance and make the application available to other helpers.
+        # Initialise helper classes and keep a private FMEDAManager instance.
         FMEAService.__init__(self, app)
-        FMEDAManager.__init__(self, app)
+        from mainappsrc.managers.fmeda_manager import FMEDAManager
+
+        self._fmeda_mgr = FMEDAManager(app)
         self.app = app
 
     # ------------------------------------------------------------------
@@ -828,6 +845,7 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
 
     @staticmethod
     def auto_generate_fta_diagram(fta_model, output_path):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.auto_generate_fta_diagram(fta_model, output_path)
 
     def enable_fta_actions(self, enabled: bool) -> None:
@@ -1007,11 +1025,14 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
     @property
     def fmedas(self) -> list[dict]:
         """Expose loaded FMEDA documents."""
-        return getattr(self, "_fmedas", [])
+        return self._fmeda_mgr.fmedas
 
     @fmedas.setter
     def fmedas(self, value: list[dict]) -> None:
-        self._fmedas = value
+        self._fmeda_mgr.fmedas = value
+
+    def __getattr__(self, name):  # pragma: no cover - simple delegation
+        return getattr(self._fmeda_mgr, name)
 
     # ------------------------------------------------------------------
     # FTA helpers
@@ -1019,16 +1040,17 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
     def _load_fault_tree_events(self, data: dict, ensure_root: bool) -> None:
         """Initialise FTA, CTA and PAA events from *data*."""
         app = self.app
+        FTN = _get_fault_tree_node()
         if "top_events" in data:
-            app.top_events = [FaultTreeNode.from_dict(e) for e in data["top_events"]]
+            app.top_events = [FTN.from_dict(e) for e in data["top_events"]]
         elif "root_node" in data:
-            root = FaultTreeNode.from_dict(data["root_node"])
+            root = FTN.from_dict(data["root_node"])
             app.top_events = [root]
         else:
             app.top_events = []
 
-        app.cta_events = [FaultTreeNode.from_dict(e) for e in data.get("cta_events", [])]
-        app.paa_events = [FaultTreeNode.from_dict(e) for e in data.get("paa_events", [])]
+        app.cta_events = [FTN.from_dict(e) for e in data.get("cta_events", [])]
+        app.paa_events = [FTN.from_dict(e) for e in data.get("paa_events", [])]
 
         if (
             ensure_root
@@ -1036,28 +1058,34 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
             and "top_events" not in data
             and "root_node" not in data
         ):
-            new_root = FaultTreeNode("Vehicle Level Function", "TOP EVENT")
+            new_root = FTN("Vehicle Level Function", "TOP EVENT")
             new_root.x, new_root.y = 300, 200
             app.top_events.append(new_root)
         app.root_node = app.top_events[0] if app.top_events else None
 
     def calculate_cut_sets(self, node):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.calculate_cut_sets(self, self.app, node)
 
     def build_simplified_fta_model(self, top_event):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.build_simplified_fta_model(self, self.app, top_event)
 
     def get_all_basic_events(self, app=None):
         """Return all basic events in the current fault tree model."""
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.get_all_basic_events(self, app or self.app)
 
     def all_children_are_base_events(self, node):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.all_children_are_base_events(self, self.app, node)
 
     def add_fault(self, name: str) -> None:
         self.app.risk_app.add_fault(self.app, name)
 
     def _prompt_fault_selection(self, app):
+        from gui.windows.fault_prioritization import SelectFaultDialog
+
         dialog = SelectFaultDialog(app.root, sorted(app.faults), allow_new=True)
         fault = dialog.selected
         if fault == "NEW":
@@ -1106,7 +1134,8 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
         ]:
             messagebox.showwarning("Invalid", "Base events cannot have children.")
             return
-        new_node = FaultTreeNode("", "Basic Event", parent=parent_node)
+        FTN = _get_fault_tree_node()
+        new_node = FTN("", "Basic Event", parent=parent_node)
         new_node.failure_prob = 0.0
         new_node.fault_ref = fault
         new_node.description = fault
@@ -1130,7 +1159,8 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
 
     def add_top_level_event(self) -> None:
         app = self.app
-        new_event = FaultTreeNode("", "TOP EVENT")
+        FTN = _get_fault_tree_node()
+        new_event = FTN("", "TOP EVENT")
         new_event.x, new_event.y = 300, 200
         new_event.is_top_event = True
         diag_mode = getattr(app, "diagram_mode", "FTA")
@@ -1155,12 +1185,15 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
         app.update_views()
 
     def generate_top_event_summary(self, top_event):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.generate_top_event_summary(self, self.app, top_event)
 
     def generate_recommendations_for_top_event(self, node):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.generate_recommendations_for_top_event(self, self.app, node)
 
     def derive_requirements_for_event(self, event):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.derive_requirements_for_event(self, self.app, event)
 
     def get_available_failure_modes_for_gates(self, current_gate=None):
@@ -1201,12 +1234,15 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
         return total
 
     def get_top_event(self, node):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.get_top_event(self, self.app, node)
 
     def move_top_event_up(self):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.move_top_event_up(self, self.app)
 
     def move_top_event_down(self):
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.move_top_event_down(self, self.app)
 
     def delete_top_events_for_malfunction(self, name: str) -> None:
@@ -1231,7 +1267,8 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
                     analysis, te.user_name
                 )
         if app.root_node in removed:
-            app.root_node = app.top_events[0] if app.top_events else FaultTreeNode("", "TOP EVENT")
+            FTN = _get_fault_tree_node()
+            app.root_node = app.top_events[0] if app.top_events else FTN("", "TOP EVENT")
         app.update_views()
 
     # ------------------------------------------------------------------
@@ -1361,7 +1398,7 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
         return self.app._show_fmea_table_impl(fmea, fmeda)
 
     def show_fmeda_list(self):
-        return FMEDAManager.show_fmeda_list(self)
+        return self._fmeda_mgr.show_fmeda_list()
 
     # ------------------------------------------------------------------
     # Risk and library helpers
@@ -1436,6 +1473,7 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
     # ------------------------------------------------------------------
     def get_all_gates(self, app=None):
         """Return all gate nodes in the current fault tree model."""
+        FTASubApp = _get_fta_subapp()
         return FTASubApp.get_all_gates(self, app or self.app)
 
     def get_all_failure_modes(self):
@@ -1739,6 +1777,8 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
     def refresh_all(self):
         app = self.app
         app.update_views()
+        import gui.utils.config_utils as config_utils
+
         config_utils.regenerate_requirement_patterns()
         app.gsn_manager.refresh()
         for attr in dir(app):

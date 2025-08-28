@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.175 - Resolve circular imports by lazily loading fault-tree helpers and
+          decoupling safety analysis utilities from GUI modules.
 - 0.2.174 - Move FMEA and FTA implementation into ``analysis.utils`` and
           expose thin service wrappers.
 - 0.2.173 - Delegate ``SafetyAnalysisService`` computations to
