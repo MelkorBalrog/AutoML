@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.173 - Reparent canvases during tab detachment or clone and discard
+          originals after copying item colors and tags. Skip reparented
+          canvases during duplicate pruning and add regression test
+          ensuring detached governance diagrams retain a single
+          interactive canvas.
 - 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
           ``safety_analysis_service`` and remove legacy
           ``core.safety_analysis`` module.

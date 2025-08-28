@@ -500,6 +500,20 @@ class ClosableNotebook(ttk.Notebook):
         # this option which results in a ``TclError`` when cloning detached tabs.
         # Drop it from the keyword arguments so cloning remains robust.
         kwargs.pop("widgetName", None)
+
+        if isinstance(widget, tk.Canvas):
+            try:
+                widget.master = parent  # Reparent existing canvas when possible
+                mapping[widget] = widget
+                for child in self._ordered_children(widget):
+                    child_clone, mapping, layouts = self._clone_widget(
+                        child, widget, mapping, layouts, cancelled
+                    )
+                    mapping[child] = child_clone
+                return widget, mapping, layouts
+            except Exception:
+                pass
+
         try:
             clone = cls(parent, **kwargs)
         except Exception as exc:  # pragma: no cover - extremely rare
@@ -1201,6 +1215,11 @@ class ClosableNotebook(ttk.Notebook):
         """Remove widgets that duplicate originals based on parent/child relationships."""
 
         keep: set[tk.Widget] = {win, nb} | set(mapping.values())
+        reparented = {
+            clone
+            for orig, clone in mapping.items()
+            if orig is clone and isinstance(clone, tk.Canvas)
+        }
         expected: dict[tk.Widget, set[str]] = {}
         for orig, clone in mapping.items():
             parent_clone = mapping.get(orig.master)
@@ -1214,7 +1233,7 @@ class ClosableNotebook(ttk.Notebook):
                 if not child.winfo_exists():
                     continue
                 prune(child)
-                if child in keep:
+                if child in keep or child in reparented:
                     continue
                 names = expected.get(parent, set())
                 if child.winfo_name() in names:
