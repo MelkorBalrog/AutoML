@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.170 - Cancel root-scheduled ``after`` callbacks referencing widget paths
+          and invoke `_cancel_after_events` when detaching or closing floating
+          windows. Add regression tests to ensure animated widgets raise no
+          ``TclError`` or ``AttributeError`` after detachment and closure.
 - 0.2.169 - Prune only widgets that duplicate original parent/child relationships,
           ensure all cloned descendants register in the mapping and add layout
           tests verifying frame, label, canvas and treeview retention after
