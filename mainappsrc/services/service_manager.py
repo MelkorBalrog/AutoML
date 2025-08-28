@@ -56,8 +56,25 @@ class ServiceManager:
         factory: Callable[[], Any],
         *,
         recoverable: bool = True,
+        daemon: bool = True,
     ) -> Any:
-        """Return an existing service or create a new threaded instance."""
+        """Return an existing service or create a new threaded instance.
+
+        Parameters
+        ----------
+        name:
+            Identifier used to track the service thread.
+        factory:
+            Callable constructing the service instance. The returned object must
+            implement a ``run`` method which will execute in a dedicated thread.
+        recoverable:
+            Whether the service should be restarted by the manager if its thread
+            stops unexpectedly.
+        daemon:
+            If ``True`` the service thread is marked as daemon so it will not
+            block process shutdown.  Long-running services such as the main
+            application thread should disable this flag.
+        """
         with self._lock:
             info = self._services.get(name)
             if info:
@@ -67,7 +84,7 @@ class ServiceManager:
             target = getattr(instance, "run", None)
             if not callable(target):  # pragma: no cover - defensive
                 raise AttributeError(f"Service '{name}' missing callable 'run' method")
-            thread = thread_manager.register(f"service:{name}", target)
+            thread = thread_manager.register(f"service:{name}", target, daemon=daemon)
             self._services[name] = _ServiceInfo(instance, thread, 1, recoverable)
             return instance
 
@@ -84,6 +101,14 @@ class ServiceManager:
                 if callable(shutdown):
                     shutdown()
                 del self._services[name]
+
+    def join(self, name: str, timeout: float | None = None) -> None:
+        """Wait for the named service thread to finish."""
+        with self._lock:
+            info = self._services.get(name)
+            thread = info.thread if info else None
+        if thread:
+            thread.join(timeout)
 
     def _watchdog(self) -> None:  # pragma: no cover - simple loop
         while True:

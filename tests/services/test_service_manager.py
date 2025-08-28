@@ -78,3 +78,27 @@ class TestServiceManagerRecovery:
             time.sleep(0.05)
         service_manager.release("faulty")
         assert service.runs >= 2
+
+
+class TestServiceManagerThreadOptions:
+    def test_non_daemon_thread_and_join(self) -> None:
+        """Service threads can run non-daemon and be joined."""
+
+        class BlockingService:
+            def __init__(self) -> None:
+                self.started = threading.Event()
+                self.stop = threading.Event()
+
+            def run(self) -> None:
+                self.started.set()
+                self.stop.wait()
+
+            def shutdown(self) -> None:
+                self.stop.set()
+
+        service_manager.request("block", BlockingService, daemon=False)
+        assert service_manager._services["block"].thread.daemon is False
+        assert service_manager._services["block"].instance.started.wait(1.0)
+        service_manager._services["block"].instance.shutdown()
+        service_manager.join("block")
+        service_manager.release("block")

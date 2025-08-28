@@ -19,7 +19,11 @@
 -->
 
 # Version History
+- 0.2.205 - Launch AutoML core through service manager and allow non-daemon
+           service threads with join support.
 - 0.2.204 - Introduce threaded service manager to lazily load services,
+           restart recoverable threads and shut down unused services.
+          - Introduce threaded service manager to lazily load services,
           restart recoverable threads and shut down unused services.
 - 0.2.203 - Preserve widget creation order across geometry managers so detached
           tabs retain left-side toolboxes.
