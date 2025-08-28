@@ -33,6 +33,7 @@ import typing as t
 import tkinter as tk
 import weakref
 from tkinter import ttk
+from gui.controls.capsule_button import CapsuleButton
 
 logger = logging.getLogger(__name__)
 
@@ -1022,7 +1023,7 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-        if mapping and clone is not None:
+        if mapping:
             children: list[tk.Widget]
             try:
                 children = list(orig.winfo_children())
@@ -1030,8 +1031,7 @@ class ClosableNotebook(ttk.Notebook):
                 children = []
             for child_orig in children:
                 clone_child = mapping.get(child_orig)
-                if clone_child is not None:
-                    self._raise_widgets(child_orig, clone_child, mapping)
+                self._raise_widgets(child_orig, clone_child, mapping)
             return
 
         for child in target.winfo_children():
@@ -1061,6 +1061,17 @@ class ClosableNotebook(ttk.Notebook):
         try:
             if not self._move_tab(tab_id, nb):
                 orig = self.nametowidget(tab_id)
+                # Ensure CapsuleButtons cancel their callbacks before cloning
+                def _cancel_capsule_callbacks(widget: tk.Widget) -> None:
+                    if isinstance(widget, CapsuleButton):
+                        try:
+                            widget._cancel_after_callbacks()
+                        except Exception:
+                            pass
+                    for child in widget.winfo_children():
+                        _cancel_capsule_callbacks(child)
+
+                _cancel_capsule_callbacks(orig)
                 cancelled: set[str] = set()
                 for w in [orig, *orig.winfo_children()]:
                     self._cancel_after_events(w, cancelled)
@@ -1094,8 +1105,18 @@ class ClosableNotebook(ttk.Notebook):
                 self._raise_widgets(orig, new_widget, mapping, roots)
                 self._cancel_after_events(orig, cancelled)
                 orig.destroy()
+                toolbar = self._find_toolbar_frame(new_widget)
+                if toolbar is not None:
+                    mapping.setdefault(toolbar, toolbar)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
+                if toolbar is not None and not toolbar.winfo_children():
+                    rebuild = getattr(new_widget, "_rebuild_toolbar", None)
+                    if callable(rebuild):
+                        try:
+                            rebuild()
+                        except Exception:
+                            pass
                 for name in ("_rebuild_toolboxes", "_activate_parent_phase"):
                     func = getattr(new_widget, name, None)
                     if callable(func):
@@ -1269,6 +1290,28 @@ class ClosableNotebook(ttk.Notebook):
                 except Exception:
                     pass
 
+    def _find_toolbar_frame(self, widget: tk.Widget) -> tk.Widget | None:
+        """Return the first child frame containing toolbar buttons.
+
+        Explorers construct a toolbar as a frame packed with several buttons.
+        When cloning tabs this frame needs to be retained so detached windows
+        keep their actions available.  The frame is identified heuristically as
+        the first ``Frame`` descendant whose children include any ``Button``
+        widgets.
+        """
+
+        for child in widget.winfo_children():
+            if isinstance(child, (tk.Frame, ttk.Frame)):
+                try:
+                    if any(
+                        isinstance(grand, (tk.Button, ttk.Button))
+                        for grand in child.winfo_children()
+                    ):
+                        return child
+                except Exception:
+                    continue
+        return None
+
     def _remove_duplicate_widgets(
         self,
         win: tk.Toplevel,
@@ -1302,8 +1345,12 @@ class ClosableNotebook(ttk.Notebook):
                 if child in keep or child in reparented:
                     continue
                 names = expected.get(parent, set())
-                if child.winfo_name() in names or isinstance(
-                    child, (tk.Frame, ttk.Frame, ttk.Treeview)
+                if child.winfo_name() in names or (
+                    isinstance(child, (tk.Frame, ttk.Frame, ttk.Treeview))
+                    and not any(
+                        isinstance(gc, (tk.Button, ttk.Button))
+                        for gc in child.winfo_children()
+                    )
                 ):
                     try:
                         self._cancel_after_events(child)
