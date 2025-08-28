@@ -393,8 +393,13 @@ class ClosableNotebook(ttk.Notebook):
         except IndexError:
             return
         target = self._target_notebook(event.x_root, event.y_root)
-        if target is None or target is self:
+        if target is None:
+            # No notebook could be resolved under the pointer; detach to a
+            # floating window instead of raising ``TclError`` or ``KeyError``.
             self._detach_tab(tab_id, event.x_root, event.y_root)
+            return
+        if target is self:
+            # Dropping back onto the originating notebook requires no action.
             return
         self._move_tab(tab_id, target)
 
