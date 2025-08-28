@@ -48,7 +48,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
         if tkapp_local is None:
             return
         try:
-            widget.after_cancel(ident)
+            tkapp_local.call("after", "cancel", ident)
         except Exception:
             return
         try:
@@ -853,7 +853,10 @@ class ClosableNotebook(ttk.Notebook):
                 img_name = ""
             if img_name:
                 try:
-                    new_img = tk.PhotoImage(master=clone)
+                    tkapp = getattr(widget, "tk", None)
+                    width = int(tkapp.call("image", "width", img_name)) if tkapp else 0
+                    height = int(tkapp.call("image", "height", img_name)) if tkapp else 0
+                    new_img = tk.PhotoImage(master=clone, width=width, height=height)
                     new_img.tk.call(new_img, "copy", img_name)
                     clone.configure(image=new_img)
                     clone.image = new_img  # keep reference
