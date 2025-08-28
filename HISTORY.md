@@ -25,7 +25,15 @@
             clones whose parents are absent from the mapping.
           - Add grouped detachment tests confirming frames, treeviews,
             canvases and buttons appear only once after detachment.
+          - Guard drag target resolution against ``TclError`` or ``KeyError``
+          and detach tabs safely when widgets vanish.
+          - Update ``_finalize_drag`` to gracefully handle missing targets.
+          - Add regression tests simulating release over destroyed widgets that
+          raise ``TclError``.
 - 0.2.173 - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
+          - Delegate ``SafetyAnalysisService`` computations to
+          ``analysis.utils`` for modular safety analysis helpers.
+          - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
           ``safety_analysis_service`` methods.
           - Prevent duplicate Safety Management Explorer instances and prune
           stray explorer widgets during tab detachment.
