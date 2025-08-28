@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.178 - Cancel CapsuleButton ``after`` callbacks before detaching tabs and
+- 0.2.178 - Preserve explorer toolbars when detaching tabs and rebuild actions
+          on empty frames.
+          - Add regression tests ensuring toolbar buttons remain present and
+            functional after detachment.
+          - Cancel CapsuleButton ``after`` callbacks before detaching tabs and
           ensure no scheduled callbacks fire after detachment. Add grouped
           tests for after-event cancellation.
           - Raise cloned widgets before originals are destroyed to preserve
