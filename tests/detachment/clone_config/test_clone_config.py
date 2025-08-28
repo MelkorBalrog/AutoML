@@ -60,6 +60,16 @@ class TestCloneConfig:
         assert isinstance(clone, CapsuleButton)
         assert clone.cget("text") == "Cap"
 
+    def test_capsule_button_cursor_clone(self):
+        def builder(nb: ClosableNotebook):
+            btn = CapsuleButton(nb, text="Cur")
+            btn.configure(cursor="watch")
+            return btn
+
+        clone = self._clone(builder)
+        assert isinstance(clone, CapsuleButton)
+        assert clone.cget("cursor") == "watch"
+
     def test_translucid_button_clone(self):
         clone = self._clone(lambda nb: TranslucidButton(nb, text="Trans"))
         assert isinstance(clone, TranslucidButton)

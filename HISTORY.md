@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.194 - Clone widgets using keyword configuration to respect CapsuleButton's
+          signature and preserve options like cursor.
+          - Add regression test ensuring cursor configuration copies correctly.
 - 0.2.193 - Continue cloning siblings when configuration copy fails and log
           offending widgets.
           - Skip missing child clones instead of raising to avoid cascading

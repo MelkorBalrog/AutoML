@@ -841,8 +841,8 @@ class ClosableNotebook(ttk.Notebook):
                 if opt == "image":
                     continue
                 try:
-                    clone.configure({opt: widget.cget(opt)})
-                except tk.TclError:
+                    clone.configure(**{opt: widget.cget(opt)})
+                except Exception:
                     continue
 
         # Widgets using images should receive a unique copy of the PhotoImage
