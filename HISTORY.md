@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.192 - Handle widgets with ``configure`` returning ``None`` during tab
+          cloning to avoid errors and copy options safely.
+          - Skip configuration iteration when unavailable and fall back to
+            ``tk.Widget.configure``.
+          - Add regression tests covering CapsuleButton, TranslucidButton and
+            canvas-based widgets.
 - 0.2.191 - Cancel root-level Tk ``after`` callbacks tied to widget paths and
           track identifiers stored in ``_animate`` attributes.
           - Add grouped regression tests ensuring tab detachment and closure
