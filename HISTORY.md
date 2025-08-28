@@ -19,6 +19,13 @@
 -->
 
 # Version History
+- 0.2.179 - Rebuild and activate governance toolboxes when detaching tabs so
+          detached governance diagrams display the toolbox selector and remain
+          interactive.
+          - Invoke ``_switch_toolbox`` on detached governance clones and pack
+            the toolbox frame before raising widgets.
+          - Add grouped regression tests ensuring toolbox selectors stay
+            functional after detachment.
 - 0.2.178 - Reparent governance diagram canvases during tab detachment and
           rebuild toolboxes so detached windows display canvases and toolboxes
           correctly.
