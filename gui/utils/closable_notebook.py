@@ -34,7 +34,6 @@ import tkinter as tk
 import weakref
 from tkinter import ttk
 from PIL import ImageTk
-from gui.utils.backgrounds import generate_workspace_background
 
 try:
     from .background_factory import generate_splash_background
@@ -111,7 +110,7 @@ class ClosableNotebook(ttk.Notebook):
         self._dragging = False
 
         self._bg_canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0)
-        self._bg_photo: tk.PhotoImage | None = None
+        self._bg_photo: ImageTk.PhotoImage | None = None
         self.bind("<<NotebookTabChanged>>", lambda _e: self._update_background(), add="+")
         self.bind("<<NotebookTabClosed>>", lambda _e: self._update_background(), add="+")
         self.bind("<Configure>", lambda _e: self._update_background(), add="+")
@@ -158,11 +157,6 @@ class ClosableNotebook(ttk.Notebook):
         # Refresh the newly selected tab whenever focus changes
         self.bind("<<NotebookTabChanged>>", self._on_tab_changed, True)
         self.bind("<FocusIn>", self._on_focus_in, True)
-
-        self._bg_canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0)
-        self._bg_photo: ImageTk.PhotoImage | None = None
-        self.bind("<Configure>", self._resize_background, add="+")
-        self._update_background()
 
     # ------------------------------------------------------------------
     # Tab management
