@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.178 - Reparent governance diagram canvases during tab detachment and
+          rebuild toolboxes so detached windows display canvases and toolboxes
+          correctly.
 - 0.2.177 - Pack requirements editor frame so requirement list displays with columns.
           - Safeguard splash launcher against missing version metadata when
            executing bundled binaries.
