@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.203 - Preserve widget creation order across geometry managers so detached
+          tabs retain left-side toolboxes.
 - 0.2.202 - Guard toolbar frame lookup against destroyed widgets so tab
           detachment skips invalid paths without raising ``TclError``.
 - 0.2.201 - Factor tab detachment into `_create_floating_window`,
