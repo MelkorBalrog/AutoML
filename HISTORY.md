@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.174 - Move FMEA and FTA implementation into ``analysis.utils`` and
+          expose thin service wrappers.
+- 0.2.173 - Delegate ``SafetyAnalysisService`` computations to
+          ``analysis.utils`` for modular safety analysis helpers.
 - 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
           ``safety_analysis_service`` and remove legacy
           ``core.safety_analysis`` module.
