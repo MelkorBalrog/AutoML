@@ -261,7 +261,7 @@ def _bootstrap() -> object:
     parse_args()
     install_best()
     _watchdog_stop = start_watchdog_thread()
-    _diagnostics_manager = PollingDiagnosticsManager(lambda: None)
+    _diagnostics_manager = PollingDiagnosticsManager()
     _diagnostics_manager.start()
     _model_cleanup_stop = start_cleanup_thread()
     with ThreadPoolExecutor() as executor:

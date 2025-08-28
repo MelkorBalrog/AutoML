@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.192 - Bootstrap diagnostics manager with numeric interval to avoid
+          startup TypeError.
+          - Add grouped bootstrap test verifying polling manager initialisation.
 - 0.2.191 - Validate polling interval type to prevent runtime TypeError.
           - Add grouped tests ensuring invalid callable intervals raise errors.
 - 0.2.190 - Run crash logger and model loader maintenance in background threads.

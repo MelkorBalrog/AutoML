@@ -172,3 +172,47 @@ def test_async_failed_recovery_triggers_mitigation() -> None:
     asyncio.run(manager.run_once())
     manager.raise_errors()  # mitigated
     assert "fallback" in manager.notifications
+
+
+class TestBootstrapDiagnosticsManager:
+    """Tests for diagnostics manager during application bootstrap."""
+
+    def test_bootstrap_initialises_polling_manager(self, monkeypatch):
+        import importlib
+        import AutoML as automl
+        from tools.diagnostics_manager import PollingDiagnosticsManager
+
+        monkeypatch.setattr(automl, "parse_args", lambda: None)
+        monkeypatch.setattr(automl, "install_best", lambda: None)
+        monkeypatch.setattr(automl, "start_watchdog_thread", lambda: None)
+        monkeypatch.setattr(automl, "start_cleanup_thread", lambda: None)
+        monkeypatch.setattr(automl, "ensure_packages", lambda: None)
+        monkeypatch.setattr(automl, "ensure_ghostscript", lambda: None)
+        monkeypatch.setattr(automl.manager_eater, "start", lambda: None)
+
+        class DummyExecutor:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def submit(self, func, *args, **kwargs):
+                class DummyFuture:
+                    def result(self):
+                        return func(*args, **kwargs)
+
+                return DummyFuture()
+
+        monkeypatch.setattr(automl, "ThreadPoolExecutor", lambda: DummyExecutor())
+        monkeypatch.setattr(PollingDiagnosticsManager, "start", lambda self: None)
+
+        module = object()
+        monkeypatch.setattr(importlib, "import_module", lambda name: module)
+
+        automl._diagnostics_manager = None
+        result = automl._bootstrap()
+
+        assert result is module
+        assert isinstance(automl._diagnostics_manager, PollingDiagnosticsManager)
+        assert isinstance(automl._diagnostics_manager.interval, float)
