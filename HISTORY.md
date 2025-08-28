@@ -19,6 +19,7 @@
 -->
 
 # Version History
+- 0.2.177 - Serialize STPA documents for model exports and provide unit test coverage.
 - 0.2.176 - Instantiate FTA sub-app helpers to avoid missing attributes during fault tree queries.
 - 0.2.175 - Resolve circular imports by lazily loading fault-tree helpers and
           decoupling safety analysis utilities from GUI modules.
