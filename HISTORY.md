@@ -20,6 +20,8 @@
 
 # Version History
 - 0.2.177 - Pack requirements editor frame so requirement list displays with columns.
+          - Safeguard splash launcher against missing version metadata when
+           executing bundled binaries.
 - 0.2.176 - Instantiate FTA sub-app helpers to avoid missing attributes during fault tree queries.
 - 0.2.175 - Resolve circular imports by lazily loading fault-tree helpers and
           decoupling safety analysis utilities from GUI modules.
