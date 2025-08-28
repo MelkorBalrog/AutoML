@@ -25,6 +25,13 @@
             destroying ``CapsuleButton`` instances.
           - Add grouped regression tests ensuring no ``_animate`` callbacks
             survive after snapping out or closing detached windows.
+          - Clone CapsuleButton widgets without Canvas option errors and
+          preserve label text and state during detachment.
+          - Clone canvases containing window items by manually iterating
+          canvas elements, recursively cloning embedded widgets and
+          recreating items to avoid ``tk::canvas copy`` errors.
+          - Add regression tests verifying canvases with nested frames and
+            controls appear identically after detachment.
 - 0.2.179 - Refresh diagram mapping before opening safety management diagrams and
           display an error when the diagram is missing. Add double-click tests
           verifying architecture windows open for existing diagrams.
