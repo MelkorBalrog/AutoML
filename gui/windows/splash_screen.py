@@ -18,8 +18,8 @@
 
 import tkinter as tk
 import math
+import random
 from PIL import Image, ImageDraw, ImageTk, ImageFont
-from gui.utils.backgrounds import generate_workspace_background
 
 
 class SplashScreen(tk.Toplevel):
@@ -175,8 +175,68 @@ class SplashScreen(tk.Toplevel):
 
     def _draw_background(self) -> None:
         """Draw beveled blue background with slanted bands."""
-        self._bg_pil = generate_workspace_background(self.canvas_size, self.canvas_size)
-        self._bg_photo = ImageTk.PhotoImage(self._bg_pil)
+        W = H = self.canvas_size
+        c_top = (0, 102, 153)
+        c_bottom = (0, 45, 95)
+        band_base = (0, 75, 130)
+        band_dark = (0, 40, 90)
+        n_bands_primary = 10
+        n_bands_secondary = 18
+        margin = 0.06
+        rng = random.Random(42)
+
+        img = Image.new("RGBA", (W, H))
+        for y in range(H):
+            for x in range(W):
+                t = 0.65 * x / W + 0.35 * y / H
+                r = int(c_top[0] * (1 - t) + c_bottom[0] * t)
+                g = int(c_top[1] * (1 - t) + c_bottom[1] * t)
+                b = int(c_top[2] * (1 - t) + c_bottom[2] * t)
+                img.putpixel((x, y), (r, g, b, 255))
+
+        draw = ImageDraw.Draw(img, "RGBA")
+
+        def band_poly(x0, width, skew, notch, top_off, bottom_off):
+            y_top = int(margin * H + top_off)
+            y_bot = int((1 - margin) * H - bottom_off)
+            x1 = x0 + width
+            notch_y = y_top + 0.55 * (y_bot - y_top)
+            return [
+                (x0, y_top),
+                (x0 + skew, y_bot),
+                (x1 + skew, y_bot),
+                (x1 + 0.95 * skew - notch, notch_y),
+                (x1, y_top),
+            ]
+
+        for xi in sorted(
+            rng.uniform(margin * W * 0.5, W * (0.85 - margin))
+            for _ in range(n_bands_primary)
+        ):
+            width = rng.uniform(W * 0.018, W * 0.05)
+            skew = rng.uniform(W * 0.12, W * 0.22)
+            notch = rng.uniform(W * 0.01, W * 0.03)
+            top_off = rng.uniform(0, H * 0.03)
+            bot_off = rng.uniform(0, H * 0.03)
+            poly = band_poly(xi, width, skew, notch, top_off, bot_off)
+            color = band_base if rng.random() > 0.5 else band_dark
+            draw.polygon(poly, fill=color + (int(0.35 * 255),))
+
+        for xi in sorted(
+            rng.uniform(margin * W * 0.35, W * (0.9 - margin))
+            for _ in range(n_bands_secondary)
+        ):
+            width = rng.uniform(W * 0.003, W * 0.012)
+            skew = rng.uniform(W * 0.1, W * 0.24)
+            notch = rng.uniform(W * 0.004, W * 0.009)
+            top_off = rng.uniform(0, H * 0.02)
+            bot_off = rng.uniform(0, H * 0.02)
+            poly = band_poly(xi, width, skew, notch, top_off, bot_off)
+            bright = tuple(min(int(c * 1.2), 255) for c in band_base)
+            draw.polygon(poly, fill=bright + (int(0.55 * 255),))
+
+        self._bg_pil = img
+        self._bg_photo = ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor="nw", image=self._bg_photo, tags="void_bg")
 
     def _draw_title(self) -> None:
