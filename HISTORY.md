@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.183 - Limit after-event cancellation to widget-specific callbacks, preserving
+          internal Tk behaviour when detaching tabs.
+          - Prevent duplicated controls and "invalid command name" errors after
+          detaching tabs.
+          - Update tests to cover widget-bound callback cleanup.
 - 0.2.182 - Rebind CapsuleButton `<Enter>`/`<Leave>` events when cloning
           detached tabs to preserve hover behaviour.
           - Add grouped tests exercising hover callbacks on detached buttons.
