@@ -19,10 +19,10 @@
 -->
 
 # Version History
-- 0.2.171 - Split widget reference reassignment into modular helpers
-          ``rewrite_option_references``, ``update_canvas_windows`` and
-          ``rebind_scrollbars``. Reduced cyclomatic complexity of widget
-          cloning (radon ranks C/B) and added targeted regression tests.
+- 0.2.171 - Rebuild or fit diagram toolboxes on detached clones, lifting
+          toolbox canvases and buttons prior to destroying originals and
+          adding regression tests to ensure detached toolboxes remain
+          visible and functional.
 - 0.2.170 - Show splash-style background in workspace when no tabs are open.
           - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets
