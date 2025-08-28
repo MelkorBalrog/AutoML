@@ -19,6 +19,13 @@
 -->
 
 # Version History
+- 0.2.195 - Cancel CapsuleButton ``_animate_id`` callbacks during tab detachment to
+          avoid repeated button images and ``invalid command name`` errors when
+          closing roots.
+          - Extend ``cancel_after_events`` to handle identifiers suffixed with
+            ``_animate_id`` or ``_after_id``.
+          - Add regression test covering cleanup when ``after info`` for a
+            widget is unavailable.
 - 0.2.194 - Clone widgets using keyword configuration to respect CapsuleButton's
           signature and preserve options like cursor.
           - Add regression test ensuring cursor configuration copies correctly.

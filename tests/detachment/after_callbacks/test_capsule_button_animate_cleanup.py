@@ -79,3 +79,26 @@ class TestCapsuleButtonAnimateCleanup:
         root.update()
         assert "_animate" not in str(root.tk.call("after", "info"))
         root.destroy()
+
+    def test_detach_clears_animate_without_after_info(self, monkeypatch):
+        root = tk.Tk(); root.withdraw()
+        nb = ClosableNotebook(root)
+        btn = self.AnimatedButton(nb)
+        nb.add(btn, text="Tab")
+        nb.update_idletasks()
+
+        orig_call = btn.tk.call
+
+        def fake_call(*args):
+            if args[:3] == ("after", "info", str(btn)):
+                raise tk.TclError("unsupported")
+            return orig_call(*args)
+
+        monkeypatch.setattr(btn.tk, "call", fake_call)
+
+        self._detach(nb, monkeypatch)
+        root.update()
+        assert "_animate" not in str(root.tk.call("after", "info"))
+        win = nb._floating_windows[0]
+        win.destroy()
+        root.destroy()
