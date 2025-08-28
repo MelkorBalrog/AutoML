@@ -23,6 +23,20 @@
           errors by checking widget existence and cancelling animation
           callbacks on destruction.  Add regression tests for detached-tab
           hover and destroy interactions.
+          - Cancel root-level Tk ``after`` callbacks referencing widget paths and
+          invoke cancellation for all widgets before destruction during tab
+          detachment.
+          - Iterate over ``after info`` results to remove callbacks tied to a
+          widget's Tcl name.
+          - Call the improved cleanup routine prior to destroying widgets when
+          snapping out tabs.
+          - Add grouped regression tests ensuring no ``invalid command name``
+          errors after detaching animated buttons.
+          - Recreate detached governance diagram canvases and transfer items,
+          destroying originals to prevent duplicate canvases.
+          - Skip reparented canvases during duplicate pruning.
+          - Add regression tests ensuring detached governance diagrams expose
+            a single populated canvas.
 - 0.2.178 - Reparent governance diagram canvases during tab detachment and
           rebuild toolboxes so detached windows display canvases and toolboxes
           correctly.
