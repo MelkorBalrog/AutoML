@@ -84,3 +84,16 @@ class TestAnimatedWidgetCallbacks:
         root.update()
         assert not any(isinstance(e, AttributeError) for e in errors)
         root.destroy()
+
+    def test_no_invalid_command_name(self, monkeypatch, capsys):
+        root = tk.Tk(); root.withdraw()
+        nb = ClosableNotebook(root)
+        btn = self.AnimatedButton(nb)
+        nb.add(btn, text="Tab")
+        nb.update_idletasks()
+        self._detach(nb, monkeypatch)
+        win = nb._floating_windows[0]
+        win.destroy()
+        root.update()
+        assert "invalid command name" not in capsys.readouterr().err
+        root.destroy()

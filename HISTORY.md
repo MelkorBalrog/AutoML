@@ -23,6 +23,21 @@
           detached tabs emit no ``KeyError`` or ``TclError`` when moving the
           cursor across tree items.  Add regression test covering detached
           hover behaviour.
+          - Cancel root-level ``after`` callbacks referencing widget paths by
+          parsing ``after info`` output. Invoke ``_cancel_after_events`` for
+          every cloned or destroyed widget during tab detachment and when
+          closing floating windows. Add regression test verifying no
+          ``invalid command name`` messages after detaching animated buttons.
+          - Compute expected child relationships from clone mapping before duplicate
+          pruning and avoid `winfo_children` calls on destroyed widgets.
+          - Ensure `_clone_widget` registers every descendant in the mapping and
+            raise when cloning fails so pruning has complete information.
+          - Add grouped layout tests verifying buttons, canvases, toolboxes and
+            scrollbars appear exactly once after detachment.
+          - Rebuild or fit diagram toolboxes on detached clones, lifting
+          toolbox canvases and buttons prior to destroying originals and
+          adding regression tests to ensure detached toolboxes remain
+          visible and functional.
 - 0.2.170 - Show splash-style background in workspace when no tabs are open.
           - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets
