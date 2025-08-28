@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.180 - Clone canvases containing window items by manually iterating
+- 0.2.180 - Clone CapsuleButton widgets without Canvas option errors and
+          preserve label text and state during detachment.
+          - Clone canvases containing window items by manually iterating
           canvas elements, recursively cloning embedded widgets and
           recreating items to avoid ``tk::canvas copy`` errors.
           - Add regression tests verifying canvases with nested frames and

@@ -508,23 +508,44 @@ class ClosableNotebook(ttk.Notebook):
         kwargs.pop("widgetName", None)
 
         if isinstance(widget, tk.Canvas):
-            clone = tk.Canvas(parent, **kwargs)
+            clone_cls: type[tk.Canvas] = tk.Canvas
+            filtered: dict[str, t.Any] = {}
+            if isinstance(widget, CapsuleButton):
+                clone_cls = CapsuleButton
+                for opt in (
+                    "text",
+                    "command",
+                    "state",
+                    "image",
+                    "compound",
+                    "gradient",
+                    "hover_gradient",
+                    "hover_bg",
+                ):
+                    if opt in kwargs:
+                        filtered[opt] = kwargs.pop(opt)
+            clone = clone_cls(parent, **kwargs)
             mapping[widget] = clone
             self._copy_widget_config(widget, clone)
             self._copy_widget_state(widget, clone)
-            items = widget.find_all()
-            has_window = any(widget.type(i) == "window" for i in items)
-            if not has_window:
+            if filtered:
                 try:
-                    widget.tk.call("tk::canvas", "copy", widget._w, clone._w)
+                    clone.configure(**filtered)
                 except Exception:
-                    mapping, layouts = self._copy_canvas_items(
-                        widget, clone, items, mapping, layouts, cancelled
-                    )
-            else:
-                mapping, layouts = self._copy_canvas_items(
-                    widget, clone, items, mapping, layouts, cancelled
-                )
+                    pass
+            try:
+                widget.tk.call("tk::canvas", "copy", widget._w, clone._w)
+            except Exception:
+                for item in widget.find_all():
+                    coords = widget.coords(item)
+                    item_type = widget.type(item)
+                    opts = widget.itemconfig(item)
+                    new_item = getattr(clone, f"create_{item_type}")(*coords)
+                    for key, val in opts.items():
+                        if isinstance(val, tuple) and len(val) >= 5:
+                            clone.itemconfig(new_item, {key: val[4]})
+                        elif isinstance(val, str):
+                            clone.itemconfig(new_item, {key: val})
             for child in self._ordered_children(widget):
                 if child in mapping:
                     continue
