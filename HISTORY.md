@@ -21,7 +21,12 @@
 # Version History
 - 0.2.195 - Introduce generic DLL bridge calling Python services.
           - Expose automl_core functions through a dynamic library and add regression tests invoking standard library functions via the bridge.
-
+          - Cancel Tk ``after`` callbacks using direct Tcl calls to avoid
+          AttributeError during root destruction and copy widget images with
+          preserved dimensions to prevent duplicated button icons when detaching
+          tabs.
+          - Add regression tests ensuring toolbar images remain singular and
+            destroying the root raises no AttributeError after detachment.
 - 0.2.194 - Clone widgets using keyword configuration to respect CapsuleButton's
           signature and preserve options like cursor.
           - Add regression test ensuring cursor configuration copies correctly.
