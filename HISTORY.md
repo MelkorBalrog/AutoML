@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.182 - Replicate canvas tag bindings when cloning detached tabs so diagram items
+          retain double-click handlers.
+          - Add tests verifying diagram item double-click callbacks remain
+            functional after detachment.
 - 0.2.181 - Clone canvas window items recursively so detached tabs preserve
           embedded widget layouts and content.
           - Instantiate canvases using their original subclass to avoid

@@ -715,6 +715,7 @@ class ClosableNotebook(ttk.Notebook):
             coords = widget.coords(item)
             item_type = widget.type(item)
             opts = widget.itemconfig(item)
+            tags = widget.gettags(item)
             if item_type == "window":
                 path = widget.itemcget(item, "window")
                 try:
@@ -731,7 +732,9 @@ class ClosableNotebook(ttk.Notebook):
                     if isinstance(v, tuple) and len(v) >= 5
                 }
                 cfg.pop("window", None)
-                clone.create_window(*coords, window=child_clone, **cfg)
+                new_item = clone.create_window(
+                    *coords, window=child_clone, **cfg
+                )
             else:
                 creator = getattr(clone, f"create_{item_type}")
                 new_item = creator(*coords)
@@ -740,6 +743,14 @@ class ClosableNotebook(ttk.Notebook):
                         clone.itemconfig(new_item, {key: val[4]})
                     elif isinstance(val, str):
                         clone.itemconfig(new_item, {key: val})
+            for tag in tags:
+                sequences = widget.tag_bind(tag)
+                if not sequences:
+                    continue
+                for seq in widget.tk.splitlist(sequences):
+                    cmd = widget.tag_bind(tag, seq)
+                    if cmd:
+                        clone.tag_bind(tag, seq, cmd)
         return mapping, layouts
 
     def _collect_required_kwargs(self, widget: tk.Widget, cls: type) -> dict[str, t.Any]:
