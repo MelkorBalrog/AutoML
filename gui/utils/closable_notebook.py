@@ -579,7 +579,10 @@ class ClosableNotebook(ttk.Notebook):
             clone_cls: type[tk.Canvas] = widget.__class__
             clone = clone_cls(parent, **kwargs)
             mapping[widget] = clone
-            self._copy_widget_config(widget, clone)
+            try:
+                self._copy_widget_config(widget, clone)
+            except Exception as exc:  # pragma: no cover - log and continue
+                logger.exception("Failed to copy config for %s: %s", widget, exc)
             if clone_cls.__name__ not in _SELF_DRAWING_CANVASES:
                 mapping, layouts = self._copy_canvas_items(
                     widget,
@@ -615,7 +618,10 @@ class ClosableNotebook(ttk.Notebook):
             logger.error("Failed to instantiate %s under %s: %s", widget, parent, exc)
             raise
         mapping[widget] = clone
-        self._copy_widget_config(widget, clone)
+        try:
+            self._copy_widget_config(widget, clone)
+        except Exception as exc:  # pragma: no cover - log and continue
+            logger.exception("Failed to copy config for %s: %s", widget, exc)
         self._copy_widget_state(widget, clone)
         for child in self._ordered_children(widget):
             try:
@@ -624,10 +630,10 @@ class ClosableNotebook(ttk.Notebook):
                 )
             except Exception as exc:
                 logger.exception("Failed to clone child %s: %s", child, exc)
-                raise
+                continue
             if child_clone is None:
                 logger.error("Failed to clone descendant %s", child)
-                raise RuntimeError(f"Failed to clone descendant {child}")
+                continue
             mapping[child] = child_clone
         self._copy_widget_layout(widget, clone, mapping, layouts)
 

@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.193 - Continue cloning siblings when configuration copy fails and log
+          offending widgets.
+          - Skip missing child clones instead of raising to avoid cascading
+            errors.
+          - Add grouped tests covering explorer and diagram windows to ensure
+            full trees detach without exceptions.
 - 0.2.192 - Handle widgets with ``configure`` returning ``None`` during tab
           cloning to avoid errors and copy options safely.
           - Skip configuration iteration when unavailable and fall back to
