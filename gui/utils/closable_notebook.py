@@ -876,21 +876,33 @@ class ClosableNotebook(ttk.Notebook):
             pass
 
     def _raise_widgets(
-        self, widget: tk.Widget, _mapping: t.Optional[dict[tk.Widget, tk.Widget]] = None
+        self, widget: tk.Widget, mapping: t.Optional[dict[tk.Widget, tk.Widget]] = None
     ) -> None:
-        """Recursively lift *widget* and descendants to the top of their stacks.
+        """Recursively lift *widget* and its cloned descendants.
 
-        The optional *_mapping* parameter is accepted for backward compatibility
-        with earlier implementations that supplied the clone mapping. It is
-        ignored but kept to avoid ``TypeError`` when older call sites pass it.
+        When *mapping* is provided it is expected to contain a mapping from
+        original widgets to their clones.  The traversal follows the order of
+        the original widgets' children to lift each clone relative to its
+        siblings, preserving the original stacking arrangement.
         """
 
         try:
             widget.lift()
         except Exception:
             pass
+
+        if mapping:
+            reverse = {clone: orig for orig, clone in mapping.items()}
+            orig = reverse.get(widget)
+            if orig is not None:
+                for child_orig in orig.winfo_children():
+                    clone_child = mapping.get(child_orig)
+                    if clone_child is not None:
+                        self._raise_widgets(clone_child, mapping)
+                return
+
         for child in widget.winfo_children():
-            self._raise_widgets(child)
+            self._raise_widgets(child, mapping)
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
@@ -918,13 +930,12 @@ class ClosableNotebook(ttk.Notebook):
                 mapping: dict[tk.Widget, tk.Widget] = {}
                 new_widget, mapping = self._clone_widget(orig, nb, mapping)
                 self._copy_widget_layout(orig, new_widget, mapping)
-                self._raise_widgets(new_widget, mapping)
                 orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
-                self._raise_widgets(new_widget, mapping)
                 self._reassign_widget_references(mapping)
+                self._raise_widgets(new_widget, mapping)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
             else:
