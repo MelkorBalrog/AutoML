@@ -19,6 +19,13 @@
 -->
 
 # Version History
+- 0.2.170 - Raise cloned widgets before originals are destroyed to avoid
+          `TclError` and preserve visibility when detaching tabs.
+          - Accept original and clone roots in `_raise_widgets` and traverse a
+            cached child list while the original still exists.
+          - Invoke `_raise_widgets` ahead of duplicate pruning in `_detach_tab`.
+          - Add regression tests ensuring detachment raises no errors and all
+            widgets remain visible.
 - 0.2.169 - Prune only widgets that duplicate original parent/child relationships,
           ensure all cloned descendants register in the mapping and add layout
           tests verifying frame, label, canvas and treeview retention after
