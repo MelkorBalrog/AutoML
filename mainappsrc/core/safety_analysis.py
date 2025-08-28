@@ -38,7 +38,7 @@ from analysis.models import QUALIFICATIONS, COMPONENT_ATTR_TEMPLATES, component_
 from analysis.fmeda_utils import GATE_NODE_TYPES, ASIL_TARGETS
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 from mainappsrc.subapps.fta_subapp import FTASubApp
-from mainappsrc.core.fmea_service import FMEAService
+from mainappsrc.services.safety_analysis.safety_analysis_service import FMEAService
 from mainappsrc.managers.fmeda_manager import FMEDAManager
 from gui.windows.fault_prioritization import SelectFaultDialog
 import gui.utils.config_utils as config_utils

@@ -20,7 +20,7 @@
 import types
 
 from mainappsrc.services.analysis.analysis_utils_service import AnalysisUtilsService
-from mainappsrc.core.probability_reliability import Probability_Reliability
+from mainappsrc.services.safety_analysis import SafetyAnalysisService
 
 
 def test_service_wraps_probability_and_utils():
@@ -30,7 +30,7 @@ def test_service_wraps_probability_and_utils():
         selected_mechanism_libraries=[],
     )
     service = AnalysisUtilsService(app)
-    assert isinstance(service.probability_reliability, Probability_Reliability)
+    assert isinstance(service.probability_reliability, SafetyAnalysisService)
     groups = service.classify_scenarios()
     assert groups["use_case"] == ["use"]
     assert groups["sotif"] == ["sotif"]
