@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.182 - Rebind CapsuleButton `<Enter>`/`<Leave>` events when cloning
+          detached tabs to preserve hover behaviour.
+          - Add grouped tests exercising hover callbacks on detached buttons.
 - 0.2.181 - Clone canvas window items recursively so detached tabs preserve
           embedded widget layouts and content.
           - Instantiate canvases using their original subclass to avoid

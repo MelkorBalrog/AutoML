@@ -842,6 +842,12 @@ class ClosableNotebook(ttk.Notebook):
                             clone.bind(seq, cmd)
                 except Exception:
                     pass
+                if widget.__class__.__name__ == "CapsuleButton":
+                    try:
+                        clone.bind("<Enter>", getattr(clone, "_on_enter"))
+                        clone.bind("<Leave>", getattr(clone, "_on_leave"))
+                    except Exception:
+                        pass
         except Exception:
             pass
 
