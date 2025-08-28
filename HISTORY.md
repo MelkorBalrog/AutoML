@@ -24,6 +24,11 @@
             cloning so hover state resets correctly.
           - Add grouped regression tests verifying standard Button hover state
             normalises after detachment.
+          - Clone toolbar frames during tab detachment, removing originals and
+          rebinding button command and hover events so detached toolbars remain
+          functional.
+          - Add grouped regression tests ensuring a single toolbar row exists
+            after detachment and toolbar buttons still invoke callbacks.
 - 0.2.195 - Introduce generic DLL bridge calling Python services.
           - Expose automl_core functions through a dynamic library and add regression tests invoking standard library functions via the bridge.
           - Cancel Tk ``after`` callbacks using direct Tcl calls to avoid
