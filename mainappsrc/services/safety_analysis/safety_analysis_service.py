@@ -36,6 +36,15 @@ from analysis.models import (
     component_fit_map,
 )
 from analysis.user_config import CURRENT_USER_NAME
+from analysis.utils import (
+    load_fmeas as _load_fmeas,
+    show_fmea_list as _show_fmea_list,
+    get_fmea_settings_dict as _get_fmea_settings_dict,
+    create_fta_diagram as _create_fta_diagram,
+    auto_generate_fta_diagram as _auto_generate_fta_diagram,
+    enable_fta_actions as _enable_fta_actions,
+    show_cut_sets as _show_cut_sets,
+)
 from gui.controls.mac_button_style import apply_translucid_button_style
 from gui.styles.style_manager import StyleManager
 from gui.windows.fault_prioritization import SelectFaultDialog
@@ -56,178 +65,17 @@ class FMEAService:
     # ------------------------------------------------------------------
     def load_fmeas(self, data: dict) -> None:
         """Load FMEA documents from project data."""
-        self.fmeas.clear()
-        for fmea_data in data.get("fmeas", []):
-            entries = [
-                FaultTreeNode.from_dict(e)
-                for e in fmea_data.get("entries", [])
-            ]
-            self.fmeas.append(
-                {
-                    "name": fmea_data.get("name", "FMEA"),
-                    "file": fmea_data.get("file", f"fmea_{len(self.fmeas)}.csv"),
-                    "entries": entries,
-                    "created": fmea_data.get(
-                        "created", datetime.datetime.now().isoformat()
-                    ),
-                    "author": fmea_data.get("author", CURRENT_USER_NAME),
-                    "modified": fmea_data.get(
-                        "modified", datetime.datetime.now().isoformat()
-                    ),
-                    "modified_by": fmea_data.get(
-                        "modified_by", CURRENT_USER_NAME
-                    ),
-                }
-            )
-        if not self.fmeas and "fmea_entries" in data:
-            entries = [
-                FaultTreeNode.from_dict(e) for e in data.get("fmea_entries", [])
-            ]
-            self.fmeas.append(
-                {"name": "Default FMEA", "file": "fmea_default.csv", "entries": entries}
-            )
+        _load_fmeas(self, data)
 
     # ------------------------------------------------------------------
     def show_fmea_list(self) -> None:
         """Display the list of FMEA documents."""
-        app = self.app
-        if self._fmea_tab is not None and self._fmea_tab.winfo_exists():
-            app.doc_nb.select(self._fmea_tab)
-            return
-        self._fmea_tab = app._new_tab("FMEA List")
-        win = self._fmea_tab
-        columns = ("Name", "Created", "Author", "Modified", "ModifiedBy")
-        tree = ttk.Treeview(win, columns=columns, show="headings")
-        for c in columns:
-            tree.heading(c, text=c)
-            width = 150 if c == "Name" else 120
-            tree.column(c, width=width)
-        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        item_map: dict[str, dict] = {}
-        toolbox = getattr(app, "safety_mgmt_toolbox", None)
-        for fmea in self.fmeas:
-            name = fmea.get("name", "")
-            if toolbox and not toolbox.document_visible("FMEA", name):
-                continue
-            iid = tree.insert(
-                "",
-                "end",
-                values=(
-                    name,
-                    fmea.get("created", ""),
-                    fmea.get("author", ""),
-                    fmea.get("modified", ""),
-                    fmea.get("modified_by", ""),
-                ),
-            )
-            item_map[iid] = fmea
-
-        def open_selected(event=None):
-            iid = tree.focus()
-            doc = item_map.get(iid)
-            if not doc:
-                return
-            win.destroy()
-            self._fmea_tab = None
-            app.show_fmea_table(doc)
-
-        def add_fmea():
-            name = simpledialog.askstring("New FMEA", "Enter FMEA name:")
-            if name:
-                file_name = f"fmea_{name}.csv"
-                now = datetime.datetime.now().isoformat()
-                doc = {
-                    "name": name,
-                    "entries": [],
-                    "file": file_name,
-                    "created": now,
-                    "author": CURRENT_USER_NAME,
-                    "modified": now,
-                    "modified_by": CURRENT_USER_NAME,
-                }
-                self.fmeas.append(doc)
-                if hasattr(app, "safety_mgmt_toolbox"):
-                    app.safety_mgmt_toolbox.register_created_work_product(
-                        "FMEA", doc["name"]
-                    )
-                iid = tree.insert(
-                    "",
-                    "end",
-                    values=(name, now, CURRENT_USER_NAME, now, CURRENT_USER_NAME),
-                )
-                item_map[iid] = doc
-                app.update_views()
-
-        def delete_fmea():
-            iid = tree.focus()
-            doc = item_map.get(iid)
-            if not doc:
-                return
-            if toolbox and toolbox.document_read_only("FMEA", doc["name"]):
-                messagebox.showinfo(
-                    "Read-only", "Re-used FMEAs cannot be deleted"
-                )
-                return
-            self.fmeas.remove(doc)
-            if toolbox:
-                toolbox.register_deleted_work_product("FMEA", doc["name"])
-            tree.delete(iid)
-            item_map.pop(iid, None)
-            app.update_views()
-
-        def rename_fmea():
-            iid = tree.focus()
-            doc = item_map.get(iid)
-            if not doc:
-                return
-            if toolbox and toolbox.document_read_only("FMEA", doc["name"]):
-                messagebox.showinfo(
-                    "Read-only", "Re-used FMEAs cannot be renamed"
-                )
-                return
-            current = doc.get("name", "")
-            name = simpledialog.askstring(
-                "Rename FMEA", "Enter new name:", initialvalue=current
-            )
-            if not name:
-                return
-            old = doc["name"]
-            doc["name"] = name
-            if toolbox:
-                toolbox.rename_document("FMEA", old, name)
-            app.touch_doc(doc)
-            tree.item(
-                iid,
-                values=(
-                    name,
-                    doc["created"],
-                    doc["author"],
-                    doc["modified"],
-                    doc["modified_by"],
-                ),
-            )
-            app.update_views()
-
-        tree.bind("<Double-1>", open_selected)
-        btn_frame = ttk.Frame(win)
-        btn_frame.pack(side=tk.RIGHT, fill=tk.Y)
-        ttk.Button(btn_frame, text="Open", command=open_selected).pack(fill=tk.X)
-        ttk.Button(btn_frame, text="Add", command=add_fmea).pack(fill=tk.X)
-        ttk.Button(btn_frame, text="Rename", command=rename_fmea).pack(fill=tk.X)
-        ttk.Button(btn_frame, text="Delete", command=delete_fmea).pack(fill=tk.X)
+        _show_fmea_list(self)
 
     # ------------------------------------------------------------------
     def get_settings_dict(self) -> dict:
-        """Return a serialisable representation of FMEA settings.
-
-        The FMEA subsystem currently does not expose configurable options,
-        but project export expects a settings dictionary.  Providing this
-        method avoids :class:`AttributeError` during export and offers a
-        future extension point for persisting user configuration.
-        """
-
-        return {}
+        """Return a serialisable representation of FMEA settings."""
+        return _get_fmea_settings_dict(self)
 
 class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
     """Facade combining FTA, FMEA and FMEDA behaviours."""
@@ -250,72 +98,19 @@ class SafetyAnalysis_FTA_FMEA(FTASubApp, FMEAService, FMEDAManager):
     # ------------------------------------------------------------------
     def create_fta_diagram(self) -> None:
         """Initialize a new FTA diagram with a single top level event."""
-        self.app._create_fta_tab("FTA")
-        self.app.add_top_level_event()
-        if getattr(self.app, "fta_root_node", None):
-            self.app.window_controllers.open_page_diagram(self.app.fta_root_node)
+        _create_fta_diagram(self)
 
     @staticmethod
     def auto_generate_fta_diagram(fta_model, output_path):
-        return FTASubApp.auto_generate_fta_diagram(fta_model, output_path)
+        return _auto_generate_fta_diagram(fta_model, output_path)
 
     def enable_fta_actions(self, enabled: bool) -> None:
         """Enable or disable FTA-related menu actions on the main app."""
-        if hasattr(self.app, "fta_menu"):
-            state = tk.NORMAL if enabled else tk.DISABLED
-            for key in (
-                "add_gate",
-                "add_basic_event",
-                "add_gate_from_failure_mode",
-                "add_fault_event",
-            ):
-                self.app.fta_menu.entryconfig(self.app._fta_menu_indices[key], state=state)
+        _enable_fta_actions(self, enabled)
 
     def show_cut_sets(self) -> None:
         """Display minimal cut sets for all top level events."""
-        top_events = getattr(self.app, "top_events", [])
-        if not top_events:
-            return
-        win = tk.Toplevel(self.app.root)
-        win.title("FTA Cut Sets")
-        columns = ("Top Event", "Cut Set #", "Basic Events")
-        tree = ttk.Treeview(win, columns=columns, show="headings")
-        for c in columns:
-            tree.heading(c, text=c)
-        tree.pack(fill=tk.BOTH, expand=True)
-
-        for te in top_events:
-            nodes_by_id = {}
-
-            def map_nodes(n):
-                nodes_by_id[n.unique_id] = n
-                for child in n.children:
-                    map_nodes(child)
-
-            map_nodes(te)
-            cut_sets = self.calculate_cut_sets(self.app, te)
-            te_label = te.user_name or f"Top Event {te.unique_id}"
-            for idx, cs in enumerate(cut_sets, start=1):
-                names = ", ".join(
-                    f"{nodes_by_id[uid].user_name or nodes_by_id[uid].node_type} [{uid}]"
-                    for uid in sorted(cs)
-                )
-                tree.insert("", "end", values=(te_label, idx, names))
-                te_label = ""
-
-        def export_csv():
-            path = filedialog.asksaveasfilename(
-                defaultextension=".csv", filetypes=[("CSV", "*.csv")]
-            )
-            if not path:
-                return
-            with open(path, "w", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow(["Top Event", "Cut Set #", "Basic Events"])
-                for iid in tree.get_children():
-                    writer.writerow(tree.item(iid, "values"))
-
-        ttk.Button(win, text="Export CSV", command=export_csv).pack(pady=5)
+        _show_cut_sets(self)
 
     # ------------------------------------------------------------------
     # Delegated helpers used by existing code paths
