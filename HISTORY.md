@@ -23,7 +23,16 @@
           on empty frames.
           - Add regression tests ensuring toolbar buttons remain present and
             functional after detachment.
+          - Cancel CapsuleButton ``after`` callbacks before detaching tabs and
+          ensure no scheduled callbacks fire after detachment. Add grouped
+          tests for after-event cancellation.
+          - Raise cloned widgets before originals are destroyed to preserve
+          stacking order during detachment.
+          - Add regression tests verifying frames, canvases, and toolboxes
+            remain visible after detachment.
 - 0.2.177 - Pack requirements editor frame so requirement list displays with columns.
+          - Serialize STPA documents for model exports and provide unit test coverage.
+          - Pack requirements editor frame so requirement list displays with columns.
           - Safeguard splash launcher against missing version metadata when
            executing bundled binaries.
 - 0.2.176 - Instantiate FTA sub-app helpers to avoid missing attributes during fault tree queries.

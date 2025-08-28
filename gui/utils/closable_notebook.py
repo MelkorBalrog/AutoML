@@ -33,6 +33,7 @@ import typing as t
 import tkinter as tk
 import weakref
 from tkinter import ttk
+from gui.controls.capsule_button import CapsuleButton
 
 logger = logging.getLogger(__name__)
 
@@ -980,7 +981,7 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-        if mapping and clone is not None:
+        if mapping:
             children: list[tk.Widget]
             try:
                 children = list(orig.winfo_children())
@@ -988,8 +989,7 @@ class ClosableNotebook(ttk.Notebook):
                 children = []
             for child_orig in children:
                 clone_child = mapping.get(child_orig)
-                if clone_child is not None:
-                    self._raise_widgets(child_orig, clone_child, mapping)
+                self._raise_widgets(child_orig, clone_child, mapping)
             return
 
         for child in target.winfo_children():
@@ -1019,6 +1019,17 @@ class ClosableNotebook(ttk.Notebook):
         try:
             if not self._move_tab(tab_id, nb):
                 orig = self.nametowidget(tab_id)
+                # Ensure CapsuleButtons cancel their callbacks before cloning
+                def _cancel_capsule_callbacks(widget: tk.Widget) -> None:
+                    if isinstance(widget, CapsuleButton):
+                        try:
+                            widget._cancel_after_callbacks()
+                        except Exception:
+                            pass
+                    for child in widget.winfo_children():
+                        _cancel_capsule_callbacks(child)
+
+                _cancel_capsule_callbacks(orig)
                 cancelled: set[str] = set()
                 for w in [orig, *orig.winfo_children()]:
                     self._cancel_after_events(w, cancelled)
