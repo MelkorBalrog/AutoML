@@ -516,9 +516,20 @@ class ClosableNotebook(ttk.Notebook):
                         child, widget, mapping, layouts, cancelled
                     )
                     mapping[child] = child_clone
+                self._raise_widgets(widget)
                 return widget, mapping, layouts
             except Exception:
-                pass
+                clone = tk.Canvas(parent, **kwargs)
+                mapping[widget] = clone
+                self._copy_widget_config(widget, clone)
+                self._copy_widget_state(widget, clone)
+                for child in self._ordered_children(widget):
+                    child_clone, mapping, layouts = self._clone_widget(
+                        child, clone, mapping, layouts, cancelled
+                    )
+                    mapping[child] = child_clone
+                self._raise_widgets(widget, clone, mapping)
+                return clone, mapping, layouts
 
         try:
             clone = cls(parent, **kwargs)
@@ -540,7 +551,26 @@ class ClosableNotebook(ttk.Notebook):
                 logger.error("Failed to clone descendant %s", child)
                 raise RuntimeError(f"Failed to clone descendant {child}")
             mapping[child] = child_clone
+
+        try:  # Invoke toolbox rebuilds on governance diagram clones
+            from gui.windows.architecture import GovernanceDiagramWindow
+
+            if isinstance(clone, GovernanceDiagramWindow):
+                orig_toolbox = getattr(widget, "toolbox", getattr(widget, "tools_frame", None))
+                clone._rebuild_toolboxes()
+                toolbox = getattr(clone, "toolbox", getattr(clone, "tools_frame", None))
+                if isinstance(toolbox, tk.Widget):
+                    try:
+                        toolbox.pack(side="left")
+                    except Exception:
+                        pass
+                    if isinstance(orig_toolbox, tk.Widget):
+                        mapping[orig_toolbox] = toolbox
+        except Exception:
+            pass
+
         return clone, mapping, layouts
+
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return children of *widget* in geometry-manager order.
@@ -725,6 +755,10 @@ class ClosableNotebook(ttk.Notebook):
                         info[key] = clone_ref
                     else:
                         info.pop(key, None)
+            try:
+                clone.pack_forget()
+            except Exception:
+                pass
             clone.pack(**info)
             try:
                 clone.pack_propagate(widget.pack_propagate())
@@ -755,6 +789,10 @@ class ClosableNotebook(ttk.Notebook):
                         info[key] = clone_ref
                     else:
                         info.pop(key, None)
+            try:
+                clone.grid_forget()
+            except Exception:
+                pass
             clone.grid(**info)
             self._configure_grid_weights(widget, clone)
         except tk.TclError:
@@ -814,6 +852,10 @@ class ClosableNotebook(ttk.Notebook):
                         info[key] = clone_ref
                     else:
                         info.pop(key, None)
+            try:
+                clone.place_forget()
+            except Exception:
+                pass
             clone.place(**info)
         except tk.TclError:
             pass

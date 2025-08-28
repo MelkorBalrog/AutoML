@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.178 - Preserve explorer toolbars when detaching tabs and rebuild actions
+- 0.2.178 - Reparent governance diagram canvases during tab detachment and
+          rebuild toolboxes so detached windows display canvases and toolboxes
+          correctly.
+          - Preserve explorer toolbars when detaching tabs and rebuild actions
           on empty frames.
           - Add regression tests ensuring toolbar buttons remain present and
             functional after detachment.
