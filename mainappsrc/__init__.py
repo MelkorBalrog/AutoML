@@ -38,8 +38,10 @@ _submodule_map = {
     "core.ui_setup": "ui.ui_setup",
     "node_utils": "gui.utils.node_utils",
     "core.node_utils": "gui.utils.node_utils",
-    "fmea_service": "core.fmea_service",
-    "safety_analysis": "core.safety_analysis",
+    "fmea_service": "services.safety_analysis.safety_analysis_service",
+    "core.fmea_service": "services.safety_analysis.safety_analysis_service",
+    "safety_analysis": "services.safety_analysis.safety_analysis_service",
+    "core.safety_analysis": "services.safety_analysis.safety_analysis_service",
     "automl_core": "core.automl_core",
     # Managers
     "cta_manager": "managers.cta_manager",

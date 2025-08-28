@@ -16,28 +16,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Canvas cloning tests ensuring widgets replicate state when detached."""
+"""Tests for background rendering in :class:`ClosableNotebook`."""
 
 import os
-import sys
 import tkinter as tk
+
 import pytest
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-sys.path.append(root_dir)
-sys.path.append(os.path.join(root_dir, "gui", "utils"))
-from closable_notebook import ClosableNotebook
+from gui.utils.closable_notebook import ClosableNotebook
 
 
-def test_canvas_clone_retains_items() -> None:
-    try:
-        root = tk.Tk()
-    except tk.TclError:
-        pytest.skip("Tk not available")
+@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+def test_background_visible_without_tabs():
+    root = tk.Tk()
+    root.withdraw()
     nb = ClosableNotebook(root)
-    canvas = tk.Canvas(nb, width=50, height=50)
-    canvas.create_line(0, 0, 10, 10)
-    clone, _, _ = nb._clone_widget(canvas, nb)
-    assert isinstance(clone, tk.Canvas)
-    assert clone.find_all(), "Cloned canvas lost its items"
+    root.update_idletasks()
+    assert nb._bg_canvas.winfo_ismapped()
+
+    frame = tk.Frame(nb)
+    nb.add(frame, text="T1")
+    root.update_idletasks()
+    assert not nb._bg_canvas.winfo_ismapped()
+
+    nb.forget(frame)
+    root.update_idletasks()
+    assert nb._bg_canvas.winfo_ismapped()
     root.destroy()
