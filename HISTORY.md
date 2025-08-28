@@ -19,13 +19,11 @@
 -->
 
 # Version History
-- 0.2.171 - Consolidate probability and reliability helpers into
-          ``SafetyAnalysisService`` and remove ``probability_reliability``
-          module. Update AnalysisUtils to reference the unified service.
-- 0.2.170 - Consolidate FMEA helpers into ``safety_analysis_service`` for
-          unified safety analysis management and remove ``fmea_service``
-          module.
-          - Show splash-style background in workspace when no tabs are open.
+- 0.2.171 - Split widget reference reassignment into modular helpers
+          ``rewrite_option_references``, ``update_canvas_windows`` and
+          ``rebind_scrollbars``. Reduced cyclomatic complexity of widget
+          cloning (radon ranks C/B) and added targeted regression tests.
+- 0.2.170 - Show splash-style background in workspace when no tabs are open.
           - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets
           vanish.  Add regression test simulating release over a destroyed
