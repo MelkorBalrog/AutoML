@@ -70,6 +70,10 @@ _SERVICE_ATTRS: Dict[str, Tuple[str, str]] = {
         "mainappsrc.services.data_access.data_access_queries_service",
         "DataAccessQueriesService",
     ),
+    "MathService": (
+        "mainappsrc.services.math_service",
+        "MathService",
+    ),
     # Configuration services
     "config_service": (
         "mainappsrc.services.config.config_service",
