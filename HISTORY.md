@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.173 - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
+- 0.2.173 - Delegate ``SafetyAnalysisService`` computations to
+          ``analysis.utils`` for modular safety analysis helpers.
+          - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
           ``safety_analysis_service`` methods.
           - Prevent duplicate Safety Management Explorer instances and prune
           stray explorer widgets during tab detachment.
