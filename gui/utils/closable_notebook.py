@@ -33,8 +33,6 @@ import typing as t
 import tkinter as tk
 import weakref
 from tkinter import ttk
-from PIL import ImageTk
-from gui.utils.backgrounds import generate_workspace_background
 
 logger = logging.getLogger(__name__)
 
@@ -147,11 +145,6 @@ class ClosableNotebook(ttk.Notebook):
         self.bind("<<NotebookTabChanged>>", self._on_tab_changed, True)
         self.bind("<FocusIn>", self._on_focus_in, True)
 
-        self._bg_canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0)
-        self._bg_photo: ImageTk.PhotoImage | None = None
-        self.bind("<Configure>", self._resize_background, add="+")
-        self._update_background()
-
     # ------------------------------------------------------------------
     # Tab management
     # ------------------------------------------------------------------
@@ -176,28 +169,6 @@ class ClosableNotebook(ttk.Notebook):
             self.master.bind("<Destroy>", _forget, add="+")
         else:
             ClosableNotebook._tab_hosts.pop(child, None)
-        self._update_background()
-
-    def forget(self, tab_id: str) -> None:  # type: ignore[override]
-        super().forget(tab_id)
-        self._update_background()
-
-    def _resize_background(self, _event: tk.Event | None = None) -> None:
-        if self.tabs():
-            return
-        w = max(1, self.winfo_width())
-        h = max(1, self.winfo_height())
-        img = generate_workspace_background(w, h)
-        self._bg_photo = ImageTk.PhotoImage(img)
-        self._bg_canvas.delete("all")
-        self._bg_canvas.create_image(0, 0, anchor="nw", image=self._bg_photo)
-
-    def _update_background(self) -> None:
-        if self.tabs():
-            self._bg_canvas.place_forget()
-        else:
-            self._bg_canvas.place(relx=0, rely=0, relwidth=1, relheight=1)
-            self._resize_background()
 
     # ------------------------------------------------------------------
     # Floating window helpers
