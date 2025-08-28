@@ -19,7 +19,14 @@
 -->
 
 # Version History
-- 0.2.180 - Introduce C-based arithmetic API compiled as DLL and expose
+- 0.2.181 - Clone canvas window items recursively so detached tabs preserve
+          embedded widget layouts and content.
+          - Instantiate canvases using their original subclass to avoid
+            option mismatches.
+          - Copy canvas items through a dedicated helper that recreates
+            ``window`` entries with cloned widgets.
+- 0.2.180 - Ensure cloned tabs preserve widget layout and state for all
+          - Introduce C-based arithmetic API compiled as DLL and expose
           MathService using the library. Add regression test validating
           DLL-backed addition.
           - Ensure cloned tabs preserve widget layout and state for all
