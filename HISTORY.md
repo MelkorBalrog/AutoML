@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.196 - Gracefully handle missing ``safety_analysis`` when assigning FMEA
+- 0.2.196 - Refactor tab detachment helpers to reduce complexity and remove
+          duplicate widget pruning logic from `_detach_tab` and
+          `_remove_duplicate_widgets`.
+          - Gracefully handle missing ``safety_analysis`` when assigning FMEA
             data so unit tests can instantiate ``AutoMLApp`` without full
             initialization.
           - Add grouped toolbar detachment tests covering duplicate removal, hover state reset, and click callbacks.
