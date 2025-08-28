@@ -29,7 +29,9 @@ try:  # pragma: no cover - optional heavy dependencies
         messagebox,
         GATE_NODE_TYPES,
     )
-    from .mainappsrc.safety_analysis import SafetyAnalysis_FTA_FMEA
+    from .mainappsrc.services.safety_analysis.safety_analysis_service import (
+        SafetyAnalysis_FTA_FMEA,
+    )
     if __package__ and __package__.startswith("AutoML"):
         from AutoML.config.automl_constants import PMHF_TARGETS
     else:

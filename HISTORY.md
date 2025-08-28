@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.171 - Migrate safety analysis helpers to ``SafetyAnalysisService`` and
+          centralise FMEDA utilities in the service layer.
 - 0.2.170 - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets
           vanish.  Add regression test simulating release over a destroyed
