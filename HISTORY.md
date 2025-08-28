@@ -25,6 +25,45 @@
           expose thin service wrappers.
 - 0.2.173 - Delegate ``SafetyAnalysisService`` computations to
           ``analysis.utils`` for modular safety analysis helpers.
+          - Harden canvas window updates against destroyed widgets and
+          call them only for surviving clones.
+          - Add regression tests detaching canvas tabs with embedded windows
+            to ensure no ``TclError`` occurs.
+          - Guard CapsuleButton callbacks against ``TclError`` after
+          widget destruction and add grouped detachment event tests.
+          - Guard duplicate pruning against missing originals and orphaned
+          clones.
+          - Skip ``winfo_children`` lookups when originals vanish and ignore
+            clones whose parents are absent from the mapping.
+          - Add grouped detachment tests confirming frames, treeviews,
+            canvases and buttons appear only once after detachment.
+          - Guard drag target resolution against ``TclError`` or ``KeyError``
+          and detach tabs safely when widgets vanish.
+          - Update ``_finalize_drag`` to gracefully handle missing targets.
+          - Add regression tests simulating release over destroyed widgets that
+          raise ``TclError``.
+          - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
+          - Delegate ``SafetyAnalysisService`` computations to
+          ``analysis.utils`` for modular safety analysis helpers.
+          - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
+          ``safety_analysis_service`` methods.
+          - Prevent duplicate Safety Management Explorer instances and prune
+          stray explorer widgets during tab detachment.
+          - Compute expected child widgets before pruning and destroy unmapped
+            frames or treeviews.
+          - Check ``_safety_exp_window.winfo_exists`` to avoid multiple
+            explorers in the same tab.
+          - Add detachment tests ensuring only one explorer treeview and icon
+            column exist after opening or detaching the explorer.
+          - Reparent canvases during tab detachment or clone and discard
+          originals after copying item colors and tags. Skip reparented
+          canvases during duplicate pruning and add regression test
+          ensuring detached governance diagrams retain a single
+          interactive canvas.
+          - Rebuild toolboxes and activate parent phase when detaching tabs
+          and ensure detached diagram toolboxes pack left before canvases so
+          buttons remain visible. Add grouped toolbox detachment tests
+          confirming selector visibility and Select tool persistence.
 - 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
           ``safety_analysis_service`` and remove legacy
           ``core.safety_analysis`` module.
@@ -331,6 +370,7 @@
 - 0.2.3 - Moved capsule button into dedicated controls module.
 - 0.2.2 - Moved risk assessment helpers into dedicated sub-app.
 - 0.2.1 - Extracted review diff and version functions into ReviewManager.
+- 0.1.13 - Enhanced after-callback cleanup for detachable tabs and added tests for animated button detachment.
 - 0.1.12 - Delegated reliability and risk-analysis windows to dedicated sub-app wrappers.
 - 0.1.11 - Split fault-tree and risk assessment logic into dedicated sub-app wrappers.
 - 0.1.10 - Centralised constants and moved requirement logic into a RequirementsManager sub-app.
