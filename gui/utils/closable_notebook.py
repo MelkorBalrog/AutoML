@@ -38,69 +38,27 @@ logger = logging.getLogger(__name__)
 
 
 def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) -> None:
-    """Cancel Tk ``after`` callbacks tied to *widget*.
-
-    The function inspects both root-level and widget-specific ``after``
-    callbacks, removing any entries whose command string contains the Tcl path
-    of *widget*.  Command hooks associated with the widget are deleted and
-    attributes ending in ``_anim``, ``_after`` or ``_timer`` are cancelled.  The
-    operation recurses into child widgets so invoking it on a container will
-    clear callbacks for the entire subtree.
-    """
+    """Cancel Tk ``after`` callbacks tied to *widget* and its children."""
 
     if cancelled is None:
         cancelled = set()
 
-    try:
-        root = widget._root()
-        tkapp = getattr(root, "tk", None)
-        if tkapp is not None and getattr(tkapp, "_tclCommands", None) is not None:
-            tcl_name = str(widget)
-            try:
-                info = tkapp.call("after", "info")
-            except Exception:
-                info = ()
-            if isinstance(info, str):
-                info = tkapp.splitlist(info)
-            for i in range(0, len(info), 2):
-                ident = info[i]
-                script = info[i + 1] if i + 1 < len(info) else ""
-                if ident in cancelled:
-                    continue
-                if tcl_name in str(script):
-                    try:
-                        root.after_cancel(ident)
-                    except Exception:
-                        pass
-                    else:
-                        cancelled.add(ident)
-            try:
-                widget_ids = tkapp.call("after", "info", tcl_name)
-            except Exception:
-                widget_ids = []
-            if isinstance(widget_ids, str):
-                widget_ids = [widget_ids]
-            for ident in widget_ids:
-                if ident in cancelled:
-                    continue
+    tkapp = getattr(widget, "tk", None)
+    if tkapp is not None:
+        try:
+            widget_ids = tkapp.call("after", "info", str(widget))
+        except Exception:
+            widget_ids = ()
+        if isinstance(widget_ids, str):
+            widget_ids = (widget_ids,)
+        for ident in widget_ids:
+            if ident and ident not in cancelled:
                 try:
                     widget.after_cancel(ident)
                 except Exception:
                     pass
                 else:
                     cancelled.add(ident)
-            try:
-                commands = getattr(tkapp, "_tclCommands", None) or []
-                for cmd in list(commands):
-                    if tcl_name in cmd:
-                        try:
-                            tkapp.deletecommand(cmd)
-                        except Exception:
-                            pass
-            except Exception:
-                pass
-    except Exception:
-        pass
 
     try:
         for name in dir(widget):
