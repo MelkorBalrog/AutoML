@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.174 - Harden canvas window updates against destroyed widgets and
+- 0.2.174 - Move FMEA and FTA implementation into ``analysis.utils`` and
+          expose thin service wrappers.
+- 0.2.173 - Delegate ``SafetyAnalysisService`` computations to
+          ``analysis.utils`` for modular safety analysis helpers.
+          - Harden canvas window updates against destroyed widgets and
           call them only for surviving clones.
           - Add regression tests detaching canvas tabs with embedded windows
             to ensure no ``TclError`` occurs.
@@ -36,7 +40,7 @@
           - Update ``_finalize_drag`` to gracefully handle missing targets.
           - Add regression tests simulating release over destroyed widgets that
           raise ``TclError``.
-- 0.2.173 - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
+          - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
           - Delegate ``SafetyAnalysisService`` computations to
           ``analysis.utils`` for modular safety analysis helpers.
           - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
