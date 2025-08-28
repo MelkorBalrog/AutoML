@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.180 - Parse ``after info`` pairs to cancel callbacks referencing widget
+- 0.2.180 - Ensure cloned tabs preserve widget layout and state for all
+          descendants. Added grouped tests verifying that labels, buttons,
+          tree views, canvases, and toolboxes retain identical data after
+          detachment.
+          - Parse ``after info`` pairs to cancel callbacks referencing widget
           paths and expose a reusable ``cancel_after_events`` helper.
           - Invoke the cleanup for every widget during tab detachment and when
             destroying ``CapsuleButton`` instances.
