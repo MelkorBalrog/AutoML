@@ -625,8 +625,10 @@ class ClosableNotebook(ttk.Notebook):
         except Exception as exc:  # pragma: no cover - log and continue
             logger.exception("Failed to copy config for %s: %s", widget, exc)
         self._copy_widget_state(widget, clone)
+        self._copy_widget_bindings(widget, clone)
         if isinstance(widget, (tk.Button, ttk.Button)):
             self._rebind_button_command(widget, clone, mapping)
+            self.rewrite_option_references(mapping)
         for child in self._ordered_children(widget):
             try:
                 child_clone, mapping, layouts = self._clone_widget(
