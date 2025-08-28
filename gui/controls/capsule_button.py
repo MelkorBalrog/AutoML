@@ -523,10 +523,7 @@ class CapsuleButton(tk.Canvas):
         if not self.winfo_exists():
             return
         for item in self._shape_items:
-            try:
-                self.itemconfigure(item, fill=color)
-            except tk.TclError:
-                pass
+            self._safe_itemconfigure(item, fill=color)
         inner = _darken(color, 0.7)
         dark = _darken(color, 0.8)
         light = _lighten(color, 1.2)
@@ -551,12 +548,25 @@ class CapsuleButton(tk.Canvas):
         for item in items:
             item_type = self.type(item)
             option = "fill" if item_type == "line" else "outline"
-            try:
-                self.itemconfigure(item, **{option: color})
-            except tk.TclError:
+            if not self._safe_itemconfigure(item, **{option: color}):
                 # ``outline`` is not supported by some item types (e.g. text),
                 # so retry with ``fill`` to avoid crashes.
-                self.itemconfigure(item, fill=color)
+                self._safe_itemconfigure(item, fill=color)
+
+    def _safe_itemconfigure(self, item: int, **kwargs) -> bool:
+        """Safely configure canvas items.
+
+        Returns ``True`` if the configuration succeeded, ``False`` otherwise.
+        Any ``TclError`` raised because the widget or item no longer exists is
+        silently ignored.
+        """
+        if not self.winfo_exists():
+            return False
+        try:
+            self.itemconfigure(item, **kwargs)
+        except tk.TclError:
+            return False
+        return True
 
     def _get_glow_image(self) -> tk.PhotoImage:
         """Return a cached glowing version of the current image."""
@@ -568,7 +578,7 @@ class CapsuleButton(tk.Canvas):
 
     def _add_glow(self) -> None:
         """Lighten the button edges without covering the surface."""
-        if self._glow_items:
+        if self._glow_items or not self.winfo_exists():
             return
         w, h = int(self["width"]), int(self["height"])
         r = self._radius
@@ -602,14 +612,22 @@ class CapsuleButton(tk.Canvas):
             self.tag_raise(self._text_item)
 
     def _remove_glow(self) -> None:
+        if not self.winfo_exists():
+            self._glow_items = []
+            return
         for item in self._glow_items:
-            self.delete(item)
+            try:
+                self.delete(item)
+            except tk.TclError:
+                pass
         self._glow_items = []
 
     def _toggle_shine(self, visible: bool) -> None:
+        if not self.winfo_exists():
+            return
         state = tk.NORMAL if visible else tk.HIDDEN
         for item in self._shine_items + self._shade_items:
-            self.itemconfigure(item, state=state)
+            self._safe_itemconfigure(item, state=state)
 
     def _on_motion(self, event: tk.Event) -> None:
         if "disabled" in self._state or not self.winfo_exists():
@@ -628,24 +646,15 @@ class CapsuleButton(tk.Canvas):
                 and self._current_image is self._image
             ):
                 glow = self._get_glow_image()
-                if glow:
-                    try:
-                        self.itemconfigure(self._image_item, image=glow)
-                    except tk.TclError:
-                        pass
-                    else:
-                        self._current_image = glow
+                if glow and self._safe_itemconfigure(self._image_item, image=glow):
+                    self._current_image = glow
             self._add_glow()
             self._set_gradient(self._hover_gradient)
         else:
             if self._current_color != self._normal_color:
                 self._set_color(self._normal_color)
             if self._image_item and self._current_image is not self._image:
-                try:
-                    self.itemconfigure(self._image_item, image=self._image)
-                except tk.TclError:
-                    pass
-                else:
+                if self._safe_itemconfigure(self._image_item, image=self._image):
                     self._current_image = self._image
             self._remove_glow()
             self._set_gradient(self._normal_gradient)
@@ -655,13 +664,8 @@ class CapsuleButton(tk.Canvas):
             self._set_color(self._hover_color)
             if self._image_item and self._image:
                 glow = self._get_glow_image()
-                if glow:
-                    try:
-                        self.itemconfigure(self._image_item, image=glow)
-                    except tk.TclError:
-                        pass
-                    else:
-                        self._current_image = glow
+                if glow and self._safe_itemconfigure(self._image_item, image=glow):
+                    self._current_image = glow
             self._add_glow()
             self._set_gradient(self._hover_gradient)
 
@@ -669,26 +673,25 @@ class CapsuleButton(tk.Canvas):
         if "disabled" not in self._state and self.winfo_exists():
             self._set_color(self._normal_color)
             if self._image_item and self._current_image is not self._image:
-                try:
-                    self.itemconfigure(self._image_item, image=self._image)
-                except tk.TclError:
-                    pass
-                else:
+                if self._safe_itemconfigure(self._image_item, image=self._image):
                     self._current_image = self._image
             self._remove_glow()
             self._set_gradient(self._normal_gradient)
 
     def _on_press(self, _event: tk.Event) -> None:
-        if "disabled" not in self._state:
+        if "disabled" not in self._state and self.winfo_exists():
             self._remove_glow()
             self._toggle_shine(False)
             self._set_color(self._pressed_color)
             self._set_gradient(self._normal_gradient)
 
     def _on_release(self, event: tk.Event) -> None:
-        if "disabled" in self._state:
+        if "disabled" in self._state or not self.winfo_exists():
             return
-        w, h = int(self["width"]), int(self["height"])
+        try:
+            w, h = int(self["width"]), int(self["height"])
+        except tk.TclError:
+            return
         inside = 0 <= event.x < w and 0 <= event.y < h
         if inside:
             self._set_color(self._hover_color)

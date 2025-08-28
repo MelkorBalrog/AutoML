@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.174 - Guard duplicate pruning against missing originals and orphaned
+- 0.2.174 - Guard CapsuleButton callbacks against ``TclError`` after
+          widget destruction and add grouped detachment event tests.
+          - Guard duplicate pruning against missing originals and orphaned
           clones.
           - Skip ``winfo_children`` lookups when originals vanish and ignore
             clones whose parents are absent from the mapping.
