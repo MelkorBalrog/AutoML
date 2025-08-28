@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.170 - Record geometry manager and options before cloning widgets and
+          restore layouts for every descendant when detaching tabs.
+          Refine duplicate pruning to compare parent/child relationships and
+          add nested layout tests covering frames, labels, canvases and
+          treeviews.
 - 0.2.169 - Prune only widgets that duplicate original parent/child relationships,
           ensure all cloned descendants register in the mapping and add layout
           tests verifying frame, label, canvas and treeview retention after
