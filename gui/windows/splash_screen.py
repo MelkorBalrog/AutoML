@@ -117,6 +117,11 @@ class SplashScreen(tk.Toplevel):
             font=("Helvetica", 9),
             fill="white",
         )
+        # Track scheduled callbacks so they can be cancelled on close
+        self._anim_after = None
+        self._fade_in_after = None
+        self._fade_out_after = None
+        self._close_after = None
         # Start animation and fade-in effect
         self._anim_after = self.after(10, self._animate)
         self._fade_in_after = self.after(10, self._fade_in)
@@ -489,6 +494,19 @@ class SplashScreen(tk.Toplevel):
 
     def _close(self):
         """Destroy splash screen and accompanying shadow window."""
+        for handle_name in (
+            "_anim_after",
+            "_fade_in_after",
+            "_fade_out_after",
+            "_close_after",
+        ):
+            handle = getattr(self, handle_name, None)
+            if handle:
+                try:
+                    self.after_cancel(handle)
+                except Exception:
+                    pass
+                setattr(self, handle_name, None)
         try:
             self.shadow.destroy()
         except Exception:

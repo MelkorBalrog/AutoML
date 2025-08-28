@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.206 - Cancel pending ``after`` callbacks recursively and discard Tk
+- 0.2.206 - Cancel splash screen callbacks before destroying the Tk root to
+           prevent `Tcl_AsyncDelete` errors on shutdown.
+          - Cancel pending ``after`` callbacks recursively and discard Tk
           command names so destroying roots raises no AttributeError and
           detached canvas items remain selectable.
 - 0.2.205 - Launch AutoML core through service manager and allow non-daemon
