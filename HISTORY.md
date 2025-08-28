@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.171 - Remove splash-style workspace background and its tests.
+- 0.2.170 - Show splash-style background in workspace when no tabs are open.
 - 0.2.169 - Prune only widgets that duplicate original parent/child relationships,
           ensure all cloned descendants register in the mapping and add layout
           tests verifying frame, label, canvas and treeview retention after
