@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.169 - Prune only widgets that duplicate original parent/child relationships,
+          ensure all cloned descendants register in the mapping and add layout
+          tests verifying frame, label, canvas and treeview retention after
+          detachment.
 - 0.2.168 - Accumulate children from all geometry managers so every widget
           in a tab transfers to the detached window.
 - 0.2.167 - Clone children managed by grid/place so all tab contents appear in

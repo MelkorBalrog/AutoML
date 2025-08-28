@@ -473,10 +473,9 @@ class ClosableNotebook(ttk.Notebook):
             try:
                 child_clone, mapping = self._clone_widget(child, clone, mapping)
             except Exception as exc:
-                logger.error("Failed to clone child %s: %s", child, exc)
-            else:
-                if child not in mapping:
-                    logger.error("Child %s was not added to mapping", child)
+                logger.exception("Failed to clone child %s: %s", child, exc)
+                raise
+            mapping.setdefault(child, child_clone)
         return clone, mapping
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
@@ -1080,35 +1079,28 @@ class ClosableNotebook(ttk.Notebook):
         nb: ttk.Notebook,
         mapping: dict[tk.Widget, tk.Widget],
     ) -> None:
-        """Remove widgets that were inadvertently duplicated during cloning."""
+        """Remove widgets that duplicate originals based on parent/child relationships."""
 
         keep = {str(win), str(nb)} | {str(w) for w in mapping.values()}
-        inverse = {clone: orig for orig, clone in mapping.items()}
+        expected: dict[tk.Widget, set[str]] = {}
+        for orig, clone in mapping.items():
+            parent_clone = mapping.get(orig.master)
+            if parent_clone is not None:
+                expected.setdefault(parent_clone, set()).add(clone.winfo_name())
 
-        def prune(clone: tk.Widget) -> None:
-            """Recursively destroy widgets not present in the original tree."""
-
-            orig = inverse.get(clone)
-            try:
-                expected = (
-                    {mapping[c] for c in orig.winfo_children() if c in mapping}
-                    if orig and orig.winfo_exists()
-                    else set()
-                )
-            except tk.TclError:
-                expected = set()
-
-            for child in list(clone.winfo_children()):
+        def prune(parent: tk.Widget) -> None:
+            for child in list(parent.winfo_children()):
                 prune(child)
-                if child not in expected and str(child) not in keep:
+                if str(child) in keep:
+                    continue
+                names = expected.get(parent, set())
+                if child.winfo_name() in names:
                     try:
                         child.destroy()
                     except Exception:
                         pass
 
-        roots = [win]
-        for root in roots:
-            prune(root)
+        prune(win)
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
