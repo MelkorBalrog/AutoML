@@ -17,9 +17,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import importlib
+import builtins
 import sys
-from types import ModuleType
-import types
+
+import tools.splash_launcher as splash_module
 
 
 class TestSplashLauncher:
@@ -29,7 +30,24 @@ class TestSplashLauncher:
         dummy = importlib.import_module("tests.dummy_module")
         dummy.called["main"] = False
 
-        launcher = SplashLauncher(module_name="tests.dummy_module")
+        launcher = splash_module.SplashLauncher(module_name="tests.dummy_module")
         launcher.launch()
 
         assert dummy.called["main"] is True
+
+    def test_version_fallback(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "mainappsrc", None)
+        monkeypatch.setitem(sys.modules, "mainappsrc.version", None)
+
+        real_import = builtins.__import__
+
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "mainappsrc.version":
+                raise ModuleNotFoundError
+            return real_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+
+        importlib.reload(splash_module)
+
+        assert splash_module.VERSION == "0.0.0"
