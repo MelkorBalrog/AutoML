@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.171 - Compute expected child relationships from clone mapping before duplicate
+          pruning and avoid `winfo_children` calls on destroyed widgets.
+          - Ensure `_clone_widget` registers every descendant in the mapping and
+            raise when cloning fails so pruning has complete information.
+          - Add grouped layout tests verifying buttons, canvases, toolboxes and
+            scrollbars appear exactly once after detachment.
 - 0.2.170 - Show splash-style background in workspace when no tabs are open.
           - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets
