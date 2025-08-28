@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.170 - Record geometry manager and options before cloning widgets and
+- 0.2.170 - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
+          during drag target resolution and detach tabs safely when widgets
+          vanish.  Add regression test simulating release over a destroyed
+          widget.
+          - Record geometry manager and options before cloning widgets and
           restore layouts for every descendant when detaching tabs.
           Refine duplicate pruning to compare parent/child relationships and
           add nested layout tests covering frames, labels, canvases and
