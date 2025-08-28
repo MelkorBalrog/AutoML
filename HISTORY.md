@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.206 - Cancel pending ``after`` callbacks recursively and discard Tk
+          command names so destroying roots raises no AttributeError and
+          detached canvas items remain selectable.
 - 0.2.205 - Launch AutoML core through service manager and allow non-daemon
            service threads with join support.
 - 0.2.204 - Introduce threaded service manager to lazily load services,
