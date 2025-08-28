@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.171 - Guard ``nametowidget`` lookups in Treeview hover handlers so
+          detached tabs emit no ``KeyError`` or ``TclError`` when moving the
+          cursor across tree items.  Add regression test covering detached
+          hover behaviour.
 - 0.2.170 - Show splash-style background in workspace when no tabs are open.
           - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets

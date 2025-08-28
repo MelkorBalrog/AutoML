@@ -267,7 +267,10 @@ def enable_listbox_hover_highlight(root: tk.Misc) -> None:
     def _tv_on_motion(event: tk.Event) -> None:
         tree_widget = event.widget
         if isinstance(tree_widget, str):
-            tree_widget = root.nametowidget(tree_widget)
+            try:
+                tree_widget = root.nametowidget(tree_widget)
+            except (KeyError, tk.TclError):
+                return
         tree: ttk.Treeview = tree_widget  # type: ignore[assignment]
         item = tree.identify_row(event.y)
         prev = getattr(tree, "_hover_item", None)
@@ -295,7 +298,10 @@ def enable_listbox_hover_highlight(root: tk.Misc) -> None:
     def _tv_on_leave(event: tk.Event) -> None:
         tree_widget = event.widget
         if isinstance(tree_widget, str):
-            tree_widget = root.nametowidget(tree_widget)
+            try:
+                tree_widget = root.nametowidget(tree_widget)
+            except (KeyError, tk.TclError):
+                return
         tree: ttk.Treeview = tree_widget  # type: ignore[assignment]
         prev = getattr(tree, "_hover_item", None)
         if prev and tree.exists(prev):
