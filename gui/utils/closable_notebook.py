@@ -32,6 +32,7 @@ import logging
 import typing as t
 import tkinter as tk
 import weakref
+import functools
 from tkinter import ttk
 
 logger = logging.getLogger(__name__)
@@ -600,6 +601,7 @@ class ClosableNotebook(ttk.Notebook):
                     )
                     mapping[child] = child_clone
             self._copy_widget_state(widget, clone)
+            self._copy_widget_bindings(widget, clone)
             self._copy_widget_layout(widget, clone, mapping, layouts)
             try:
                 self._cancel_after_events(widget)
@@ -623,6 +625,8 @@ class ClosableNotebook(ttk.Notebook):
         except Exception as exc:  # pragma: no cover - log and continue
             logger.exception("Failed to copy config for %s: %s", widget, exc)
         self._copy_widget_state(widget, clone)
+        if isinstance(widget, (tk.Button, ttk.Button)):
+            self._rebind_button_command(widget, clone, mapping)
         for child in self._ordered_children(widget):
             try:
                 child_clone, mapping, layouts = self._clone_widget(
@@ -655,6 +659,55 @@ class ClosableNotebook(ttk.Notebook):
             pass
 
         return clone, mapping, layouts
+
+
+    def _rebind_button_command(
+        self,
+        widget: tk.Widget,
+        clone: tk.Widget,
+        mapping: dict[tk.Widget, tk.Widget],
+    ) -> None:
+        """Rebind button commands to cloned widgets or containers."""
+
+        try:
+            cmd = clone.cget("command")
+        except Exception:
+            return
+        if not cmd:
+            return
+        target = getattr(cmd, "__self__", None)
+        if target is widget:
+            try:
+                clone.configure(command=getattr(clone, cmd.__name__))
+            except Exception:
+                return
+            return
+        if target in mapping:
+            try:
+                clone.configure(command=getattr(mapping[target], cmd.__name__))
+            except Exception:
+                return
+            return
+        if isinstance(cmd, functools.partial):
+            args = list(cmd.args)
+            kwargs = dict(cmd.keywords or {})
+            replaced = False
+            for i, arg in enumerate(args):
+                if arg is widget:
+                    args[i] = clone
+                    replaced = True
+                elif arg in mapping:
+                    args[i] = mapping[arg]
+                    replaced = True
+            for key, val in list(kwargs.items()):
+                if val is widget:
+                    kwargs[key] = clone
+                    replaced = True
+                elif val in mapping:
+                    kwargs[key] = mapping[val]
+                    replaced = True
+            if replaced:
+                clone.configure(command=functools.partial(cmd.func, *args, **kwargs))
 
 
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
@@ -883,22 +936,32 @@ class ClosableNotebook(ttk.Notebook):
                     clone.configure(scrollregion=widget.cget("scrollregion"))
                 except Exception:
                     pass
-                try:
-                    sequences = widget.tk.call("bind", widget._w).split()
-                    for seq in sequences:
-                        cmd = widget.bind(seq)
-                        if cmd:
-                            clone.bind(seq, cmd)
-                except Exception:
-                    pass
-                if widget.__class__.__name__ == "CapsuleButton":
-                    try:
-                        clone.bind("<Enter>", getattr(clone, "_on_enter"))
-                        clone.bind("<Leave>", getattr(clone, "_on_leave"))
-                    except Exception:
-                        pass
         except Exception:
             pass
+
+    def _copy_widget_bindings(self, widget: tk.Widget, clone: tk.Widget) -> None:
+        """Replicate event bindings and tags from *widget* to *clone*."""
+        try:
+            clone.bindtags(widget.bindtags())
+        except Exception:
+            pass
+        try:
+            sequences = widget.tk.call("bind", widget._w).split()
+        except Exception:
+            sequences = []
+        for seq in sequences:
+            try:
+                cmd = widget.bind(seq)
+                if cmd:
+                    clone.bind(seq, cmd)
+            except Exception:
+                continue
+        if widget.__class__.__name__ == "CapsuleButton":
+            try:
+                clone.bind("<Enter>", getattr(clone, "_on_enter"))
+                clone.bind("<Leave>", getattr(clone, "_on_leave"))
+            except Exception:
+                pass
 
     def _copy_widget_layout(
         self,
@@ -1484,7 +1547,6 @@ class ClosableNotebook(ttk.Notebook):
         self, mapping: dict[tk.Widget, tk.Widget]
     ) -> tuple[dict[tk.Widget, set[str]], set[tk.Widget]]:
         """Return expected child names for each cloned parent."""
-
         expected: dict[tk.Widget, set[str]] = {}
         reparented: set[tk.Widget] = set()
         for orig, clone in mapping.items():

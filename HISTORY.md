@@ -22,6 +22,22 @@
 - 0.2.196 - Refactor tab detachment helpers to reduce complexity and remove
           duplicate widget pruning logic from `_detach_tab` and
           `_remove_duplicate_widgets`.
+          - Gracefully handle missing ``safety_analysis`` when assigning FMEA
+            data so unit tests can instantiate ``AutoMLApp`` without full
+            initialization.
+          - Add grouped toolbar detachment tests covering duplicate removal, hover state reset, and click callbacks.
+          - Rebind toolbar button callbacks to cloned widgets during detachment.
+          - Add integration test ensuring detached toolbar buttons trigger container methods.
+          - Preserve hover bindings when cloning widgets.
+          - Replicate `<Enter>`/`<Leave>` events and `bindtags` during widget
+            cloning so hover state resets correctly.
+          - Add grouped regression tests verifying standard Button hover state
+            normalises after detachment.
+          - Clone toolbar frames during tab detachment, removing originals and
+          rebinding button command and hover events so detached toolbars remain
+          functional.
+          - Add grouped regression tests ensuring a single toolbar row exists
+            after detachment and toolbar buttons still invoke callbacks.
 - 0.2.195 - Introduce generic DLL bridge calling Python services.
           - Expose automl_core functions through a dynamic library and add regression tests invoking standard library functions via the bridge.
           - Cancel Tk ``after`` callbacks using direct Tcl calls to avoid
