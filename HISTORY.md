@@ -19,10 +19,6 @@
 -->
 
 # Version History
-- 0.2.174 - Remove stale `<Configure>` binding referencing missing background resize
-          handler in `ClosableNotebook` to prevent `AttributeError` during
-          initialization and resizing. Add regression test ensuring notebooks
-          create and resize without errors.
 - 0.2.173 - Display splash-style background in document area when no tabs are open.
 - 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
           ``safety_analysis_service`` and remove legacy
