@@ -19,7 +19,14 @@
 -->
 
 # Version History
-- 0.2.171 - Guard ``nametowidget`` lookups in Treeview hover handlers so
+- 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
+          ``safety_analysis_service`` and remove legacy
+          ``core.safety_analysis`` module.
+- 0.2.171 - Consolidate FMEA helpers into ``safety_analysis_service`` for
+          unified safety analysis management and remove ``fmea_service``
+          module.
+          - Show splash-style background in workspace when no tabs are open.
+          - Guard ``nametowidget`` lookups in Treeview hover handlers so
           detached tabs emit no ``KeyError`` or ``TclError`` when moving the
           cursor across tree items.  Add regression test covering detached
           hover behaviour.
