@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.182 - Copy canvas tag bindings when detaching tabs so selection events
+- 0.2.182 - Rebind CapsuleButton `<Enter>`/`<Leave>` events when cloning
+          detached tabs to preserve hover behaviour.
+          - Add grouped tests exercising hover callbacks on detached buttons.
+          - Copy canvas tag bindings when detaching tabs so selection events
           like ``<Button-1>`` remain active on cloned diagrams. Added
           regression test ensuring nodes in detached canvases stay
           selectable.
