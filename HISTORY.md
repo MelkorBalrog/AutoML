@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.182 - Skip canvas item copying for self-drawing canvases to prevent
+- 0.2.182 - Replicate canvas tag bindings when cloning detached tabs so diagram items
+          retain double-click handlers.
+          - Add tests verifying diagram item double-click callbacks remain
+            functional after detachment.
+          - Skip canvas item copying for self-drawing canvases to prevent
           duplicate elements when detaching widgets like ``CapsuleButton``.
           - Added regression tests ensuring cloned CapsuleButton widgets render
           a single image and text.
