@@ -55,6 +55,7 @@ class TestToolbarImageReattach:
         clone_tab = nb2.tabs()[0]
         frame_clone = nb2.nametowidget(clone_tab)
         btn_clone = next(c for c in frame_clone.winfo_children() if isinstance(c, tk.Button))
+        assert " " not in btn_clone.cget("image")
         nb2._move_tab(clone_tab, self.nb)
         new_name = btn_clone.cget("image")
         assert new_name != self.orig_name
