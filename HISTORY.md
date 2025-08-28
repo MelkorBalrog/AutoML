@@ -19,6 +19,14 @@
 -->
 
 # Version History
+- 0.2.196 - Guard toolbar frame lookup against destroyed widgets so tab
+          detachment skips invalid paths without raising ``TclError``.
+- 0.2.195 - Cancel Tk ``after`` callbacks using direct Tcl calls to avoid
+          AttributeError during root destruction and copy widget images with
+          preserved dimensions to prevent duplicated button icons when detaching
+          tabs.
+          - Add regression tests ensuring toolbar images remain singular and
+            destroying the root raises no AttributeError after detachment.
 - 0.2.194 - Clone widgets using keyword configuration to respect CapsuleButton's
           signature and preserve options like cursor.
           - Add regression test ensuring cursor configuration copies correctly.
