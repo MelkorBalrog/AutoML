@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.179 - Safeguard CapsuleButton canvas operations against detached widget
+          errors by checking widget existence and cancelling animation
+          callbacks on destruction.  Add regression tests for detached-tab
+          hover and destroy interactions.
 - 0.2.178 - Reparent governance diagram canvases during tab detachment and
           rebuild toolboxes so detached windows display canvases and toolboxes
           correctly.
