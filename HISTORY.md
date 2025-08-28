@@ -344,6 +344,7 @@
 - 0.2.3 - Moved capsule button into dedicated controls module.
 - 0.2.2 - Moved risk assessment helpers into dedicated sub-app.
 - 0.2.1 - Extracted review diff and version functions into ReviewManager.
+- 0.1.13 - Enhanced after-callback cleanup for detachable tabs and added tests for animated button detachment.
 - 0.1.12 - Delegated reliability and risk-analysis windows to dedicated sub-app wrappers.
 - 0.1.11 - Split fault-tree and risk assessment logic into dedicated sub-app wrappers.
 - 0.1.10 - Centralised constants and moved requirement logic into a RequirementsManager sub-app.
