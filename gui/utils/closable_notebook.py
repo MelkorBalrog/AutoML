@@ -698,8 +698,27 @@ class ClosableNotebook(ttk.Notebook):
                 )
             else:
                 creator = getattr(clone, f"create_{item_type}")
-                new_item = creator(*coords)
+                if item_type == "image":
+                    img_name = widget.itemcget(item, "image")
+                    new_img = None
+                    if img_name:
+                        try:
+                            new_img = tk.PhotoImage(master=clone)
+                            new_img.tk.call(new_img, "copy", img_name)
+                        except Exception:
+                            new_img = img_name
+                        else:
+                            refs = getattr(clone, "_img_refs", None)
+                            if refs is None:
+                                refs = []
+                                setattr(clone, "_img_refs", refs)
+                            refs.append(new_img)
+                    new_item = creator(*coords, image=new_img or img_name)
+                else:
+                    new_item = creator(*coords)
                 for key, val in opts.items():
+                    if key == "image" and item_type == "image":
+                        continue
                     if isinstance(val, tuple) and len(val) >= 5:
                         clone.itemconfig(new_item, {key: val[4]})
                     elif isinstance(val, str):
@@ -778,13 +797,33 @@ class ClosableNotebook(ttk.Notebook):
 
     def _copy_widget_config(self, widget: tk.Widget, clone: tk.Widget) -> None:
         try:
-            for opt in widget.configure():
-                try:
-                    clone.configure({opt: widget.cget(opt)})
-                except tk.TclError:
-                    continue
+            config = widget.configure()
         except Exception:
-            pass
+            return
+
+        # Preserve standard options while handling image attributes separately
+        for opt in config:
+            if opt == "image":
+                continue
+            try:
+                clone.configure({opt: widget.cget(opt)})
+            except tk.TclError:
+                continue
+
+        # Widgets using images should receive a unique copy of the PhotoImage
+        if "image" in config or "compound" in config:
+            try:
+                img_name = widget.cget("image")
+            except Exception:
+                img_name = ""
+            if img_name:
+                try:
+                    new_img = tk.PhotoImage(master=clone)
+                    new_img.tk.call(new_img, "copy", img_name)
+                    clone.configure(image=new_img)
+                    clone.image = new_img  # keep reference
+                except Exception:
+                    pass
 
     def _copy_widget_state(self, widget: tk.Widget, clone: tk.Widget) -> None:
         """Copy widget-specific state such as text contents."""
@@ -983,12 +1022,26 @@ class ClosableNotebook(ttk.Notebook):
     ) -> None:
         """Recursively copy a tree item from *src* to *dst*."""
         try:
+            img = src.item(item, "image")
+            new_img = None
+            if img:
+                try:
+                    new_img = tk.PhotoImage(master=dst)
+                    new_img.tk.call(new_img, "copy", img)
+                except Exception:
+                    new_img = img
+                else:
+                    refs = getattr(dst, "_img_refs", None)
+                    if refs is None:
+                        refs = []
+                        setattr(dst, "_img_refs", refs)
+                    refs.append(new_img)
             new_id = dst.insert(
                 parent,
                 "end",
                 text=src.item(item, "text"),
                 values=src.item(item, "values"),
-                image=src.item(item, "image"),
+                image=new_img or img,
                 open=src.item(item, "open"),
             )
             for child in src.get_children(item):

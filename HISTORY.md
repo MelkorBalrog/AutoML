@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.184 - Create dedicated ``PhotoImage`` copies when detaching tabs to avoid
+          shared Tk handles on reattached widgets.
+          - Add regression test verifying toolbar button images keep size after
+            detaching and reattaching.
 - 0.2.183 - Avoid duplicate canvas images when detaching tabs by copying
           items explicitly instead of using ``tk::canvas copy``.
           - Add grouped regression test ensuring canvas clones contain
