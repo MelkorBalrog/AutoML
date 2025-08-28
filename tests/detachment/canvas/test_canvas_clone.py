@@ -37,7 +37,7 @@ def test_canvas_clone_retains_items() -> None:
     nb = ClosableNotebook(root)
     canvas = tk.Canvas(nb, width=50, height=50)
     canvas.create_line(0, 0, 10, 10)
-    clone, _ = nb._clone_widget(canvas, nb)
+    clone, _, _ = nb._clone_widget(canvas, nb)
     assert isinstance(clone, tk.Canvas)
     assert clone.find_all(), "Cloned canvas lost its items"
     root.destroy()
