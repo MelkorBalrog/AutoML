@@ -19,7 +19,14 @@
 -->
 
 # Version History
-- 0.2.179 - Safeguard CapsuleButton canvas operations against detached widget
+- 0.2.179 - Rebuild and activate governance toolboxes when detaching tabs so
+          detached governance diagrams display the toolbox selector and remain
+          interactive.
+          - Invoke ``_switch_toolbox`` on detached governance clones and pack
+            the toolbox frame before raising widgets.
+          - Add grouped regression tests ensuring toolbox selectors stay
+            functional after detachment.
+          - Safeguard CapsuleButton canvas operations against detached widget
           errors by checking widget existence and cancelling animation
           callbacks on destruction.  Add regression tests for detached-tab
           hover and destroy interactions.

@@ -1111,17 +1111,38 @@ class ClosableNotebook(ttk.Notebook):
                 toolbox_canvas_clone = mapping.get(toolbox_canvas_orig) if mapping else None
                 toolbox_orig = getattr(orig, "toolbox", None)
                 toolbox_clone = mapping.get(toolbox_orig) if mapping else None
-                if isinstance(toolbox_clone, tk.Widget):
-                    try:
-                        toolbox_clone.pack(side="left")
-                    except Exception:
-                        pass
-                roots = {}
+                roots: dict[tk.Widget, tk.Widget] = {}
                 if (
                     isinstance(toolbox_canvas_orig, tk.Widget)
                     and isinstance(toolbox_canvas_clone, tk.Widget)
                 ):
                     roots[toolbox_canvas_orig] = toolbox_canvas_clone
+
+                try:  # Lazy import to avoid heavy dependency during module load
+                    from gui.windows.architecture import GovernanceDiagramWindow
+                except Exception:  # pragma: no cover - import errors are non-fatal
+                    GovernanceDiagramWindow = None  # type: ignore
+
+                if GovernanceDiagramWindow and isinstance(new_widget, GovernanceDiagramWindow):
+                    for name in ("_rebuild_toolboxes", "_switch_toolbox"):
+                        func = getattr(new_widget, name, None)
+                        if callable(func):
+                            try:
+                                func()
+                            except Exception:
+                                pass
+                    frame = getattr(new_widget, "toolbox", getattr(new_widget, "tools_frame", None))
+                    if isinstance(frame, tk.Widget) and not frame.winfo_manager():
+                        try:
+                            frame.pack(side="left")
+                        except Exception:
+                            pass
+                elif isinstance(toolbox_clone, tk.Widget) and not toolbox_clone.winfo_manager():
+                    try:
+                        toolbox_clone.pack(side="left")
+                    except Exception:
+                        pass
+
                 self._raise_widgets(orig, new_widget, mapping, roots)
                 self._cancel_after_events(orig, cancelled)
                 orig.destroy()
