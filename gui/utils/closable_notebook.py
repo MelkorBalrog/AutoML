@@ -508,10 +508,31 @@ class ClosableNotebook(ttk.Notebook):
         kwargs.pop("widgetName", None)
 
         if isinstance(widget, tk.Canvas):
-            clone = tk.Canvas(parent, **kwargs)
+            clone_cls: type[tk.Canvas] = tk.Canvas
+            filtered: dict[str, t.Any] = {}
+            if isinstance(widget, CapsuleButton):
+                clone_cls = CapsuleButton
+                for opt in (
+                    "text",
+                    "command",
+                    "state",
+                    "image",
+                    "compound",
+                    "gradient",
+                    "hover_gradient",
+                    "hover_bg",
+                ):
+                    if opt in kwargs:
+                        filtered[opt] = kwargs.pop(opt)
+            clone = clone_cls(parent, **kwargs)
             mapping[widget] = clone
             self._copy_widget_config(widget, clone)
             self._copy_widget_state(widget, clone)
+            if filtered:
+                try:
+                    clone.configure(**filtered)
+                except Exception:
+                    pass
             try:
                 widget.tk.call("tk::canvas", "copy", widget._w, clone._w)
             except Exception:

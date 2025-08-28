@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.180 - Clone CapsuleButton widgets without Canvas option errors and
+          preserve label text and state during detachment.
 - 0.2.179 - Refresh diagram mapping before opening safety management diagrams and
           display an error when the diagram is missing. Add double-click tests
           verifying architecture windows open for existing diagrams.
