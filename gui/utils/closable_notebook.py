@@ -33,9 +33,91 @@ import typing as t
 import tkinter as tk
 import weakref
 from tkinter import ttk
-from gui.controls.capsule_button import CapsuleButton
 
 logger = logging.getLogger(__name__)
+
+
+def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) -> None:
+    """Cancel Tk ``after`` callbacks tied to *widget*.
+
+    The function inspects both root-level and widget-specific ``after``
+    callbacks, removing any entries whose command string contains the Tcl path
+    of *widget*.  Command hooks associated with the widget are deleted and
+    attributes ending in ``_anim``, ``_after`` or ``_timer`` are cancelled.  The
+    operation recurses into child widgets so invoking it on a container will
+    clear callbacks for the entire subtree.
+    """
+
+    if cancelled is None:
+        cancelled = set()
+
+    try:
+        root = widget._root()
+        tkapp = getattr(root, "tk", None)
+        if tkapp is not None and getattr(tkapp, "_tclCommands", None) is not None:
+            tcl_name = str(widget)
+            try:
+                info = tkapp.call("after", "info")
+            except Exception:
+                info = ()
+            if isinstance(info, str):
+                info = tkapp.splitlist(info)
+            for i in range(0, len(info), 2):
+                ident = info[i]
+                script = info[i + 1] if i + 1 < len(info) else ""
+                if ident in cancelled:
+                    continue
+                if tcl_name in str(script):
+                    try:
+                        root.after_cancel(ident)
+                    except Exception:
+                        pass
+                    else:
+                        cancelled.add(ident)
+            try:
+                widget_ids = tkapp.call("after", "info", tcl_name)
+            except Exception:
+                widget_ids = []
+            if isinstance(widget_ids, str):
+                widget_ids = [widget_ids]
+            for ident in widget_ids:
+                if ident in cancelled:
+                    continue
+                try:
+                    widget.after_cancel(ident)
+                except Exception:
+                    pass
+                else:
+                    cancelled.add(ident)
+            try:
+                commands = getattr(tkapp, "_tclCommands", None) or []
+                for cmd in list(commands):
+                    if tcl_name in cmd:
+                        try:
+                            tkapp.deletecommand(cmd)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    try:
+        for name in dir(widget):
+            if name.endswith(("_anim", "_after", "_timer")):
+                ident = getattr(widget, name, None)
+                if isinstance(ident, str) and ident not in cancelled:
+                    try:
+                        widget.after_cancel(ident)
+                    except Exception:
+                        pass
+                    else:
+                        cancelled.add(ident)
+    except Exception:
+        pass
+
+    for child in widget.winfo_children():
+        cancel_after_events(child, cancelled)
 
 
 # Widget types whose text is only available through ``cget`` even when the
@@ -508,7 +590,23 @@ class ClosableNotebook(ttk.Notebook):
         kwargs.pop("widgetName", None)
 
         if isinstance(widget, tk.Canvas):
-            clone = tk.Canvas(parent, **kwargs)
+            clone_cls: type[tk.Canvas] = tk.Canvas
+            filtered: dict[str, t.Any] = {}
+            if isinstance(widget, CapsuleButton):
+                clone_cls = CapsuleButton
+                for opt in (
+                    "text",
+                    "command",
+                    "state",
+                    "image",
+                    "compound",
+                    "gradient",
+                    "hover_gradient",
+                    "hover_bg",
+                ):
+                    if opt in kwargs:
+                        filtered[opt] = kwargs.pop(opt)
+            clone = clone_cls(parent, **kwargs)
             mapping[widget] = clone
             self._copy_widget_config(widget, clone)
             try:
@@ -525,6 +623,8 @@ class ClosableNotebook(ttk.Notebook):
                         elif isinstance(val, str):
                             clone.itemconfig(new_item, {key: val})
             for child in self._ordered_children(widget):
+                if child in mapping:
+                    continue
                 child_clone, mapping, layouts = self._clone_widget(
                     child, clone, mapping, layouts, cancelled
                 )
@@ -611,6 +711,53 @@ class ClosableNotebook(ttk.Notebook):
                 ordered.append(child)
 
         return ordered
+
+    def _copy_canvas_items(
+        self,
+        widget: tk.Canvas,
+        clone: tk.Canvas,
+        items: t.Iterable[int],
+        mapping: dict[tk.Widget, tk.Widget],
+        layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]],
+        cancelled: set[str] | None,
+    ) -> tuple[dict[tk.Widget, tk.Widget], dict[tk.Widget, tuple[str, dict[str, t.Any]]]]:
+        """Clone canvas *items* from *widget* into *clone*.
+
+        ``window`` items are cloned recursively and inserted using
+        :meth:`~tkinter.Canvas.create_window` while other item types are
+        recreated with the corresponding ``create_*`` method.
+        """
+
+        for item in items:
+            coords = widget.coords(item)
+            item_type = widget.type(item)
+            opts = widget.itemconfig(item)
+            if item_type == "window":
+                path = widget.itemcget(item, "window")
+                try:
+                    child = widget.nametowidget(path)
+                except Exception:
+                    continue
+                child_clone, mapping, layouts = self._clone_widget(
+                    child, clone, mapping, layouts, cancelled
+                )
+                mapping[child] = child_clone
+                cfg = {
+                    k: v[4]
+                    for k, v in opts.items()
+                    if isinstance(v, tuple) and len(v) >= 5
+                }
+                cfg.pop("window", None)
+                clone.create_window(*coords, window=child_clone, **cfg)
+            else:
+                creator = getattr(clone, f"create_{item_type}")
+                new_item = creator(*coords)
+                for key, val in opts.items():
+                    if isinstance(val, tuple) and len(val) >= 5:
+                        clone.itemconfig(new_item, {key: val[4]})
+                    elif isinstance(val, str):
+                        clone.itemconfig(new_item, {key: val})
+        return mapping, layouts
 
     def _collect_required_kwargs(self, widget: tk.Widget, cls: type) -> dict[str, t.Any]:
         """Return constructor kwargs required to recreate *widget* of type *cls*.
@@ -888,109 +1035,12 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-    def _cancel_root_after_events(
-        self,
-        root: tk.Misc,
-        tkapp: tk.Misc,
-        tcl_name: str,
-        cancelled: set[str],
-    ) -> None:
-        try:
-            root_ids = tkapp.call("after", "info")
-        except Exception:
-            root_ids = []
-        if isinstance(root_ids, str):
-            root_ids = tkapp.splitlist(root_ids)
-        for ident in root_ids:
-            if ident in cancelled:
-                continue
-            try:
-                cmd = tkapp.call("after", "info", ident)
-            except Exception:
-                continue
-            if tcl_name in str(cmd):
-                try:
-                    root.after_cancel(ident)
-                except Exception:
-                    pass
-                else:
-                    cancelled.add(ident)
-
-    def _cancel_widget_after_events(
-        self,
-        widget: tk.Widget,
-        tkapp: tk.Misc,
-        tcl_name: str,
-        cancelled: set[str],
-    ) -> None:
-        try:
-            widget_ids = tkapp.call("after", "info", tcl_name)
-        except Exception:
-            widget_ids = []
-        if isinstance(widget_ids, str):
-            widget_ids = [widget_ids]
-        for ident in widget_ids:
-            if ident in cancelled:
-                continue
-            try:
-                widget.after_cancel(ident)
-            except Exception:
-                pass
-            else:
-                cancelled.add(ident)
-
-    def _remove_command_hooks(self, tkapp: tk.Misc, tcl_name: str) -> None:
-        try:
-            commands = getattr(tkapp, "_tclCommands", None) or []
-            for cmd in list(commands):
-                if tcl_name in cmd:
-                    try:
-                        tkapp.deletecommand(cmd)
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-
-    def _cancel_named_after_attrs(
-        self, widget: tk.Widget, cancelled: set[str]
-    ) -> None:
-        try:
-            for name in dir(widget):
-                if name.endswith(("_anim", "_after", "_timer")):
-                    ident = getattr(widget, name, None)
-                    if isinstance(ident, str) and ident not in cancelled:
-                        try:
-                            widget.after_cancel(ident)
-                        except Exception:
-                            pass
-                        else:
-                            cancelled.add(ident)
-        except Exception:
-            pass
-
     def _cancel_after_events(
         self, widget: tk.Widget, cancelled: set[str] | None = None
     ) -> None:
-        """Cancel Tk ``after`` callbacks tied to *widget* or dead commands."""
+        """Wrapper for :func:`cancel_after_events` for backward compatibility."""
 
-        if cancelled is None:
-            cancelled = set()
-
-        try:
-            root = widget._root()
-            tkapp = getattr(root, "tk", None)
-            if tkapp is None or getattr(tkapp, "_tclCommands", None) is None:
-                return
-            tcl_name = str(widget)
-            self._cancel_root_after_events(root, tkapp, tcl_name, cancelled)
-            self._cancel_widget_after_events(widget, tkapp, tcl_name, cancelled)
-            self._remove_command_hooks(tkapp, tcl_name)
-        except Exception:
-            pass
-
-        self._cancel_named_after_attrs(widget, cancelled)
-        for child in widget.winfo_children():
-            self._cancel_after_events(child, cancelled)
+        cancel_after_events(widget, cancelled)
             
     def _ensure_fills(self, widget: tk.Widget) -> None:
         """Ensure *widget* expands to fill its immediate container.
@@ -1080,17 +1130,6 @@ class ClosableNotebook(ttk.Notebook):
         try:
             if not self._move_tab(tab_id, nb):
                 orig = self.nametowidget(tab_id)
-                # Ensure CapsuleButtons cancel their callbacks before cloning
-                def _cancel_capsule_callbacks(widget: tk.Widget) -> None:
-                    if isinstance(widget, CapsuleButton):
-                        try:
-                            widget._cancel_after_callbacks()
-                        except Exception:
-                            pass
-                    for child in widget.winfo_children():
-                        _cancel_capsule_callbacks(child)
-
-                _cancel_capsule_callbacks(orig)
                 cancelled: set[str] = set()
                 self._cancel_after_events(orig, cancelled)
                 self.forget(tab_id)
@@ -1098,6 +1137,7 @@ class ClosableNotebook(ttk.Notebook):
                 new_widget, mapping, layouts = self._clone_widget(
                     orig, nb, mapping, cancelled=cancelled
                 )
+                self._cancel_after_events(new_widget, cancelled)
                 self._copy_widget_layout(orig, new_widget, mapping, layouts)
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
