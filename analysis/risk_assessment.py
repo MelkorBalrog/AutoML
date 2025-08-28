@@ -17,7 +17,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
-from .utils import derive_validation_target
 
 # Derived Maturity Table: (avg_confidence, avg_robustness) → maturity level
 DERIVED_MATURITY_TABLE = {
@@ -57,6 +56,8 @@ def calculate_validation_target(acceptance_rate,
                                 uncontrollable_given_exposure,
                                 severity_given_uncontrollable):
     """Wrapper to derive a validation target for risk assessments."""
+    from .utils import derive_validation_target
+
     return derive_validation_target(
         acceptance_rate,
         exposure_given_hb,
