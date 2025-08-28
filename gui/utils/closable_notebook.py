@@ -601,6 +601,7 @@ class ClosableNotebook(ttk.Notebook):
                     )
                     mapping[child] = child_clone
             self._copy_widget_state(widget, clone)
+            self._copy_widget_bindings(widget, clone)
             self._copy_widget_layout(widget, clone, mapping, layouts)
             try:
                 self._cancel_after_events(widget)
@@ -935,22 +936,32 @@ class ClosableNotebook(ttk.Notebook):
                     clone.configure(scrollregion=widget.cget("scrollregion"))
                 except Exception:
                     pass
-                try:
-                    sequences = widget.tk.call("bind", widget._w).split()
-                    for seq in sequences:
-                        cmd = widget.bind(seq)
-                        if cmd:
-                            clone.bind(seq, cmd)
-                except Exception:
-                    pass
-                if widget.__class__.__name__ == "CapsuleButton":
-                    try:
-                        clone.bind("<Enter>", getattr(clone, "_on_enter"))
-                        clone.bind("<Leave>", getattr(clone, "_on_leave"))
-                    except Exception:
-                        pass
         except Exception:
             pass
+
+    def _copy_widget_bindings(self, widget: tk.Widget, clone: tk.Widget) -> None:
+        """Replicate event bindings and tags from *widget* to *clone*."""
+        try:
+            clone.bindtags(widget.bindtags())
+        except Exception:
+            pass
+        try:
+            sequences = widget.tk.call("bind", widget._w).split()
+        except Exception:
+            sequences = []
+        for seq in sequences:
+            try:
+                cmd = widget.bind(seq)
+                if cmd:
+                    clone.bind(seq, cmd)
+            except Exception:
+                continue
+        if widget.__class__.__name__ == "CapsuleButton":
+            try:
+                clone.bind("<Enter>", getattr(clone, "_on_enter"))
+                clone.bind("<Leave>", getattr(clone, "_on_leave"))
+            except Exception:
+                pass
 
     def _copy_widget_layout(
         self,
@@ -1295,18 +1306,20 @@ class ClosableNotebook(ttk.Notebook):
                 self._raise_widgets(orig, new_widget, mapping, roots)
                 self._cancel_after_events(orig, cancelled)
                 orig.destroy()
-                toolbar = self._find_toolbar_frame(new_widget)
-                if toolbar is not None:
-                    mapping.setdefault(toolbar, toolbar)
+                toolbar_orig = self._find_toolbar_frame(orig)
+                toolbar = mapping.get(toolbar_orig) if toolbar_orig else None
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
-                if toolbar is not None and not toolbar.winfo_children():
+                if toolbar is None or not toolbar.winfo_children():
                     rebuild = getattr(new_widget, "_rebuild_toolbar", None)
                     if callable(rebuild):
                         try:
                             rebuild()
                         except Exception:
                             pass
+                    toolbar = self._find_toolbar_frame(new_widget)
+                if toolbar is not None:
+                    self._rebind_toolbar_buttons(toolbar)
                 for name in ("_rebuild_toolboxes", "_activate_parent_phase"):
                     func = getattr(new_widget, name, None)
                     if callable(func):
@@ -1502,6 +1515,26 @@ class ClosableNotebook(ttk.Notebook):
                     continue
         return None
 
+    def _rebind_toolbar_buttons(self, toolbar: tk.Widget) -> None:
+        """Rebind command and hover events for all buttons in *toolbar*."""
+
+        for child in toolbar.winfo_children():
+            if not isinstance(child, (tk.Button, ttk.Button)):
+                continue
+            try:
+                cmd = child.cget("command")
+                if cmd:
+                    child.configure(command=cmd)
+            except Exception:
+                pass
+            for ev in ("<Enter>", "<Leave>"):
+                try:
+                    script = child.bind(ev)
+                    if script:
+                        child.bind(ev, script)
+                except Exception:
+                    pass
+
     def _remove_duplicate_widgets(
         self,
         win: tk.Toplevel,
@@ -1510,7 +1543,11 @@ class ClosableNotebook(ttk.Notebook):
     ) -> None:
         """Remove widgets that duplicate originals based on parent/child relationships."""
 
-        keep: set[tk.Widget] = {win, nb} | set(mapping.values())
+        keep: set[tk.Widget] = {win, nb}
+        for orig, clone in mapping.items():
+            if orig is clone:
+                continue
+            keep.add(clone)
         # Record expected child names for every cloned parent *before* any
         # widgets are destroyed so pruning has a complete view of the original
         # hierarchy. This prevents lookups on partially destroyed widget trees.
