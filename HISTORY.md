@@ -23,6 +23,8 @@
            service threads with join support.
 - 0.2.204 - Introduce threaded service manager to lazily load services,
            restart recoverable threads and shut down unused services.
+          - Introduce threaded service manager to lazily load services,
+          restart recoverable threads and shut down unused services.
 - 0.2.203 - Preserve widget creation order across geometry managers so detached
           tabs retain left-side toolboxes.
 - 0.2.202 - Guard toolbar frame lookup against destroyed widgets so tab
