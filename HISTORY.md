@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.198 - Copy widget ``bind`` events during cloning and rewrite button
+          option references so detached toolbar commands target cloned widgets.
+          - Add regression tests verifying detached toolbar button callbacks
+            and hover state resets on leave.
 - 0.2.197 - Explicitly destroy stray toolbar frames during tab detachment.
           - Add grouped regression test ensuring detached windows contain
             only a single toolbar frame.
