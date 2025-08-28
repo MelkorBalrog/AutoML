@@ -87,6 +87,14 @@ def _setup_app_for_tree():
     app.filter_var = type("FV", (), {"get": lambda self: ""})()
     app.displayed_filters = set()
     app.filter_lifecycle = None
+
+    def _populate_tree():
+        sa_root = app.analysis_tree.insert("", 0, "Safety Analysis")
+        app.analysis_tree.insert(sa_root, 0, "CTAs")
+        app.analysis_tree.insert(sa_root, 1, "PAAs")
+
+    app.update_views = _populate_tree
+    app.view_update_service = type("VUS", (), {"update_views": _populate_tree})()
     return app
 
 
