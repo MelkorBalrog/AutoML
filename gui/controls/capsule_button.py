@@ -810,3 +810,27 @@ class CapsuleButton(tk.Canvas):
                 self._state.add(s)
         self._apply_state()
         return list(self._state)
+
+    # ------------------------------------------------------------
+    # Cleanup helpers
+
+    def _cancel_after_callbacks(self) -> None:
+        """Cancel ``after`` callbacks referencing this widget's path."""
+        try:
+            info = self.tk.call("after", "info")
+        except Exception:
+            return
+        if isinstance(info, str):
+            info = self.tk.splitlist(info)
+        tcl_name = str(self)
+        for ident, cmd in zip(info[::2], info[1::2]):
+            if tcl_name in cmd:
+                try:
+                    self.after_cancel(ident)
+                except Exception:
+                    pass
+
+    def destroy(self) -> None:  # type: ignore[override]
+        """Destroy the button after cancelling scheduled callbacks."""
+        self._cancel_after_callbacks()
+        super().destroy()

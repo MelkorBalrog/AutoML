@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.178 - Cancel CapsuleButton ``after`` callbacks before detaching tabs and
+          ensure no scheduled callbacks fire after detachment. Add grouped
+          tests for after-event cancellation.
 - 0.2.177 - Pack requirements editor frame so requirement list displays with columns.
           - Safeguard splash launcher against missing version metadata when
            executing bundled binaries.
