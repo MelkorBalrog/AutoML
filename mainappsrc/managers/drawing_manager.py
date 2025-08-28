@@ -24,7 +24,7 @@ from __future__ import annotations
 import tkinter as tk
 from gui.utils.config_utils import AutoML_Helper
 from analysis.fmeda_utils import GATE_NODE_TYPES
-from gui.utils.drawing_helper import fta_drawing_helper
+from gui.utils.drawing_helper import fta_drawing_helper, init_diagram_canvas
 from gui.styles.style_manager import StyleManager
 
 
@@ -33,6 +33,10 @@ class DrawingManager:
 
     def __init__(self, app: "AutoMLApp") -> None:
         self.app = app
+
+    def initialize_canvas(self, canvas: tk.Canvas) -> None:
+        """Apply standard diagram bindings to *canvas*."""
+        init_diagram_canvas(canvas, self.app)
 
     # ------------------------------------------------------------------
     # Generic subtree drawing

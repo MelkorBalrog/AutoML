@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.187 - Apply persistent `bindtags` to diagram canvases so selection and
+          movement interactions remain functional after detaching tabs.
+          - Add grouped regression tests covering selection and drag on
+            detached canvases.
 - 0.2.186 - Restore toolbox selector combobox bindings after detaching tabs so
           switching toolboxes updates the visible toolbox.
           - Add regression test confirming toolbox selection in detached
