@@ -21,6 +21,8 @@ import math
 from PIL import Image, ImageDraw, ImageTk, ImageFont
 from gui.utils.backgrounds import generate_workspace_background
 
+from gui.utils.background_factory import generate_splash_background
+
 
 class SplashScreen(tk.Toplevel):
     """Simple splash screen with rotating cube and gear."""
@@ -67,7 +69,10 @@ class SplashScreen(tk.Toplevel):
             bg="#002d5f",
         )
         self.canvas.pack()
-        self._draw_background()
+        self._bg_photo, self._bg_pil = generate_splash_background(
+            self.canvas_size, self.canvas_size
+        )
+        self.canvas.create_image(0, 0, anchor="nw", image=self._bg_photo, tags="void_bg")
         self._center()
         # Initialize cube geometry
         self.angle = 0.0
@@ -172,12 +177,6 @@ class SplashScreen(tk.Toplevel):
         self.shadow.geometry(f"{w}x{h}+{x + 5}+{y + 5}")
         self.geometry(f"{w}x{h}+{x}+{y}")
         self.shadow.lower(self)
-
-    def _draw_background(self) -> None:
-        """Draw beveled blue background with slanted bands."""
-        self._bg_pil = generate_workspace_background(self.canvas_size, self.canvas_size)
-        self._bg_photo = ImageTk.PhotoImage(self._bg_pil)
-        self.canvas.create_image(0, 0, anchor="nw", image=self._bg_photo, tags="void_bg")
 
     def _draw_title(self) -> None:
         """Render orange ``AutoML`` title at 1.5x subtitle size with black shadows."""

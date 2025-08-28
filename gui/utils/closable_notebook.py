@@ -36,6 +36,11 @@ from tkinter import ttk
 from PIL import ImageTk
 from gui.utils.backgrounds import generate_workspace_background
 
+try:
+    from .background_factory import generate_splash_background
+except Exception:  # pragma: no cover - fallback for direct imports
+    from background_factory import generate_splash_background
+
 logger = logging.getLogger(__name__)
 
 
@@ -104,6 +109,13 @@ class ClosableNotebook(ttk.Notebook):
         self.protected: set[str] = set()
         self._drag_data: dict[str, int | None] = {"tab": None, "x": 0, "y": 0}
         self._dragging = False
+
+        self._bg_canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0)
+        self._bg_photo: tk.PhotoImage | None = None
+        self.bind("<<NotebookTabChanged>>", lambda _e: self._update_background(), add="+")
+        self.bind("<<NotebookTabClosed>>", lambda _e: self._update_background(), add="+")
+        self.bind("<Configure>", lambda _e: self._update_background(), add="+")
+        self._update_background()
 
         # ------------------------------------------------------------------
         # Data loading/unloading strategy handling
@@ -182,22 +194,17 @@ class ClosableNotebook(ttk.Notebook):
         super().forget(tab_id)
         self._update_background()
 
-    def _resize_background(self, _event: tk.Event | None = None) -> None:
-        if self.tabs():
-            return
-        w = max(1, self.winfo_width())
-        h = max(1, self.winfo_height())
-        img = generate_workspace_background(w, h)
-        self._bg_photo = ImageTk.PhotoImage(img)
-        self._bg_canvas.delete("all")
-        self._bg_canvas.create_image(0, 0, anchor="nw", image=self._bg_photo)
-
     def _update_background(self) -> None:
         if self.tabs():
             self._bg_canvas.place_forget()
-        else:
-            self._bg_canvas.place(relx=0, rely=0, relwidth=1, relheight=1)
-            self._resize_background()
+            return
+        w = max(self.winfo_width(), 1)
+        h = max(self.winfo_height(), 1)
+        self._bg_canvas.configure(width=w, height=h)
+        self._bg_photo, _ = generate_splash_background(w, h)
+        self._bg_canvas.delete("all")
+        self._bg_canvas.create_image(0, 0, anchor="nw", image=self._bg_photo)
+        self._bg_canvas.place(relx=0, rely=0, relwidth=1, relheight=1)
 
     # ------------------------------------------------------------------
     # Floating window helpers

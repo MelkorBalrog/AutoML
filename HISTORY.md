@@ -19,6 +19,7 @@
 -->
 
 # Version History
+- 0.2.173 - Display splash-style background in document area when no tabs are open.
 - 0.2.172 - Move ``SafetyAnalysis_FTA_FMEA`` implementation into
           ``safety_analysis_service`` and remove legacy
           ``core.safety_analysis`` module.
