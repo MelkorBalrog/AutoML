@@ -19,7 +19,12 @@
 -->
 
 # Version History
-- 0.2.173 - Rebuild toolboxes and activate parent phase when detaching tabs
+- 0.2.173 - Reparent canvases during tab detachment or clone and discard
+          originals after copying item colors and tags. Skip reparented
+          canvases during duplicate pruning and add regression test
+          ensuring detached governance diagrams retain a single
+          interactive canvas.
+          - Rebuild toolboxes and activate parent phase when detaching tabs
           and ensure detached diagram toolboxes pack left before canvases so
           buttons remain visible. Add grouped toolbox detachment tests
           confirming selector visibility and Select tool persistence.
