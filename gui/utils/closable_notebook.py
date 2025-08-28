@@ -1196,6 +1196,15 @@ class ClosableNotebook(ttk.Notebook):
                             frame.pack(side="left")
                         except Exception:
                             pass
+                    selector = getattr(new_widget, "toolbox_selector", None)
+                    if isinstance(selector, ttk.Combobox):
+                        try:
+                            selector.bind(
+                                "<<ComboboxSelected>>",
+                                lambda e: new_widget._switch_toolbox(),
+                            )
+                        except Exception:
+                            pass
                 elif isinstance(toolbox_clone, tk.Widget) and not toolbox_clone.winfo_manager():
                     try:
                         toolbox_clone.pack(side="left")

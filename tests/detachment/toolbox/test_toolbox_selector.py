@@ -31,7 +31,7 @@ from closable_notebook import ClosableNotebook
 
 
 class DummyDiagram(ttk.Frame):
-    """Minimal diagram with toolbox and select button."""
+    """Minimal diagram with toolbox and selector combobox."""
 
     def __init__(self, master: tk.Widget):
         super().__init__(master)
@@ -39,12 +39,24 @@ class DummyDiagram(ttk.Frame):
         self.activated = False
         self.switched = False
         self.current_tool = "Select"
+        self.current_toolbox = "A"
         self.toolbox_canvas = tk.Canvas(self, width=40, height=40)
         self.toolbox_canvas.pack()
         self.toolbox = ttk.Frame(self.toolbox_canvas)
         self.toolbox_canvas.create_window(0, 0, window=self.toolbox, anchor="nw")
         self.selector = ttk.Button(self.toolbox, text="Select", command=self._on_click)
         self.selector.pack()
+        self.toolbox_var = tk.StringVar(value="A")
+        self.toolbox_selector = ttk.Combobox(
+            self.toolbox, state="readonly", textvariable=self.toolbox_var, values=["A", "B"]
+        )
+        self.toolbox_selector.pack()
+        self.toolbox_selector.bind("<<ComboboxSelected>>", lambda e: self._switch_toolbox())
+        self.tool_a = ttk.Frame(self.toolbox)
+        ttk.Label(self.tool_a, text="A").pack()
+        self.tool_b = ttk.Frame(self.toolbox)
+        ttk.Label(self.tool_b, text="B").pack()
+        self.tool_a.pack()
         self.clicks = 0
 
     def _on_click(self) -> None:
@@ -52,12 +64,21 @@ class DummyDiagram(ttk.Frame):
 
     def _rebuild_toolboxes(self) -> None:
         self.rebuilt = True
+        self.toolbox_selector.configure(values=["A", "B"])
 
     def _activate_parent_phase(self) -> None:
         self.activated = True
 
     def _switch_toolbox(self) -> None:
         self.switched = True
+        self.tool_a.pack_forget()
+        self.tool_b.pack_forget()
+        choice = self.toolbox_var.get()
+        if choice == "A":
+            self.tool_a.pack()
+        else:
+            self.tool_b.pack()
+        self.current_toolbox = choice
 
 
 def _detach_diagram() -> tuple[tk.Misc, tk.Toplevel, DummyDiagram]:
@@ -114,4 +135,17 @@ class TestGovernanceToolboxDetachment:
         except tk.TclError:
             pytest.skip("Tk not available")
         assert clone.current_tool == "Select"
+        root.destroy()
+
+    def test_toolbox_selection_updates_visible_toolbox(self) -> None:
+        try:
+            root, _win, clone = _detach_diagram()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        assert clone.current_toolbox == "A"
+        clone.toolbox_selector.set("B")
+        clone.toolbox_selector.event_generate("<<ComboboxSelected>>")
+        assert clone.current_toolbox == "B"
+        assert clone.tool_a.winfo_manager() == ""
+        assert clone.tool_b.winfo_manager() == "pack"
         root.destroy()
