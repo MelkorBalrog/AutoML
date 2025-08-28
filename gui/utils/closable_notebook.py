@@ -178,6 +178,10 @@ class ClosableNotebook(ttk.Notebook):
         """Destroy every floating window detached from this notebook."""
         for win in list(self._floating_windows):
             try:
+                self._cancel_after_events(win)
+            except Exception:
+                pass
+            try:
                 win.destroy()
             except Exception:
                 pass
@@ -861,6 +865,26 @@ class ClosableNotebook(ttk.Notebook):
                         widget.after_cancel(ident)
                     except Exception:
                         pass
+            try:
+                root_ids = widget._root().tk.call("after", "info")
+            except Exception:
+                root_ids = []
+            if isinstance(root_ids, str):
+                root_ids = [root_ids]
+            for ident in root_ids:
+                if ident in cancelled:
+                    continue
+                try:
+                    cmd = widget._root().tk.call("after", "info", ident)
+                except Exception:
+                    cmd = ""
+                if tcl_name in cmd:
+                    try:
+                        widget._root().after_cancel(ident)
+                    except Exception:
+                        pass
+                    else:
+                        cancelled.add(ident)
             if getattr(tkapp, "_tclCommands", None):
                 for cmd in tcl_cmds:
                     try:
@@ -909,33 +933,39 @@ class ClosableNotebook(ttk.Notebook):
             pass
 
     def _raise_widgets(
-        self, widget: tk.Widget, mapping: t.Optional[dict[tk.Widget, tk.Widget]] = None
+        self,
+        orig: tk.Widget,
+        clone: t.Optional[tk.Widget] = None,
+        mapping: t.Optional[dict[tk.Widget, tk.Widget]] = None,
     ) -> None:
-        """Recursively lift *widget* and its cloned descendants.
+        """Recursively lift *clone* mirroring *orig*'s stacking order.
 
-        When *mapping* is provided it is expected to contain a mapping from
-        original widgets to their clones.  The traversal follows the order of
-        the original widgets' children to lift each clone relative to its
-        siblings, preserving the original stacking arrangement.
+        When *mapping* is provided the relationship between original widgets
+        and their clones is resolved through it.  The list of children from the
+        original widget is cached before any destruction so traversal remains
+        safe even if the originals vanish during detachment.
         """
 
+        target = clone or orig
         try:
-            widget.lift()
+            target.lift()
         except Exception:
             pass
 
-        if mapping:
-            reverse = {clone: orig for orig, clone in mapping.items()}
-            orig = reverse.get(widget)
-            if orig is not None:
-                for child_orig in orig.winfo_children():
-                    clone_child = mapping.get(child_orig)
-                    if clone_child is not None:
-                        self._raise_widgets(clone_child, mapping)
-                return
+        if mapping and clone is not None:
+            children: list[tk.Widget]
+            try:
+                children = list(orig.winfo_children())
+            except Exception:
+                children = []
+            for child_orig in children:
+                clone_child = mapping.get(child_orig)
+                if clone_child is not None:
+                    self._raise_widgets(child_orig, clone_child, mapping)
+            return
 
-        for child in widget.winfo_children():
-            self._raise_widgets(child, mapping)
+        for child in target.winfo_children():
+            self._raise_widgets(child, child)
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
@@ -947,12 +977,15 @@ class ClosableNotebook(ttk.Notebook):
         win.transient(root_win)
         win.geometry(f"{width}x{height}+{x}+{y}")
         self._floating_windows.append(win)
-        win.bind(
-            "<Destroy>",
-            lambda _e, w=win: self._floating_windows.remove(w)
-            if w in self._floating_windows
-            else None,
-        )
+        def _on_destroy(_e, w=win) -> None:
+            try:
+                self._cancel_after_events(w)
+            except Exception:
+                pass
+            if w in self._floating_windows:
+                self._floating_windows.remove(w)
+
+        win.bind("<Destroy>", _on_destroy)
         nb = ClosableNotebook(win)
         nb.pack(expand=True, fill="both")
         try:
@@ -968,14 +1001,15 @@ class ClosableNotebook(ttk.Notebook):
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
                 self._reassign_widget_references(mapping)
-                self._raise_widgets(new_widget, mapping)
+                self._raise_widgets(orig, new_widget, mapping)
+                orig.destroy()
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
             else:
                 tab = nb.tabs()[-1]
                 child = nb.nametowidget(tab)
                 self._ensure_fills(child)
-                self._raise_widgets(child)
+                self._raise_widgets(child, child)
                 nb.select(tab)
         except Exception:
             win.destroy()
@@ -1140,6 +1174,10 @@ class ClosableNotebook(ttk.Notebook):
                     continue
                 names = expected.get(parent, set())
                 if child.winfo_name() in names:
+                    try:
+                        self._cancel_after_events(child)
+                    except Exception:
+                        pass
                     try:
                         child.destroy()
                     except Exception:
