@@ -981,7 +981,7 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-        if mapping and clone is not None:
+        if mapping:
             children: list[tk.Widget]
             try:
                 children = list(orig.winfo_children())
@@ -989,8 +989,7 @@ class ClosableNotebook(ttk.Notebook):
                 children = []
             for child_orig in children:
                 clone_child = mapping.get(child_orig)
-                if clone_child is not None:
-                    self._raise_widgets(child_orig, clone_child, mapping)
+                self._raise_widgets(child_orig, clone_child, mapping)
             return
 
         for child in target.winfo_children():
