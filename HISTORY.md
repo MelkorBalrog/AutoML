@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.188 - Re-establish hover image bindings after cloning or detaching buttons
+          so highlight effects persist across detached windows.
+          - Extend grouped tests validating hover behaviour after detachment.
 - 0.2.187 - Apply persistent `bindtags` to diagram canvases so selection and
           movement interactions remain functional after detaching tabs.
           - Add grouped regression tests covering selection and drag on

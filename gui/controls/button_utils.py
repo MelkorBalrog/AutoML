@@ -27,6 +27,22 @@ from tkinter import ttk
 from .capsule_button import _lighten
 
 
+_HOVER_TAG = "HoverHighlight"
+
+
+def _on_hover_enter(event: tk.Event) -> None:
+    button = event.widget
+    image = getattr(button, "_hover_image", None)
+    if image is not None:
+        button.configure(image=image)
+
+
+def _on_hover_leave(event: tk.Event) -> None:
+    button = event.widget
+    image = getattr(button, "_normal_image", None)
+    if image is not None:
+        button.configure(image=image)
+
 def set_uniform_button_width(widget: tk.Misc) -> None:
     """Ensure all ``ttk.Button`` children of *widget* share the same width.
 
@@ -116,28 +132,6 @@ def _blend_with(color: str, overlay: tuple[int, int, int], alpha: float) -> str:
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
-def _blend_with(color: str, overlay: tuple[int, int, int], alpha: float) -> str:
-    """Blend *color* towards *overlay* by *alpha*."""
-    r = int(color[1:3], 16)
-    g = int(color[3:5], 16)
-    b = int(color[5:7], 16)
-    r = int(r + (overlay[0] - r) * alpha)
-    g = int(g + (overlay[1] - g) * alpha)
-    b = int(b + (overlay[2] - b) * alpha)
-    return f"#{r:02x}{g:02x}{b:02x}"
-
-
-def _blend_with(color: str, overlay: tuple[int, int, int], alpha: float) -> str:
-    """Blend *color* towards *overlay* by *alpha*."""
-    r = int(color[1:3], 16)
-    g = int(color[3:5], 16)
-    b = int(color[5:7], 16)
-    r = int(r + (overlay[0] - r) * alpha)
-    g = int(g + (overlay[1] - g) * alpha)
-    b = int(b + (overlay[2] - b) * alpha)
-    return f"#{r:02x}{g:02x}{b:02x}"
-
-
 def _lighten_image(
     img: tk.PhotoImage,
     factor: float = 1.4,
@@ -199,11 +193,13 @@ def add_hover_highlight(
 
     hover_img = _lighten_image(image, factor)
     button.configure(image=image)
-    # Preserve references so Tk does not discard the images
     button._normal_image = image  # type: ignore[attr-defined]
     button._hover_image = hover_img  # type: ignore[attr-defined]
-    button.bind("<Enter>", lambda _e: button.configure(image=hover_img))
-    button.bind("<Leave>", lambda _e: button.configure(image=image))
+    tags = button.bindtags()
+    if _HOVER_TAG not in tags:
+        button.bindtags((_HOVER_TAG,) + tags)
+    button.bind_class(_HOVER_TAG, "<Enter>", _on_hover_enter)
+    button.bind_class(_HOVER_TAG, "<Leave>", _on_hover_leave)
     return hover_img
 
 
