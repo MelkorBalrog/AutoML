@@ -19,6 +19,7 @@
 -->
 
 # Version History
+- 0.2.199 - Check root Tcl commands before deletion when cancelling callbacks and add regression test for destroying animated tabs.
 - 0.2.198 - Copy widget ``bind`` events during cloning and rewrite button
           option references so detached toolbar commands target cloned widgets.
           - Add regression tests verifying detached toolbar button callbacks
