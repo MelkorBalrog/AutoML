@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.174 - Guard CapsuleButton callbacks against ``TclError`` after
+          widget destruction and add grouped detachment event tests.
 - 0.2.173 - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
           ``safety_analysis_service`` methods.
           - Prevent duplicate Safety Management Explorer instances and prune
