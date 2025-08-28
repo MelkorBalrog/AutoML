@@ -842,6 +842,25 @@ class ClosableNotebook(ttk.Notebook):
                             clone.bind(seq, cmd)
                 except Exception:
                     pass
+                self._copy_tag_bindings(widget, clone)
+        except Exception:
+            pass
+
+    def _copy_tag_bindings(self, widget: tk.Canvas, clone: tk.Canvas) -> None:
+        """Copy all tag-specific event bindings from *widget* to *clone*."""
+
+        try:
+            tags: set[str] = set()
+            for item in widget.find_all():
+                tags.update(widget.gettags(item))
+            for tag in tags:
+                sequences = widget.tk.call(widget._w, "bind", tag)
+                if not sequences:
+                    continue
+                for seq in widget.tk.splitlist(sequences):
+                    cmd = widget.tag_bind(tag, seq)
+                    if cmd:
+                        clone.tag_bind(tag, seq, cmd)
         except Exception:
             pass
 

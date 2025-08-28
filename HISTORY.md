@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.182 - Copy canvas tag bindings when detaching tabs so selection events
+          like ``<Button-1>`` remain active on cloned diagrams. Added
+          regression test ensuring nodes in detached canvases stay
+          selectable.
 - 0.2.181 - Clone canvas window items recursively so detached tabs preserve
           embedded widget layouts and content.
           - Instantiate canvases using their original subclass to avoid
