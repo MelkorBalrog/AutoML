@@ -123,16 +123,24 @@ class Open_Windows_Features:
             from analysis import SafetyManagementToolbox as _SMT
 
             app.safety_mgmt_toolbox = _SMT()
-        if hasattr(app, "_safety_exp_tab") and app._safety_exp_tab.winfo_exists():
+        tab_exists = hasattr(app, "_safety_exp_tab") and app._safety_exp_tab.winfo_exists()
+        win_exists = (
+            hasattr(app, "_safety_exp_window")
+            and getattr(app._safety_exp_window, "winfo_exists", lambda: False)()
+        )
+        if tab_exists:
             app.doc_nb.select(app._safety_exp_tab)
+            if win_exists:
+                app.refresh_all()
+                return
         else:
             app._safety_exp_tab = app.lifecycle_ui._new_tab(
                 "Safety & Security Management Explorer"
             )
-            app._safety_exp_window = SafetyManagementExplorer(
-                app._safety_exp_tab, app, app.safety_mgmt_toolbox
-            )
-            app._safety_exp_window.pack(fill=tk.BOTH, expand=True)
+        app._safety_exp_window = SafetyManagementExplorer(
+            app._safety_exp_tab, app, app.safety_mgmt_toolbox
+        )
+        app._safety_exp_window.pack(fill=tk.BOTH, expand=True)
         app.refresh_all()
 
     def manage_mechanism_libraries(self) -> None:
