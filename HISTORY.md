@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.196 - Add grouped toolbar detachment tests covering duplicate removal, hover state reset, and click callbacks.
+- 0.2.196 - Gracefully handle missing ``safety_analysis`` when assigning FMEA
+            data so unit tests can instantiate ``AutoMLApp`` without full
+            initialization.
+          - Add grouped toolbar detachment tests covering duplicate removal, hover state reset, and click callbacks.
           - Rebind toolbar button callbacks to cloned widgets during detachment.
           - Add integration test ensuring detached toolbar buttons trigger container methods.
           - Preserve hover bindings when cloning widgets.
