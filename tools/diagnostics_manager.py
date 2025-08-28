@@ -143,7 +143,7 @@ class PollingDiagnosticsManager(DiagnosticsManagerBase):
             return
         self._stop.clear()
         self._thread = thread_manager.register(
-            "polling_diagnostics", self._run, daemon=True
+            "polling_diagnostics", self._run, daemon=True, stop_event=self._stop
         )
 
     def _run(self) -> None:

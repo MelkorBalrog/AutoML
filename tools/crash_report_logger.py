@@ -189,7 +189,9 @@ def start_watchdog_thread(
             wd.feed()
             stop_event.wait(interval)
 
-    thread = thread_manager.register("crash_watchdog", _feed, daemon=True)
+    thread = thread_manager.register(
+        "crash_watchdog", _feed, daemon=True, stop_event=stop_event
+    )
     return stop_event, thread
 
 

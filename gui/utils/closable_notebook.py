@@ -33,62 +33,43 @@ import typing as t
 import tkinter as tk
 import weakref
 import functools
+import threading
 from tkinter import ttk
 
 logger = logging.getLogger(__name__)
 
 
 def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) -> None:
-    """Cancel Tk ``after`` callbacks tied to *widget* and its children."""
+    """Cancel Tk ``after`` callbacks tied to *widget* and its children.
+
+    Tk operations must occur on the thread that created the root. If cleanup is
+    triggered from a different thread, skip cancellation to avoid Tcl warnings
+    like ``Tcl_AsyncDelete``.
+    """
 
     if cancelled is None:
         cancelled = set()
+
+    if threading.current_thread() is not threading.main_thread():
+        return
 
     def _cancel_ident(ident: str) -> None:
         tkapp_local = getattr(widget, "tk", None)
         if tkapp_local is None:
             return
         try:
-            tkapp_local.call("after", "cancel", ident)
+            widget.after_cancel(ident)
         except Exception:
             return
         try:
             root = widget._root()
         except Exception:
             root = None
-        if root is not None and getattr(root, "_tclCommands", None):
-            try:
-                if getattr(root, "_tclCommands", None):
-                    root.deletecommand(ident)
-            except Exception:
-                pass
+        if root is not None:
+            cmds = getattr(root, "_tclCommands", None)
+            if isinstance(cmds, set):
+                cmds.discard(ident)
         cancelled.add(ident)
-
-    tkapp = getattr(widget, "tk", None)
-    if tkapp is not None and getattr(tkapp, "call", None) is not None:
-        try:
-            widget_ids = tkapp.call("after", "info", str(widget))
-        except Exception:
-            widget_ids = ()
-        if isinstance(widget_ids, str):
-            widget_ids = (widget_ids,)
-        for ident in widget_ids:
-            if ident and ident not in cancelled:
-                _cancel_ident(ident)
-
-        try:
-            all_ids = tkapp.call("after", "info")
-        except Exception:
-            all_ids = ()
-        if isinstance(all_ids, str):
-            all_ids = (all_ids,)
-        for ident in all_ids:
-            if (
-                isinstance(ident, str)
-                and ident.startswith(str(widget))
-                and ident not in cancelled
-            ):
-                _cancel_ident(ident)
 
     try:
         for name in dir(widget):
@@ -726,18 +707,22 @@ class ClosableNotebook(ttk.Notebook):
         back to ``winfo_children`` for any remaining widgets.
         """
 
+        # Collect children from all geometry managers
         ordered: list[tk.Widget] = []
         for method in ("pack_slaves", "grid_slaves", "place_slaves"):
             try:
-                for child in getattr(widget, method)():
-                    if child not in ordered:
-                        ordered.append(child)
+                ordered.extend(getattr(widget, method)())
             except Exception:
                 continue
 
+        # Include any remaining widgets that might not be managed yet
         for child in widget.winfo_children():
             if child not in ordered:
                 ordered.append(child)
+
+        # Preserve the original creation order so relative stacking remains
+        creation_order = {w: i for i, w in enumerate(widget.winfo_children())}
+        ordered.sort(key=lambda w: creation_order.get(w, len(creation_order)))
 
         return ordered
 

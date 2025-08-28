@@ -19,6 +19,15 @@
 -->
 
 # Version History
+- 0.2.206 - Track stop events in the service thread manager so threads
+          requested to stop are removed instead of being restarted.
+- 0.2.205 - Skip global ``after`` event cancellation when running outside the
+          main thread to avoid ``Tcl_AsyncDelete`` warnings during cleanup.
+- 0.2.204 - Cancel pending ``after`` callbacks recursively and discard Tk
+          command names so destroying roots raises no AttributeError and
+          detached canvas items remain selectable.
+- 0.2.203 - Preserve widget creation order across geometry managers so detached
+          tabs retain left-side toolboxes.
 - 0.2.202 - Guard toolbar frame lookup against destroyed widgets so tab
           detachment skips invalid paths without raising ``TclError``.
 - 0.2.201 - Factor tab detachment into `_create_floating_window`,
