@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.196 - Rebind toolbar button callbacks to cloned widgets during detachment.
+          - Add integration test ensuring detached toolbar buttons trigger container methods.
 - 0.2.195 - Introduce generic DLL bridge calling Python services.
           - Expose automl_core functions through a dynamic library and add regression tests invoking standard library functions via the bridge.
           - Cancel Tk ``after`` callbacks using direct Tcl calls to avoid
