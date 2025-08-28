@@ -25,7 +25,7 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
-from mainappsrc.core.safety_analysis import SafetyAnalysis_FTA_FMEA
+from .fmea_service import FMEAService
 from mainappsrc.models.fta.fault_tree_node import FaultTreeNode
 from analysis.constants import CHECK_MARK, CROSS_MARK
 from analysis.fmeda_utils import compute_fmeda_metrics as _compute_fmeda_metrics
@@ -40,6 +40,8 @@ class SafetyAnalysisService:
     """Wrap :class:`SafetyAnalysis_FTA_FMEA` and expose utility helpers."""
 
     def __init__(self, app: object) -> None:
+        from mainappsrc.core.safety_analysis import SafetyAnalysis_FTA_FMEA
+
         self.app = app
         self._impl = SafetyAnalysis_FTA_FMEA(app)
 

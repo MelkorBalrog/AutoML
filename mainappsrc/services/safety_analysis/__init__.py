@@ -18,5 +18,6 @@
 """Safety analysis services."""
 
 from .safety_analysis_service import SafetyAnalysisService
+from .fmea_service import FMEAService
 
-__all__ = ["SafetyAnalysisService"]
+__all__ = ["SafetyAnalysisService", "FMEAService"]
