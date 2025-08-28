@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.179 - Cancel root-level Tk ``after`` callbacks referencing widget paths and
+- 0.2.179 - Safeguard CapsuleButton canvas operations against detached widget
+          errors by checking widget existence and cancelling animation
+          callbacks on destruction.  Add regression tests for detached-tab
+          hover and destroy interactions.
+          - Cancel root-level Tk ``after`` callbacks referencing widget paths and
           invoke cancellation for all widgets before destruction during tab
           detachment.
           - Iterate over ``after info`` results to remove callbacks tied to a
