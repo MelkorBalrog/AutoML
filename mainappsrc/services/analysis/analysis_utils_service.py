@@ -20,11 +20,11 @@
 from __future__ import annotations
 
 from gui.utils.analysis_utils import AnalysisUtilsMixin
-from ...core.probability_reliability import Probability_Reliability
+from ..safety_analysis import SafetyAnalysisService
 
 
 class AnalysisUtilsService(AnalysisUtilsMixin):
-    """Wrap :class:`AnalysisUtilsMixin` and :class:`Probability_Reliability`."""
+    """Wrap :class:`AnalysisUtilsMixin` and :class:`SafetyAnalysisService`."""
 
     def __init__(self, app: object) -> None:
         self.app = app
@@ -41,7 +41,7 @@ class AnalysisUtilsService(AnalysisUtilsMixin):
         setattr(app, "scenario_libraries", self.scenario_libraries)
         setattr(app, "mechanism_libraries", self.mechanism_libraries)
         setattr(app, "selected_mechanism_libraries", self.selected_mechanism_libraries)
-        self.probability_reliability = Probability_Reliability(app)
+        self.probability_reliability = getattr(app, "safety_analysis", SafetyAnalysisService(app))
 
     # ------------------------------------------------------------------
     # Convenience delegations to probability/reliability helpers
