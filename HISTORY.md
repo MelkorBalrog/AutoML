@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.178 - Preserve explorer toolbars when detaching tabs and rebuild actions
+          on empty frames.
+          - Add regression tests ensuring toolbar buttons remain present and
+            functional after detachment.
 - 0.2.177 - Pack requirements editor frame so requirement list displays with columns.
           - Safeguard splash launcher against missing version metadata when
            executing bundled binaries.

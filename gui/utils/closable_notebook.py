@@ -1052,8 +1052,18 @@ class ClosableNotebook(ttk.Notebook):
                 self._raise_widgets(orig, new_widget, mapping, roots)
                 self._cancel_after_events(orig, cancelled)
                 orig.destroy()
+                toolbar = self._find_toolbar_frame(new_widget)
+                if toolbar is not None:
+                    mapping.setdefault(toolbar, toolbar)
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
+                if toolbar is not None and not toolbar.winfo_children():
+                    rebuild = getattr(new_widget, "_rebuild_toolbar", None)
+                    if callable(rebuild):
+                        try:
+                            rebuild()
+                        except Exception:
+                            pass
                 for name in ("_rebuild_toolboxes", "_activate_parent_phase"):
                     func = getattr(new_widget, name, None)
                     if callable(func):
@@ -1227,6 +1237,28 @@ class ClosableNotebook(ttk.Notebook):
                 except Exception:
                     pass
 
+    def _find_toolbar_frame(self, widget: tk.Widget) -> tk.Widget | None:
+        """Return the first child frame containing toolbar buttons.
+
+        Explorers construct a toolbar as a frame packed with several buttons.
+        When cloning tabs this frame needs to be retained so detached windows
+        keep their actions available.  The frame is identified heuristically as
+        the first ``Frame`` descendant whose children include any ``Button``
+        widgets.
+        """
+
+        for child in widget.winfo_children():
+            if isinstance(child, (tk.Frame, ttk.Frame)):
+                try:
+                    if any(
+                        isinstance(grand, (tk.Button, ttk.Button))
+                        for grand in child.winfo_children()
+                    ):
+                        return child
+                except Exception:
+                    continue
+        return None
+
     def _remove_duplicate_widgets(
         self,
         win: tk.Toplevel,
@@ -1260,8 +1292,12 @@ class ClosableNotebook(ttk.Notebook):
                 if child in keep or child in reparented:
                     continue
                 names = expected.get(parent, set())
-                if child.winfo_name() in names or isinstance(
-                    child, (tk.Frame, ttk.Frame, ttk.Treeview)
+                if child.winfo_name() in names or (
+                    isinstance(child, (tk.Frame, ttk.Frame, ttk.Treeview))
+                    and not any(
+                        isinstance(gc, (tk.Button, ttk.Button))
+                        for gc in child.winfo_children()
+                    )
                 ):
                     try:
                         self._cancel_after_events(child)
