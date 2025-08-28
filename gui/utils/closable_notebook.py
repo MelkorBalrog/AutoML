@@ -1553,12 +1553,23 @@ class ClosableNotebook(ttk.Notebook):
         widgets.
         """
 
-        for child in widget.winfo_children():
+        if not widget.winfo_exists():
+            return None
+
+        try:
+            children = widget.winfo_children()
+        except tk.TclError:
+            return None
+
+        for child in children:
             if isinstance(child, (tk.Frame, ttk.Frame)):
                 try:
+                    grands = child.winfo_children()
+                except tk.TclError:
+                    continue
+                try:
                     if any(
-                        isinstance(grand, (tk.Button, ttk.Button))
-                        for grand in child.winfo_children()
+                        isinstance(grand, (tk.Button, ttk.Button)) for grand in grands
                     ):
                         return child
                 except Exception:

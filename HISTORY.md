@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.202 - Guard toolbar frame lookup against destroyed widgets so tab
+          detachment skips invalid paths without raising ``TclError``.
 - 0.2.201 - Factor tab detachment into `_create_floating_window`,
            `_clone_tab_contents`, and `_post_clone_cleanup` helpers.
            Split `_remove_duplicate_widgets` into traversal and pruning
