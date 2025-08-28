@@ -26,6 +26,11 @@
           - Add regression tests covering CapsuleButton, TranslucidButton and
             canvas-based widgets.
 - 0.2.191 - Cancel root-level Tk ``after`` callbacks tied to widget paths and
+          - Bootstrap diagnostics manager with numeric interval to avoid
+          startup TypeError.
+          - Add grouped bootstrap test verifying polling manager initialisation.
+          - Validate polling interval type to prevent runtime TypeError.
+          - Cancel root-level Tk ``after`` callbacks tied to widget paths and
           track identifiers stored in ``_animate`` attributes.
           - Add grouped regression tests ensuring tab detachment and closure
             leave no "invalid command name" messages.
