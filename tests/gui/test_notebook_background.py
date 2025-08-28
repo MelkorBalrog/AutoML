@@ -16,8 +16,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Tests for background rendering in :class:`ClosableNotebook`."""
 
-VERSION = "0.2.170"
+import os
+import tkinter as tk
 
-__all__ = ["VERSION"]
+import pytest
+
+from gui.utils.closable_notebook import ClosableNotebook
+
+
+@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+def test_background_visible_without_tabs():
+    root = tk.Tk()
+    root.withdraw()
+    nb = ClosableNotebook(root)
+    root.update_idletasks()
+    assert nb._bg_canvas.winfo_ismapped()
+
+    frame = tk.Frame(nb)
+    nb.add(frame, text="T1")
+    root.update_idletasks()
+    assert not nb._bg_canvas.winfo_ismapped()
+
+    nb.forget(frame)
+    root.update_idletasks()
+    assert nb._bg_canvas.winfo_ismapped()
+    root.destroy()
