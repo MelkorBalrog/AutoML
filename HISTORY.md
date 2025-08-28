@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.169 - Traverse clone mappings when lifting widgets and raise clones
+- 0.2.169 - Prune only widgets that duplicate original parent/child relationships,
+          ensure all cloned descendants register in the mapping and add layout
+          tests verifying frame, label, canvas and treeview retention after
+          detachment.
+          - Traverse clone mappings when lifting widgets and raise clones
           before pruning duplicates to preserve visibility of overlapping
           widgets after detachment.
 - 0.2.168 - Accumulate children from all geometry managers so every widget
