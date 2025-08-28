@@ -117,7 +117,12 @@ class PollingDiagnosticsManager(DiagnosticsManagerBase):
 
     def __init__(self, interval: float = 0.1) -> None:
         super().__init__()
-        self.interval = interval
+        if callable(interval):
+            raise TypeError("interval must be numeric, not callable")
+        try:
+            self.interval = float(interval)
+        except (TypeError, ValueError) as exc:
+            raise TypeError("interval must be a number") from exc
         self._checks: Dict[str, Tuple[Callable[[], bool], bool, Optional[Callable[[], bool]], Optional[Callable[[], Optional[str]]]]] = {}
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()

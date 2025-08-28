@@ -23,6 +23,8 @@
           track identifiers stored in ``_animate`` attributes.
           - Add grouped regression tests ensuring tab detachment and closure
             leave no "invalid command name" messages.
+          - Validate polling interval type to prevent runtime TypeError.
+          - Add grouped tests ensuring invalid callable intervals raise errors.
 - 0.2.190 - Run crash logger and model loader maintenance in background threads.
           - Add grouped tests covering threaded services.
 - 0.2.189 - Cache JSON configuration loads and run memory cleanup in a

@@ -34,6 +34,11 @@ from tools.diagnostics_manager import (
 )
 
 
+def test_polling_manager_rejects_callable_interval() -> None:
+    with pytest.raises(TypeError):
+        PollingDiagnosticsManager(interval=time.sleep)
+
+
 def test_polling_manager_detects_failure() -> None:
     manager = PollingDiagnosticsManager(interval=0.01)
     manager.register_check("fail", lambda: False)
