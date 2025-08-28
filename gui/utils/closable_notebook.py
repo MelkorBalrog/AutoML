@@ -974,14 +974,21 @@ class ClosableNotebook(ttk.Notebook):
         orig: tk.Widget,
         clone: t.Optional[tk.Widget] = None,
         mapping: t.Optional[dict[tk.Widget, tk.Widget]] = None,
+        roots: t.Optional[dict[tk.Widget, tk.Widget]] = None,
     ) -> None:
         """Recursively lift *clone* mirroring *orig*'s stacking order.
 
         When *mapping* is provided the relationship between original widgets
         and their clones is resolved through it.  The list of children from the
         original widget is cached before any destruction so traversal remains
-        safe even if the originals vanish during detachment.
+        safe even if the originals vanish during detachment.  ``roots`` allows
+        additional original/clone pairs—such as toolbox canvases and buttons—
+        to be lifted ahead of the primary traversal.
         """
+
+        if roots:
+            for o_root, c_root in roots.items():
+                self._raise_widgets(o_root, c_root, mapping)
 
         target = clone or orig
         try:
@@ -1033,15 +1040,45 @@ class ClosableNotebook(ttk.Notebook):
                 mapping: dict[tk.Widget, tk.Widget] = {}
                 new_widget, mapping, layouts = self._clone_widget(orig, nb, mapping)
                 self._copy_widget_layout(orig, new_widget, mapping, layouts)
-                orig.destroy()
                 nb.add(new_widget, text=text)
                 nb.select(new_widget)
                 self._ensure_fills(new_widget)
                 self._reassign_widget_references(mapping)
-                self._raise_widgets(orig, new_widget, mapping)
+
+                roots: dict[tk.Widget, tk.Widget] = {}
+                toolbox_canvas = getattr(orig, "toolbox_canvas", None)
+                if toolbox_canvas is not None:
+                    clone_canvas = mapping.get(toolbox_canvas)
+                    if clone_canvas is not None:
+                        roots[toolbox_canvas] = clone_canvas
+                        try:
+                            for child in toolbox_canvas.winfo_children():
+                                clone_child = mapping.get(child)
+                                if clone_child is not None:
+                                    roots[child] = clone_child
+                        except Exception:
+                            pass
+                toolbox = getattr(orig, "toolbox", None)
+                if toolbox is not None:
+                    try:
+                        for child in toolbox.winfo_children():
+                            clone_child = mapping.get(child)
+                            if clone_child is not None:
+                                roots[child] = clone_child
+                    except Exception:
+                        pass
+
+                self._raise_widgets(orig, new_widget, mapping, roots)
                 orig.destroy()
                 self._remove_duplicate_widgets(win, nb, mapping)
                 self._reassign_container_attributes(mapping)
+                for name in ("_rebuild_toolboxes", "_fit_toolbox"):
+                    func = getattr(new_widget, name, None)
+                    if callable(func):
+                        try:
+                            func()
+                        except Exception:
+                            pass
             else:
                 tab = nb.tabs()[-1]
                 child = nb.nametowidget(tab)
