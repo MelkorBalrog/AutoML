@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.174 - Guard duplicate pruning against missing originals and orphaned
+          clones.
+          - Skip ``winfo_children`` lookups when originals vanish and ignore
+            clones whose parents are absent from the mapping.
+          - Add grouped detachment tests confirming frames, treeviews,
+            canvases and buttons appear only once after detachment.
 - 0.2.173 - Move FMEA and FTA helpers into ``analysis.utils`` and wrap
           ``safety_analysis_service`` methods.
           - Prevent duplicate Safety Management Explorer instances and prune

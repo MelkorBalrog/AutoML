@@ -1234,10 +1234,15 @@ class ClosableNotebook(ttk.Notebook):
         # widgets are destroyed so pruning has a complete view of the original
         # hierarchy. This prevents lookups on partially destroyed widget trees.
         expected: dict[tk.Widget, set[str]] = {}
+        reparented: set[tk.Widget] = set()
         for orig, clone in mapping.items():
+            if not orig.winfo_exists():
+                continue
             parent_clone = mapping.get(orig.master)
             if parent_clone is not None:
                 expected.setdefault(parent_clone, set()).add(clone.winfo_name())
+            else:
+                reparented.add(clone)
 
         def prune(parent: tk.Widget) -> None:
             if not parent.winfo_exists():
