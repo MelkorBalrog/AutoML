@@ -600,17 +600,14 @@ class ClosableNotebook(ttk.Notebook):
             mapping[widget] = clone
             self._copy_widget_config(widget, clone)
             if clone_cls.__name__ not in _SELF_DRAWING_CANVASES:
-                try:
-                    widget.tk.call("tk::canvas", "copy", widget._w, clone._w)
-                except Exception:
-                    mapping, layouts = self._copy_canvas_items(
-                        widget,
-                        clone,
-                        widget.find_all(),
-                        mapping,
-                        layouts,
-                        cancelled,
-                    )
+                mapping, layouts = self._copy_canvas_items(
+                    widget,
+                    clone,
+                    widget.find_all(),
+                    mapping,
+                    layouts,
+                    cancelled,
+                )
                 for child in self._ordered_children(widget):
                     if child in mapping:
                         continue

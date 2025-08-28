@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.183 - Avoid duplicate canvas images when detaching tabs by copying
+          items explicitly instead of using ``tk::canvas copy``.
+          - Add grouped regression test ensuring canvas clones contain
+            no unexpected image items.
 - 0.2.182 - Rebind CapsuleButton `<Enter>`/`<Leave>` events when cloning
           detached tabs to preserve hover behaviour.
           - Add grouped tests exercising hover callbacks on detached buttons.
