@@ -19,7 +19,13 @@
 -->
 
 # Version History
-- 0.2.180 - Clone CapsuleButton widgets without Canvas option errors and
+- 0.2.180 - Parse ``after info`` pairs to cancel callbacks referencing widget
+          paths and expose a reusable ``cancel_after_events`` helper.
+          - Invoke the cleanup for every widget during tab detachment and when
+            destroying ``CapsuleButton`` instances.
+          - Add grouped regression tests ensuring no ``_animate`` callbacks
+            survive after snapping out or closing detached windows.
+          - Clone CapsuleButton widgets without Canvas option errors and
           preserve label text and state during detachment.
           - Clone canvases containing window items by manually iterating
           canvas elements, recursively cloning embedded widgets and

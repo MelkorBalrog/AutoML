@@ -25,6 +25,8 @@ import tkinter as tk
 import tkinter.font as tkfont
 from typing import Callable, Optional
 
+from gui.utils.closable_notebook import cancel_after_events
+
 
 _SYSTEM_COLORS = {
     "SystemButtonFace": 15,  # COLOR_BTNFACE
@@ -831,11 +833,10 @@ class CapsuleButton(tk.Canvas):
     # Cleanup helpers
 
     def destroy(self) -> None:  # type: ignore[override]
-        """Cancel animation callbacks then destroy the widget."""
-        if self._animate_id is not None:
-            try:
-                self.after_cancel(self._animate_id)
-            except Exception:
-                pass
-            self._animate_id = None
+        """Cancel scheduled callbacks then destroy the widget."""
+        try:
+            cancel_after_events(self)
+        except Exception:
+            pass
+        self._animate_id = None
         super().destroy()
