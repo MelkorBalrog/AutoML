@@ -23,6 +23,14 @@
           like ``<Button-1>`` remain active on cloned diagrams. Added
           regression test ensuring nodes in detached canvases stay
           selectable.
+          - Replicate canvas tag bindings when cloning detached tabs so diagram items
+          retain double-click handlers.
+          - Add tests verifying diagram item double-click callbacks remain
+            functional after detachment.
+          - Skip canvas item copying for self-drawing canvases to prevent
+          duplicate elements when detaching widgets like ``CapsuleButton``.
+          - Added regression tests ensuring cloned CapsuleButton widgets render
+          a single image and text.
 - 0.2.181 - Clone canvas window items recursively so detached tabs preserve
           embedded widget layouts and content.
           - Instantiate canvases using their original subclass to avoid
