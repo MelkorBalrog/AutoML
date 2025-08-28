@@ -17,7 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 import datetime
 from typing import Optional
 from analysis.user_config import CURRENT_USER_NAME, CURRENT_USER_EMAIL
@@ -191,13 +191,50 @@ class StpaEntry:
     stopped_too_soon: str
     safety_constraints: list[str] = field(default_factory=list)
 
+    # ------------------------------------------------------------------
+    def to_dict(self) -> dict:
+        """Return a serialisable representation of this STPA entry."""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "StpaEntry":
+        """Create an STPA entry from *data* mapping."""
+        return cls(
+            data.get("action", ""),
+            data.get("not_providing", ""),
+            data.get("providing", ""),
+            data.get("incorrect_timing", ""),
+            data.get("stopped_too_soon", ""),
+            list(data.get("safety_constraints", [])),
+        )
+
 
 @dataclass
 class StpaDoc:
     name: str
     diagram: str
-    entries: list
+    entries: list[StpaEntry]
     meta: Metadata = field(default_factory=Metadata)
+
+    # ------------------------------------------------------------------
+    def to_dict(self) -> dict:
+        """Return a serialisable representation of this STPA document."""
+        return {
+            "name": self.name,
+            "diagram": self.diagram,
+            "entries": [e.to_dict() for e in self.entries],
+            "meta": asdict(self.meta),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "StpaDoc":
+        """Reconstruct an STPA document from *data* mapping."""
+        return cls(
+            name=data.get("name", ""),
+            diagram=data.get("diagram", ""),
+            entries=[StpaEntry.from_dict(e) for e in data.get("entries", [])],
+            meta=Metadata(**data.get("meta", {})),
+        )
 
 @dataclass
 class FI2TCDoc:
