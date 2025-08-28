@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.196 - Refactor tab detachment helpers to reduce complexity and remove
+          duplicate widget pruning logic from `_detach_tab` and
+          `_remove_duplicate_widgets`.
 - 0.2.195 - Introduce generic DLL bridge calling Python services.
           - Expose automl_core functions through a dynamic library and add regression tests invoking standard library functions via the bridge.
           - Cancel Tk ``after`` callbacks using direct Tcl calls to avoid
