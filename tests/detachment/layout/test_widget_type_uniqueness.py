@@ -66,6 +66,18 @@ class TestWidgetTypeUniqueness:
         self.nb.update_idletasks()
         return _detach_notebook(self.nb)
 
+    def test_frames_unique(self) -> None:
+        ttk.Frame(self.container).pack()
+        detached = self._detach()
+        clones = [w for w in detached.winfo_children() if isinstance(w, ttk.Frame)]
+        assert len(clones) == 1
+
+    def test_treeviews_unique(self) -> None:
+        ttk.Treeview(self.container).pack()
+        detached = self._detach()
+        clones = [w for w in detached.winfo_children() if isinstance(w, ttk.Treeview)]
+        assert len(clones) == 1
+
     def test_buttons_unique(self) -> None:
         ttk.Button(self.container, text="b").pack()
         detached = self._detach()
