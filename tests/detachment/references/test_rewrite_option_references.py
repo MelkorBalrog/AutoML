@@ -15,29 +15,32 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-"""Canvas cloning tests ensuring widgets replicate state when detached."""
+"""Tests for ``rewrite_option_references`` helper."""
 
 import os
-import sys
 import tkinter as tk
 import pytest
+from tkinter import ttk
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-sys.path.append(root_dir)
-sys.path.append(os.path.join(root_dir, "gui", "utils"))
 from closable_notebook import ClosableNotebook
 
 
-def test_canvas_clone_retains_items() -> None:
-    try:
+class NullConfigFrame(ttk.Frame):
+    """Frame whose ``configure`` call returns ``None`` when queried."""
+
+    def configure(self, *args, **kwargs):  # type: ignore[override]
+        if args or kwargs:
+            return super().configure(*args, **kwargs)
+        return None
+
+
+class TestRewriteOptionReferences:
+    @pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+    def test_handles_null_config(self):
         root = tk.Tk()
-    except tk.TclError:
-        pytest.skip("Tk not available")
-    nb = ClosableNotebook(root)
-    canvas = tk.Canvas(nb, width=50, height=50)
-    canvas.create_line(0, 0, 10, 10)
-    clone, _, _ = nb._clone_widget(canvas, nb)
-    assert isinstance(clone, tk.Canvas)
-    assert clone.find_all(), "Cloned canvas lost its items"
-    root.destroy()
+        nb = ClosableNotebook(root)
+        orig = ttk.Frame(nb)
+        clone = NullConfigFrame(nb)
+        mapping = {orig: clone}
+        nb.rewrite_option_references(mapping)
+        root.destroy()

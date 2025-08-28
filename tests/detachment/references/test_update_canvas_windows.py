@@ -15,29 +15,31 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-"""Canvas cloning tests ensuring widgets replicate state when detached."""
+"""Tests for ``update_canvas_windows`` helper."""
 
 import os
-import sys
 import tkinter as tk
 import pytest
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-sys.path.append(root_dir)
-sys.path.append(os.path.join(root_dir, "gui", "utils"))
 from closable_notebook import ClosableNotebook
 
 
-def test_canvas_clone_retains_items() -> None:
-    try:
+class TestUpdateCanvasWindows:
+    @pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+    def test_rewires_canvas_window_items(self):
         root = tk.Tk()
-    except tk.TclError:
-        pytest.skip("Tk not available")
-    nb = ClosableNotebook(root)
-    canvas = tk.Canvas(nb, width=50, height=50)
-    canvas.create_line(0, 0, 10, 10)
-    clone, _, _ = nb._clone_widget(canvas, nb)
-    assert isinstance(clone, tk.Canvas)
-    assert clone.find_all(), "Cloned canvas lost its items"
-    root.destroy()
+        nb = ClosableNotebook(root)
+        canvas = tk.Canvas(nb)
+        frame = tk.Frame(canvas)
+        lst = tk.Listbox(frame)
+        lst.insert("end", "item")
+        lst.pack()
+        canvas.create_window(0, 0, window=frame, anchor="nw")
+        clone, mapping, layouts = nb._clone_widget(canvas, nb)
+        nb.update_canvas_windows(mapping)
+        item = clone.find_all()[0]
+        win_path = clone.itemcget(item, "window")
+        assert win_path
+        clone_win = clone.nametowidget(win_path)
+        assert isinstance(clone_win, tk.Frame)
+        root.destroy()

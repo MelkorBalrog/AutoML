@@ -19,6 +19,7 @@
 import tkinter as tk
 import math
 from PIL import Image, ImageDraw, ImageTk, ImageFont
+from gui.utils.backgrounds import generate_workspace_background
 
 from gui.utils.background_factory import generate_splash_background
 
@@ -176,7 +177,6 @@ class SplashScreen(tk.Toplevel):
         self.shadow.geometry(f"{w}x{h}+{x + 5}+{y + 5}")
         self.geometry(f"{w}x{h}+{x}+{y}")
         self.shadow.lower(self)
-
 
     def _draw_title(self) -> None:
         """Render orange ``AutoML`` title at 1.5x subtitle size with black shadows."""
