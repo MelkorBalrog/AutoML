@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.195 - Introduce generic DLL bridge calling Python services.
+          - Expose automl_core functions through a dynamic library and add regression tests invoking standard library functions via the bridge.
+
 - 0.2.194 - Clone widgets using keyword configuration to respect CapsuleButton's
           signature and preserve options like cursor.
           - Add regression test ensuring cursor configuration copies correctly.
