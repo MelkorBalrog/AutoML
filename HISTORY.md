@@ -20,6 +20,26 @@
 
 # Version History
 - 0.2.170 - Show splash-style background in workspace when no tabs are open.
+          - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
+          during drag target resolution and detach tabs safely when widgets
+          vanish.  Add regression test simulating release over a destroyed
+          widget.
+          - Record geometry manager and options before cloning widgets and
+          restore layouts for every descendant when detaching tabs.
+          Refine duplicate pruning to compare parent/child relationships and
+          add nested layout tests covering frames, labels, canvases and
+          treeviews.
+          - Cancel root-scheduled ``after`` callbacks referencing widget paths
+          and invoke `_cancel_after_events` when detaching or closing floating
+          windows. Add regression tests to ensure animated widgets raise no
+          ``TclError`` or ``AttributeError`` after detachment and closure.
+          - Raise cloned widgets before originals are destroyed to avoid
+          `TclError` and preserve visibility when detaching tabs.
+          - Accept original and clone roots in `_raise_widgets` and traverse a
+            cached child list while the original still exists.
+          - Invoke `_raise_widgets` ahead of duplicate pruning in `_detach_tab`.
+          - Add regression tests ensuring detachment raises no errors and all
+            widgets remain visible.
 - 0.2.169 - Prune only widgets that duplicate original parent/child relationships,
           ensure all cloned descendants register in the mapping and add layout
           tests verifying frame, label, canvas and treeview retention after

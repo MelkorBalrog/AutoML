@@ -60,7 +60,7 @@ class TestRewriteConfigOptions:
         lst.configure(yscrollcommand=scroll.set)
         lst.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
-        clone, mapping = nb._clone_widget(frame, nb)
+        clone, mapping, layouts = nb._clone_widget(frame, nb)
         nb._rewrite_config_options(mapping)
         clone_lst = mapping[lst]
         clone_scroll = mapping[scroll]
@@ -80,7 +80,7 @@ class TestUpdateCanvasWindowItems:
         lst.insert("end", "item")
         lst.pack()
         canvas.create_window(0, 0, window=frame, anchor="nw")
-        clone, mapping = nb._clone_widget(canvas, nb)
+        clone, mapping, layouts = nb._clone_widget(canvas, nb)
         nb._update_canvas_window_items(mapping)
         item = clone.find_all()[0]
         win_path = clone.itemcget(item, "window")
