@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.183 - Limit after-event cancellation to widget-specific callbacks, preserving
+- 0.2.183 - Avoid duplicate canvas images when detaching tabs by copying
+          items explicitly instead of using ``tk::canvas copy``.
+          - Add grouped regression test ensuring canvas clones contain
+            no unexpected image items.
+          - Limit after-event cancellation to widget-specific callbacks, preserving
           internal Tk behaviour when detaching tabs.
           - Prevent duplicated controls and "invalid command name" errors after
           detaching tabs.
