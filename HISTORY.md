@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.180 - Parse ``after info`` pairs to cancel callbacks referencing widget
+          paths and expose a reusable ``cancel_after_events`` helper.
+          - Invoke the cleanup for every widget during tab detachment and when
+            destroying ``CapsuleButton`` instances.
+          - Add grouped regression tests ensuring no ``_animate`` callbacks
+            survive after snapping out or closing detached windows.
 - 0.2.179 - Refresh diagram mapping before opening safety management diagrams and
           display an error when the diagram is missing. Add double-click tests
           verifying architecture windows open for existing diagrams.
