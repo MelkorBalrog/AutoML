@@ -36,7 +36,6 @@ if __package__ and __package__.startswith("AutoML"):
 else:  # pragma: no cover - script context
     from config.automl_constants import PMHF_TARGETS
 
-
 class SafetyAnalysisService:
     """Wrap :class:`SafetyAnalysis_FTA_FMEA` and expose utility helpers."""
 
@@ -479,4 +478,4 @@ class SafetyAnalysisService:
         return self.app.risk_app.sync_cyber_risk_to_goals(self.app)
 
 
-__all__ = ["SafetyAnalysisService"]
+__all__ = ["SafetyAnalysisService", "FMEAService"]
