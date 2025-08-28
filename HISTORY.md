@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.171 - Relocate ``SafetyAnalysis_FTA_FMEA`` implementation from
+          ``core.safety_analysis`` to
+          ``services.safety_analysis.safety_analysis_service`` and update
+          imports and service wrappers.
 - 0.2.170 - Wrap ``winfo_containing`` in ``try/except`` to guard ``KeyError``
           during drag target resolution and detach tabs safely when widgets
           vanish.  Add regression test simulating release over a destroyed

@@ -77,7 +77,7 @@ from mainappsrc.core.automl_core import (
     messagebox,
     GATE_NODE_TYPES,
 )
-from mainappsrc.core.safety_analysis import SafetyAnalysis_FTA_FMEA
+from mainappsrc.services.safety_analysis import SafetyAnalysis_FTA_FMEA
 from mainappsrc.page_diagram import PageDiagram
 import tkinter.font as tkFont
 from gui.utils.drawing_helper import fta_drawing_helper

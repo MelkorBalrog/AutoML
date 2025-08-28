@@ -17,6 +17,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Safety analysis services."""
 
-from .safety_analysis_service import SafetyAnalysisService
+from .safety_analysis_service import SafetyAnalysis_FTA_FMEA, SafetyAnalysisService
 
-__all__ = ["SafetyAnalysisService"]
+__all__ = ["SafetyAnalysis_FTA_FMEA", "SafetyAnalysisService"]
