@@ -257,6 +257,7 @@ class CapsuleButton(tk.Canvas):
         # content.
         self._image_item: Optional[int] = None
         self._icon_highlight_item: Optional[int] = None
+        self._animate_id: str | None = None
         self._draw_button()
         self.bind("<Enter>", self._on_enter)
         self.bind("<Leave>", self._on_leave)
@@ -629,82 +630,97 @@ class CapsuleButton(tk.Canvas):
         for item in self._shine_items + self._shade_items:
             self._safe_itemconfigure(item, state=state)
 
+    def _animate(self) -> None:
+        """Schedule a lightweight animation callback."""
+        if not self.winfo_exists():
+            return
+        self._animate_id = self.after(50, self._animate)
+
     def _on_motion(self, event: tk.Event) -> None:
-        if "disabled" in self._state or not self.winfo_exists():
-            return
         try:
+            if "disabled" in self._state or not self.winfo_exists():
+                return
             w, h = int(self["width"]), int(self["height"])
+            inside = 0 <= event.x < w and 0 <= event.y < h
+            if inside:
+                if self._current_color == self._normal_color:
+                    self._set_color(self._hover_color)
+                if (
+                    self._image_item
+                    and self._image
+                    and self._current_image is self._image
+                ):
+                    glow = self._get_glow_image()
+                    if glow and self._safe_itemconfigure(self._image_item, image=glow):
+                        self._current_image = glow
+                self._add_glow()
+                self._set_gradient(self._hover_gradient)
+            else:
+                if self._current_color != self._normal_color:
+                    self._set_color(self._normal_color)
+                if self._image_item and self._current_image is not self._image:
+                    if self._safe_itemconfigure(self._image_item, image=self._image):
+                        self._current_image = self._image
+                self._remove_glow()
+                self._set_gradient(self._normal_gradient)
         except tk.TclError:
-            return
-        inside = 0 <= event.x < w and 0 <= event.y < h
-        if inside:
-            if self._current_color == self._normal_color:
-                self._set_color(self._hover_color)
-            if (
-                self._image_item
-                and self._image
-                and self._current_image is self._image
-            ):
-                glow = self._get_glow_image()
-                if glow and self._safe_itemconfigure(self._image_item, image=glow):
-                    self._current_image = glow
-            self._add_glow()
-            self._set_gradient(self._hover_gradient)
-        else:
-            if self._current_color != self._normal_color:
-                self._set_color(self._normal_color)
-            if self._image_item and self._current_image is not self._image:
-                if self._safe_itemconfigure(self._image_item, image=self._image):
-                    self._current_image = self._image
-            self._remove_glow()
-            self._set_gradient(self._normal_gradient)
+            pass
 
     def _on_enter(self, _event: tk.Event) -> None:
-        if "disabled" not in self._state and self.winfo_exists():
-            self._set_color(self._hover_color)
-            if self._image_item and self._image:
-                glow = self._get_glow_image()
-                if glow and self._safe_itemconfigure(self._image_item, image=glow):
-                    self._current_image = glow
-            self._add_glow()
-            self._set_gradient(self._hover_gradient)
+        try:
+            if "disabled" not in self._state and self.winfo_exists():
+                self._set_color(self._hover_color)
+                if self._image_item and self._image:
+                    glow = self._get_glow_image()
+                    if glow and self._safe_itemconfigure(self._image_item, image=glow):
+                        self._current_image = glow
+                self._add_glow()
+                self._set_gradient(self._hover_gradient)
+        except tk.TclError:
+            pass
 
     def _on_leave(self, _event: tk.Event) -> None:
-        if "disabled" not in self._state and self.winfo_exists():
-            self._set_color(self._normal_color)
-            if self._image_item and self._current_image is not self._image:
-                if self._safe_itemconfigure(self._image_item, image=self._image):
-                    self._current_image = self._image
-            self._remove_glow()
-            self._set_gradient(self._normal_gradient)
+        try:
+            if "disabled" not in self._state and self.winfo_exists():
+                self._set_color(self._normal_color)
+                if self._image_item and self._current_image is not self._image:
+                    if self._safe_itemconfigure(self._image_item, image=self._image):
+                        self._current_image = self._image
+                self._remove_glow()
+                self._set_gradient(self._normal_gradient)
+        except tk.TclError:
+            pass
 
     def _on_press(self, _event: tk.Event) -> None:
-        if "disabled" not in self._state and self.winfo_exists():
-            self._remove_glow()
-            self._toggle_shine(False)
-            self._set_color(self._pressed_color)
-            self._set_gradient(self._normal_gradient)
+        try:
+            if "disabled" not in self._state and self.winfo_exists():
+                self._remove_glow()
+                self._toggle_shine(False)
+                self._set_color(self._pressed_color)
+                self._set_gradient(self._normal_gradient)
+        except tk.TclError:
+            pass
 
     def _on_release(self, event: tk.Event) -> None:
-        if "disabled" in self._state or not self.winfo_exists():
-            return
         try:
+            if "disabled" in self._state or not self.winfo_exists():
+                return
             w, h = int(self["width"]), int(self["height"])
+            inside = 0 <= event.x < w and 0 <= event.y < h
+            if inside:
+                self._set_color(self._hover_color)
+                self._toggle_shine(True)
+                self._add_glow()
+                self._set_gradient(self._hover_gradient)
+                if self._command:
+                    self._command()
+            else:
+                self._set_color(self._normal_color)
+                self._toggle_shine(True)
+                self._remove_glow()
+                self._set_gradient(self._normal_gradient)
         except tk.TclError:
-            return
-        inside = 0 <= event.x < w and 0 <= event.y < h
-        if inside:
-            self._set_color(self._hover_color)
-            self._toggle_shine(True)
-            self._add_glow()
-            self._set_gradient(self._hover_gradient)
-            if self._command:
-                self._command()
-        else:
-            self._set_color(self._normal_color)
-            self._toggle_shine(True)
-            self._remove_glow()
-            self._set_gradient(self._normal_gradient)
+            pass
 
     def _apply_state(self) -> None:
         """Update the visual appearance to reflect the current state."""
@@ -814,23 +830,12 @@ class CapsuleButton(tk.Canvas):
     # ------------------------------------------------------------
     # Cleanup helpers
 
-    def _cancel_after_callbacks(self) -> None:
-        """Cancel ``after`` callbacks referencing this widget's path."""
-        try:
-            info = self.tk.call("after", "info")
-        except Exception:
-            return
-        if isinstance(info, str):
-            info = self.tk.splitlist(info)
-        tcl_name = str(self)
-        for ident, cmd in zip(info[::2], info[1::2]):
-            if tcl_name in cmd:
-                try:
-                    self.after_cancel(ident)
-                except Exception:
-                    pass
-
     def destroy(self) -> None:  # type: ignore[override]
-        """Destroy the button after cancelling scheduled callbacks."""
-        self._cancel_after_callbacks()
+        """Cancel animation callbacks then destroy the widget."""
+        if self._animate_id is not None:
+            try:
+                self.after_cancel(self._animate_id)
+            except Exception:
+                pass
+            self._animate_id = None
         super().destroy()

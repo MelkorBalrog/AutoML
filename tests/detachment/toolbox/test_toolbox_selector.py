@@ -37,6 +37,7 @@ class DummyDiagram(ttk.Frame):
         super().__init__(master)
         self.rebuilt = False
         self.activated = False
+        self.switched = False
         self.current_tool = "Select"
         self.toolbox_canvas = tk.Canvas(self, width=40, height=40)
         self.toolbox_canvas.pack()
@@ -54,6 +55,9 @@ class DummyDiagram(ttk.Frame):
 
     def _activate_parent_phase(self) -> None:
         self.activated = True
+
+    def _switch_toolbox(self) -> None:
+        self.switched = True
 
 
 def _detach_diagram() -> tuple[tk.Misc, tk.Toplevel, DummyDiagram]:
@@ -94,6 +98,7 @@ class TestGovernanceToolboxDetachment:
             pytest.skip("Tk not available")
         assert clone.rebuilt is True
         assert clone.activated is True
+        assert clone.switched is True
         assert clone.toolbox.winfo_manager() == "pack"
         assert clone.toolbox.pack_info().get("side") == "left"
         x = clone.selector.winfo_rootx() + 1

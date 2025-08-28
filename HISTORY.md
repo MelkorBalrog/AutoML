@@ -22,6 +22,31 @@
 - 0.2.179 - Refresh diagram mapping before opening safety management diagrams and
           display an error when the diagram is missing. Add double-click tests
           verifying architecture windows open for existing diagrams.
+          - Rebuild and activate governance toolboxes when detaching tabs so
+          detached governance diagrams display the toolbox selector and remain
+          interactive.
+          - Invoke ``_switch_toolbox`` on detached governance clones and pack
+            the toolbox frame before raising widgets.
+          - Add grouped regression tests ensuring toolbox selectors stay
+            functional after detachment.
+          - Safeguard CapsuleButton canvas operations against detached widget
+          errors by checking widget existence and cancelling animation
+          callbacks on destruction.  Add regression tests for detached-tab
+          hover and destroy interactions.
+          - Cancel root-level Tk ``after`` callbacks referencing widget paths and
+          invoke cancellation for all widgets before destruction during tab
+          detachment.
+          - Iterate over ``after info`` results to remove callbacks tied to a
+          widget's Tcl name.
+          - Call the improved cleanup routine prior to destroying widgets when
+          snapping out tabs.
+          - Add grouped regression tests ensuring no ``invalid command name``
+          errors after detaching animated buttons.
+          - Recreate detached governance diagram canvases and transfer items,
+          destroying originals to prevent duplicate canvases.
+          - Skip reparented canvases during duplicate pruning.
+          - Add regression tests ensuring detached governance diagrams expose
+            a single populated canvas.
 - 0.2.178 - Reparent governance diagram canvases during tab detachment and
           rebuild toolboxes so detached windows display canvases and toolboxes
           correctly.
