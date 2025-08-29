@@ -29,8 +29,6 @@ import tkinter as tk
 from types import ModuleType
 from typing import Callable, Optional
 
-from gui.utils.thread_safe_call import run_on_main_thread
-
 if getattr(sys, "frozen", False):  # pragma: no cover - path handling for executables
     _ROOT = Path(sys._MEIPASS)
 else:
@@ -85,7 +83,7 @@ class SplashLauncher:
         else:
             self._module = importlib.import_module(self.module_name)
         # Once loading is complete, close the splash screen on the main thread
-        run_on_main_thread(self._root.after, self.post_delay, self._splash.close)
+        self._root.after(self.post_delay, self._splash.close)
 
     def launch(self) -> None:
         """Display the splash screen and run the application's main function."""
