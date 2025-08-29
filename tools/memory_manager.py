@@ -33,8 +33,6 @@ import time
 from typing import Any, Callable, Dict, Set
 import atexit
 
-from gui.utils.thread_safe_call import run_on_main_thread
-
 try:  # pragma: no cover - optional dependency
     import psutil
 except Exception:  # pragma: no cover - psutil may not be installed
@@ -87,12 +85,9 @@ class MemoryManager:
                 destroy = getattr(obj, "destroy", None)
                 if callable(destroy):
                     try:
-                        run_on_main_thread(destroy)
+                        destroy()
                     except Exception:  # pragma: no cover - best effort cleanup
-                        try:
-                            destroy()
-                        except Exception:
-                            pass
+                        pass
                 del obj
         if inactive:
             gc.collect()
