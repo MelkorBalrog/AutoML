@@ -19,10 +19,7 @@
 -->
 
 # Version History
-- 0.2.212 - Introduce pausable service manager with acquire/release API,
-          migrate watchdog and background threads to ServiceManager and
-          provide global shutdown on exit.
-          - Queue worker thread UI updates on the Tk main loop via
+- 0.2.212 - Queue worker thread UI updates on the Tk main loop via
           `run_on_main_thread` and document diagram service thread-safety
           rules.
           - Track service idle time for automatic thread shutdown and add
