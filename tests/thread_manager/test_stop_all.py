@@ -15,9 +15,34 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Regression tests for :mod:`tools.thread_manager` stop logic."""
 
-"""Project version information."""
+from __future__ import annotations
 
-VERSION = "0.2.207"
+import threading
 
-__all__ = ["VERSION"]
+from tools.thread_manager import ThreadManager
+
+
+class TestStopAllBehaviour:
+    """Grouped checks for stop-all handling."""
+
+    def test_stop_all_skips_current_thread(self) -> None:
+        errors: list[threading.ExceptHookArgs] = []
+
+        def hook(args: threading.ExceptHookArgs) -> None:
+            errors.append(args)
+
+        old_hook = threading.excepthook
+        threading.excepthook = hook
+
+        mgr = ThreadManager(interval=0.05)
+
+        def worker() -> None:
+            mgr.stop_all()
+
+        t = mgr.register("worker", worker, daemon=False)
+        t.join()
+
+        threading.excepthook = old_hook
+        assert not errors
