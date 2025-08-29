@@ -19,7 +19,14 @@
 -->
 
 # Version History
+- 0.2.206 - Track stop events in the service thread manager so threads
+          requested to stop are removed instead of being restarted.
 - 0.2.205 - Skip global ``after`` event cancellation when running outside the
+          main thread to avoid ``Tcl_AsyncDelete`` warnings during cleanup.
+- 0.2.204 - Cancel pending ``after`` callbacks recursively and discard Tk
+          command names so destroying roots raises no AttributeError and
+          detached canvas items remain selectable.
+          - Skip global ``after`` event cancellation when running outside the
           main thread to avoid ``Tcl_AsyncDelete`` warnings during cleanup.
           - Cancel pending ``after`` callbacks recursively and discard Tk
           command names so destroying roots raises no AttributeError and
@@ -31,7 +38,7 @@
           detached canvas items remain selectable.
           - Launch AutoML core through service manager and allow non-daemon
            service threads with join support.
-- 0.2.204 - Introduce threaded service manager to lazily load services,
+          - Introduce threaded service manager to lazily load services,
            restart recoverable threads and shut down unused services.
           - Introduce threaded service manager to lazily load services,
           restart recoverable threads and shut down unused services.
