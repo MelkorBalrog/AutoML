@@ -34,13 +34,13 @@ class PausableService(threading.Thread):
         self._args = args
         self._kwargs = kwargs
         self._pause = threading.Event()
-        self._stop = threading.Event()
+        self._stop_event = threading.Event()
         self._pause.set()
 
     def run(self) -> None:  # pragma: no cover - trivial loop
-        while not self._stop.is_set():
+        while not self._stop_event.is_set():
             self._pause.wait()
-            if self._stop.is_set():
+            if self._stop_event.is_set():
                 break
             self._target(*self._args, **self._kwargs)
 
@@ -51,7 +51,7 @@ class PausableService(threading.Thread):
         self._pause.set()
 
     def stop(self) -> None:
-        self._stop.set()
+        self._stop_event.set()
         self._pause.set()
 
 
@@ -97,8 +97,8 @@ class ServiceManager:
             if not entry:
                 return
             entry.refcount = max(entry.refcount - 1, 0)
-            entry.service.pause()
             if entry.refcount == 0:
+                entry.service.pause()
                 entry.last_release = time.time()
 
     def shutdown_all(self) -> None:
