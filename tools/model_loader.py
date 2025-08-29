@@ -80,9 +80,7 @@ def start_cleanup_thread(
             memory_manager.cleanup()
             stop_event.wait(interval)
 
-    thread = thread_manager.register(
-        "model_loader_cleanup", _run, daemon=True, stop_event=stop_event
-    )
+    thread = thread_manager.register("model_loader_cleanup", _run, daemon=True)
     return stop_event, thread
 
 

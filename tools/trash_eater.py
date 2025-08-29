@@ -89,9 +89,7 @@ class TrashEater:
         if self._thread and self._thread.is_alive():
             return
         self._stop.clear()
-        self._thread = thread_manager.register(
-            "trash_eater", self._run, daemon=True, stop_event=self._stop
-        )
+        self._thread = thread_manager.register("trash_eater", self._run, daemon=True)
 
     def stop(self) -> None:
         """Stop background monitoring thread."""
