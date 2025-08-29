@@ -34,16 +34,16 @@ class _ServiceInfo:
     refcount: int
     recoverable: bool
     paused: bool = False
-    idle_since: Optional[float] = None
 
 
 class ServiceManager:
     """Manage application services in dedicated threads.
 
     Services are instantiated lazily when :meth:`request` is called and run on
-    monitored threads.  When released they are shut down and their threads are
-    stopped.  A lightweight watchdog periodically checks whether recoverable
-    services are still alive and restarts them if necessary.
+    monitored threads.  When released they are paused instead of terminated and
+    can be resumed on demand.  A lightweight watchdog periodically checks
+    whether recoverable services are still alive and restarts them if
+    necessary.
     """
 
     def __init__(self, interval: float = 1.0, idle_timeout: float = 60.0) -> None:
@@ -91,7 +91,6 @@ class ServiceManager:
                     if callable(resume):
                         resume()
                     info.paused = False
-                    info.idle_since = None
                 elif not info.thread.is_alive():
                     info.thread = thread_manager.register(
                         f"service:{name}", getattr(info.instance, "run"), daemon=daemon
@@ -106,7 +105,7 @@ class ServiceManager:
             return instance
 
     def release(self, name: str) -> None:
-        """Decrease the reference count and stop the service if unused."""
+        """Decrease the reference count and pause the service if unused."""
         with self._lock:
             info = self._services.get(name)
             if not info:
@@ -117,15 +116,8 @@ class ServiceManager:
                 if callable(pause):
                     pause()
                     info.paused = True
-                    info.idle_since = time.time()
                 else:
-                    thread = thread_manager.unregister(f"service:{name}")
-                    shutdown = getattr(info.instance, "shutdown", None)
-                    if callable(shutdown):
-                        shutdown()
-                    if thread and thread.is_alive():
-                        thread.join()
-                    del self._services[name]
+                    info.paused = True
 
     def join(self, name: str, timeout: float | None = None) -> None:
         """Wait for the named service thread to finish."""
@@ -159,6 +151,18 @@ class ServiceManager:
                             f"service:{name}", getattr(info.instance, "run")
                         )
                         info.thread = thread
+
+    def shutdown(self, name: str) -> None:
+        """Completely stop and unregister a service."""
+        with self._lock:
+            info = self._services.pop(name, None)
+        if info:
+            thread = thread_manager.unregister(f"service:{name}")
+            shutdown = getattr(info.instance, "shutdown", None)
+            if callable(shutdown):
+                shutdown()
+            if thread and thread.is_alive():
+                thread.join()
 
 
 manager = ServiceManager()

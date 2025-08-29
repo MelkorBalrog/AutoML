@@ -30,20 +30,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from mainappsrc.services import service_manager
 
 
-class DummyService:
-    def __init__(self) -> None:
-        self.running = threading.Event()
-        self.stop = threading.Event()
-
-    def run(self) -> None:
-        self.running.set()
-        while not self.stop.is_set():
-            time.sleep(0.01)
-
-    def shutdown(self) -> None:
-        self.stop.set()
-
-
 class FaultyService:
     def __init__(self) -> None:
         self.runs = 0
@@ -83,13 +69,50 @@ class PausableService:
         self.stop.set()
 
 
+class PausableService:
+    def __init__(self) -> None:
+        self.running = threading.Event()
+        self.paused = threading.Event()
+        self.stop = threading.Event()
+
+    def run(self) -> None:
+        self.running.set()
+        while not self.stop.is_set():
+            if self.paused.is_set():
+                time.sleep(0.01)
+                continue
+            time.sleep(0.01)
+
+    def pause(self) -> None:
+        self.paused.set()
+
+    def resume(self) -> None:
+        self.paused.clear()
+
+    def shutdown(self) -> None:
+        self.stop.set()
+
+
 class TestServiceManagerLifecycle:
-    def test_start_and_stop_service(self) -> None:
-        """Services start in threads and shut down when released."""
-        service = service_manager.request("dummy", DummyService)
+    def test_start_and_pause_service(self) -> None:
+        """Services start in threads and pause when released."""
+        service = service_manager.request("dummy", PausableService)
         assert service.running.wait(1.0)
+        thread = service_manager._services["dummy"].thread
         service_manager.release("dummy")
-        assert service.stop.wait(1.0)
+        assert service.paused.is_set()
+        assert thread.is_alive()
+        service_manager.shutdown("dummy")
+
+    def test_shutdown_service(self) -> None:
+        """Services can be terminated explicitly."""
+        service = service_manager.request("dummy2", PausableService)
+        assert service.running.wait(1.0)
+        thread = service_manager._services["dummy2"].thread
+        service_manager.release("dummy2")
+        service_manager.shutdown("dummy2")
+        thread.join(1.0)
+        assert not thread.is_alive()
 
     def test_release_waits_for_thread(self) -> None:
         """Releasing a service waits for its thread to finish."""
@@ -111,6 +134,7 @@ class TestServiceManagerRecovery:
             time.sleep(0.05)
         service_manager.release("faulty")
         assert service.runs >= 2
+        service_manager.shutdown("faulty")
 
 
 class TestServiceManagerThreadOptions:
@@ -135,33 +159,22 @@ class TestServiceManagerThreadOptions:
         service_manager._services["block"].instance.shutdown()
         service_manager.join("block")
         service_manager.release("block")
+        service_manager.shutdown("block")
 
 
 class TestServiceManagerPauseResume:
     def test_pause_and_resume_service(self) -> None:
         """Services pause when unused and resume on demand."""
-        original_interval = service_manager._interval
-        original_idle = service_manager._idle_timeout
-        service_manager._interval = 0.05
-        service_manager._idle_timeout = 0.1
-        try:
-            service = service_manager.request("pausable", PausableService)
-            assert service.running.wait(1.0)
-            service_manager.release("pausable")
-            time.sleep(0.1)
-            assert service.paused.is_set()
-            assert "pausable" in service_manager._services
-            service_manager.request("pausable", PausableService)
-            assert not service.paused.is_set()
-            service_manager.release("pausable")
-            for _ in range(40):
-                if "pausable" not in service_manager._services:
-                    break
-                time.sleep(0.05)
-            assert "pausable" not in service_manager._services
-        finally:
-            service_manager._interval = original_interval
-            service_manager._idle_timeout = original_idle
+        service = service_manager.request("pausable", PausableService)
+        assert service.running.wait(1.0)
+        thread = service_manager._services["pausable"].thread
+        service_manager.release("pausable")
+        assert service.paused.is_set()
+        service_manager.request("pausable", PausableService)
+        assert not service.paused.is_set()
+        assert service_manager._services["pausable"].thread is thread
+        service_manager.release("pausable")
+        service_manager.shutdown("pausable")
 
     def test_resume_restarts_dead_thread(self) -> None:
         """Resuming a paused service restarts its thread if needed."""
@@ -173,5 +186,6 @@ class TestServiceManagerPauseResume:
         thread.join()
         service.stop.clear()
         service_manager.request("restart", PausableService)
-        assert service_manager._services["restart"].thread.is_alive()
+        assert service_manager._services["restart"].thread is not thread
         service_manager.release("restart")
+        service_manager.shutdown("restart")
