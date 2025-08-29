@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.207 - Close splash screen from the Tk main thread to avoid
+           `Tcl_AsyncDelete` errors from cross-thread callbacks.
+- 0.2.206 - Cancel splash screen callbacks before destroying the Tk root to
+           prevent `Tcl_AsyncDelete` errors on shutdown.
 - 0.2.205 - Launch AutoML core through service manager and allow non-daemon
            service threads with join support.
 - 0.2.204 - Introduce threaded service manager to lazily load services,

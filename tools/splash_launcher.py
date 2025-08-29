@@ -75,6 +75,7 @@ class SplashLauncher:
         self.module_name = module_name
         self.post_delay = post_delay
         self._module: Optional[ModuleType] = None
+        self._loaded = threading.Event()
 
     def _load_module(self) -> None:
         """Initialise the application in a background thread."""
@@ -82,8 +83,14 @@ class SplashLauncher:
             self._module = self.loader()
         else:
             self._module = importlib.import_module(self.module_name)
-        # Once loading is complete, close the splash screen on the main thread
-        self._root.after(self.post_delay, self._splash.close)
+        self._loaded.set()
+
+    def _poll(self) -> None:
+        """Check whether the background load finished and close the splash."""
+        if self._loaded.is_set():
+            self._root.after(self.post_delay, self._splash.close)
+        else:
+            self._root.after(50, self._poll)
 
     def launch(self) -> None:
         """Display the splash screen and run the application's main function."""
@@ -109,6 +116,7 @@ class SplashLauncher:
             on_close=self._root.destroy,
         )
         threading.Thread(target=self._load_module, daemon=True).start()
+        self._poll()
         self._root.mainloop()
         if self._module and hasattr(self._module, "main"):
             self._module.main()

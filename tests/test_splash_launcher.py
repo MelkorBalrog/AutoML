@@ -19,7 +19,11 @@
 import importlib
 import builtins
 import sys
+import threading
+import tkinter as tk
+import types
 
+import pytest
 import tools.splash_launcher as splash_module
 
 
@@ -51,3 +55,33 @@ class TestSplashLauncher:
         importlib.reload(splash_module)
 
         assert splash_module.VERSION == "0.0.0"
+
+    def _make_loader(self, calls):
+        def loader() -> types.SimpleNamespace:
+            calls.append(("loader", threading.current_thread().name))
+            return types.SimpleNamespace(
+                main=lambda: calls.append(("main", threading.current_thread().name))
+            )
+
+        return loader
+
+    def test_loader_runs_in_background_thread(self):
+        calls: list[tuple[str, str]] = []
+        loader = self._make_loader(calls)
+        try:
+            launcher = splash_module.SplashLauncher(loader=loader, post_delay=0)
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        launcher.launch()
+        assert calls[0][1] != threading.current_thread().name
+        assert calls[1][0] == "main"
+
+    def test_main_called_after_launch(self):
+        calls: list[tuple[str, str]] = []
+        loader = self._make_loader(calls)
+        try:
+            launcher = splash_module.SplashLauncher(loader=loader, post_delay=0)
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        launcher.launch()
+        assert ("main", threading.current_thread().name) in calls
