@@ -152,6 +152,4 @@ def __getattr__(name: str) -> Any:  # pragma: no cover - simple delegation
     return getattr(module, attr_name)
 
 
-from .service_manager import ServiceManager, manager as service_manager
 
-__all__.extend(["ServiceManager", "service_manager"])

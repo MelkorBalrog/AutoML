@@ -19,6 +19,18 @@
 -->
 
 # Version History
+- 0.2.213 - Introduce pausable service manager to prevent premature thread
+          termination while diagrams remain open.
+- 0.2.212 - Remove service thread manager and invoke application core directly.
+- 0.2.211 - Pause service threads on release and add explicit shutdown API so
+          threads persist until manually terminated.
+- 0.2.210 - Restart paused service threads if they exited and clamp reference
+          counts so services remain available while diagrams are open.
+- 0.2.209 - Wait for service threads to terminate on release, preventing
+          ``Tcl_AsyncDelete`` errors when reopening saved diagrams.
+- 0.2.208 - Suspend unused service threads instead of killing them so diagram
+          tabs can reopen without crashes. Threads are terminated only after
+          remaining idle beyond a timeout.
 - 0.2.207 - Skip joining the current thread during thread manager shutdown
           to prevent runtime errors and ``Tcl_AsyncDelete`` warnings.
 - 0.2.206 - Track stop events in the service thread manager so threads
