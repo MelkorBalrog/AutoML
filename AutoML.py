@@ -35,6 +35,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 # Ensure bundled executables can import sibling packages
 if getattr(sys, "frozen", False):
@@ -77,6 +78,7 @@ from tools.model_loader import start_cleanup_thread, stop_cleanup_thread
 from tools.splash_launcher import SplashLauncher
 from tools.trash_eater import manager_eater
 from mainappsrc.version import VERSION
+from mainappsrc.services import service_manager
 from mainappsrc.core.automl_core import (
     AutoMLApp,
     FaultTreeNode,
@@ -285,7 +287,32 @@ def _bootstrap() -> object:
 
 def main() -> None:
     """Entry point used by both source and bundled executions."""
-    SplashLauncher(loader=_bootstrap, post_delay=5000).launch()
+
+    module_holder: dict[str, Any] = {}
+
+    def _loader() -> Any:
+        module_holder["module"] = _bootstrap()
+        return object()  # prevent SplashLauncher from invoking ``main``
+
+    SplashLauncher(loader=_loader, post_delay=5000).launch()
+
+    module = module_holder.get("module")
+    if module is None:  # pragma: no cover - defensive
+        return
+
+    class _AutoMLCoreService:
+        def __init__(self, mod: Any) -> None:
+            self._module = mod
+
+        def run(self) -> None:
+            self._module.main()
+
+    service_manager.request(
+        "automl_core", lambda: _AutoMLCoreService(module), recoverable=False, daemon=False
+    )
+    service_manager.join("automl_core")
+    service_manager.release("automl_core")
+
     memory_manager.cleanup()
     if _diagnostics_manager:
         _diagnostics_manager.stop()

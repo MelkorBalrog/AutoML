@@ -26,6 +26,22 @@
 - 0.2.204 - Cancel pending ``after`` callbacks recursively and discard Tk
           command names so destroying roots raises no AttributeError and
           detached canvas items remain selectable.
+          - Skip global ``after`` event cancellation when running outside the
+          main thread to avoid ``Tcl_AsyncDelete`` warnings during cleanup.
+          - Cancel pending ``after`` callbacks recursively and discard Tk
+          command names so destroying roots raises no AttributeError and
+          detached canvas items remain selectable.
+          - Cancel splash screen callbacks before destroying the Tk root to
+           prevent `Tcl_AsyncDelete` errors on shutdown.
+          - Cancel pending ``after`` callbacks recursively and discard Tk
+          command names so destroying roots raises no AttributeError and
+          detached canvas items remain selectable.
+          - Launch AutoML core through service manager and allow non-daemon
+           service threads with join support.
+          - Introduce threaded service manager to lazily load services,
+           restart recoverable threads and shut down unused services.
+          - Introduce threaded service manager to lazily load services,
+          restart recoverable threads and shut down unused services.
 - 0.2.203 - Preserve widget creation order across geometry managers so detached
           tabs retain left-side toolboxes.
 - 0.2.202 - Guard toolbar frame lookup against destroyed widgets so tab
