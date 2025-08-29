@@ -19,17 +19,12 @@
 -->
 
 # Version History
-- 0.2.205 - Skip global ``after`` event cancellation when running outside the
-          main thread to avoid ``Tcl_AsyncDelete`` warnings during cleanup.
-          - Cancel pending ``after`` callbacks recursively and discard Tk
-          command names so destroying roots raises no AttributeError and
-          detached canvas items remain selectable.
-          - Cancel splash screen callbacks before destroying the Tk root to
+- 0.2.206 - Cancel splash screen callbacks before destroying the Tk root to
            prevent `Tcl_AsyncDelete` errors on shutdown.
           - Cancel pending ``after`` callbacks recursively and discard Tk
           command names so destroying roots raises no AttributeError and
           detached canvas items remain selectable.
-          - Launch AutoML core through service manager and allow non-daemon
+- 0.2.205 - Launch AutoML core through service manager and allow non-daemon
            service threads with join support.
 - 0.2.204 - Introduce threaded service manager to lazily load services,
            restart recoverable threads and shut down unused services.
