@@ -19,8 +19,6 @@
 -->
 
 # Version History
-- 0.2.211 - Pause service threads on release and add explicit shutdown API so
-          threads persist until manually terminated.
 - 0.2.210 - Restart paused service threads if they exited and clamp reference
           counts so services remain available while diagrams are open.
 - 0.2.209 - Wait for service threads to terminate on release, preventing
