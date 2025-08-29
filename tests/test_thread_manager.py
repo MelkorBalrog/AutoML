@@ -18,7 +18,8 @@
 
 import time
 
-from tools.thread_manager import ThreadManager
+from tools.thread_manager import ThreadManager, manager as thread_manager
+from tools.memory_manager import manager as memory_manager
 
 
 def test_thread_manager_restarts_dead_thread() -> None:
@@ -32,3 +33,9 @@ def test_thread_manager_restarts_dead_thread() -> None:
     time.sleep(0.15)  # allow thread to run and be restarted
     assert runs["count"] >= 2
     manager.stop_all()
+
+
+def test_memory_manager_thread_registered() -> None:
+    """Memory manager uses thread manager for its background thread."""
+
+    assert "memory_manager" in thread_manager._threads

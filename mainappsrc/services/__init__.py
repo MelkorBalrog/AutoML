@@ -134,6 +134,8 @@ SERVICE_CLASSES = tuple(_SERVICE_ATTRS.keys())
 SERVICE_MODULES = SERVICE_CLASSES
 
 __all__ = list(SERVICE_CLASSES)
+from .service_manager import ServiceManager, manager as service_manager
+__all__.extend(["ServiceManager", "service_manager"])
 
 
 def __getattr__(name: str) -> Any:  # pragma: no cover - simple delegation
@@ -150,8 +152,3 @@ def __getattr__(name: str) -> Any:  # pragma: no cover - simple delegation
         raise AttributeError(f"module 'mainappsrc.services' has no attribute {name!r}") from exc
     module = import_module(module_name)
     return getattr(module, attr_name)
-
-
-from .service_manager import ServiceManager, manager as service_manager
-
-__all__.extend(["ServiceManager", "service_manager"])

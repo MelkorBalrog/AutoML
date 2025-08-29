@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.208 - Run core services through monitored threads, reintroduce threaded
+          service manager and execute main app within thread manager.
+- 0.2.207 - Remove threaded service manager and launch core directly.
+- 0.2.206 - Internal version synchronisation.
 - 0.2.205 - Launch AutoML core through service manager and allow non-daemon
            service threads with join support.
 - 0.2.204 - Introduce threaded service manager to lazily load services,

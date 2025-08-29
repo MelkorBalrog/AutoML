@@ -123,3 +123,5 @@ class ServiceManager:
 
 
 manager = ServiceManager()
+
+__all__ = ["ServiceManager", "manager"]
