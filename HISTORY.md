@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.212 - Track service idle time for automatic thread shutdown and add
+- 0.2.212 - Queue worker thread UI updates on the Tk main loop via
+          `run_on_main_thread` and document diagram service thread-safety
+          rules.
+          - Track service idle time for automatic thread shutdown and add
           grouped tests covering diagram service thread reuse and idle
           termination.
 - 0.2.211 - Pause service threads on release and add explicit shutdown API so
