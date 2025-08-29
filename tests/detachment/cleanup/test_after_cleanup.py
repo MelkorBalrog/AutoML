@@ -44,6 +44,6 @@ class TestAfterCleanup:
             root = tk.Tk()
         except tk.TclError:
             pytest.skip("Tk not available")
-        root._after = root.after(1, lambda: None)
+        root.after(1, lambda: None)
         cancel_after_events(root)
         root.destroy()
