@@ -19,8 +19,6 @@
 -->
 
 # Version History
-- 0.2.207 - Skip joining the current thread during thread manager shutdown
-          to prevent runtime errors and ``Tcl_AsyncDelete`` warnings.
 - 0.2.206 - Track stop events in the service thread manager so threads
           requested to stop are removed instead of being restarted.
 - 0.2.205 - Skip global ``after`` event cancellation when running outside the

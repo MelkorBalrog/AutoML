@@ -134,9 +134,8 @@ class ThreadManager:
         with self._lock:
             threads = list(self._threads.values())
             self._threads.clear()
-        current = threading.current_thread()
         for info in threads:
-            if info.thread.is_alive() and info.thread is not current:
+            if info.thread.is_alive():
                 info.thread.join(timeout=0)
 
 
