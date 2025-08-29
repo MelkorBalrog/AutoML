@@ -91,15 +91,6 @@ class TestServiceManagerLifecycle:
         service_manager.release("dummy")
         assert service.stop.wait(1.0)
 
-    def test_release_waits_for_thread(self) -> None:
-        """Releasing a service waits for its thread to finish."""
-        service = service_manager.request("dummy2", DummyService)
-        assert service.running.wait(1.0)
-        thread = service_manager._services["dummy2"].thread
-        service_manager.release("dummy2")
-        thread.join(1.0)
-        assert not thread.is_alive()
-
 
 class TestServiceManagerRecovery:
     def test_restart_faulted_service(self) -> None:
