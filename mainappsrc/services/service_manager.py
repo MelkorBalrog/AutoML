@@ -81,21 +81,13 @@ class ServiceManager:
         with self._lock:
             info = self._services.get(name)
             if info:
-                info.refcount = max(info.refcount + 1, 1)
+                info.refcount += 1
                 if info.paused:
-                    if not info.thread.is_alive():
-                        info.thread = thread_manager.register(
-                            f"service:{name}", getattr(info.instance, "run"), daemon=daemon
-                        )
                     resume = getattr(info.instance, "resume", None)
                     if callable(resume):
                         resume()
                     info.paused = False
                     info.idle_since = None
-                elif not info.thread.is_alive():
-                    info.thread = thread_manager.register(
-                        f"service:{name}", getattr(info.instance, "run"), daemon=daemon
-                    )
                 return info.instance
             instance = factory()
             target = getattr(instance, "run", None)
@@ -111,8 +103,8 @@ class ServiceManager:
             info = self._services.get(name)
             if not info:
                 return
-            info.refcount = max(info.refcount - 1, 0)
-            if info.refcount == 0:
+            info.refcount -= 1
+            if info.refcount <= 0:
                 pause = getattr(info.instance, "pause", None)
                 if callable(pause):
                     pause()
@@ -124,7 +116,7 @@ class ServiceManager:
                     if callable(shutdown):
                         shutdown()
                     if thread and thread.is_alive():
-                        thread.join()
+                        thread.join(timeout=1.0)
                     del self._services[name]
 
     def join(self, name: str, timeout: float | None = None) -> None:
