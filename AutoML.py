@@ -78,7 +78,6 @@ from tools.model_loader import start_cleanup_thread, stop_cleanup_thread
 from tools.splash_launcher import SplashLauncher
 from tools.trash_eater import manager_eater
 from mainappsrc.version import VERSION
-from mainappsrc.services import service_manager
 from mainappsrc.core.automl_core import (
     AutoMLApp,
     FaultTreeNode,
@@ -300,18 +299,7 @@ def main() -> None:
     if module is None:  # pragma: no cover - defensive
         return
 
-    class _AutoMLCoreService:
-        def __init__(self, mod: Any) -> None:
-            self._module = mod
-
-        def run(self) -> None:
-            self._module.main()
-
-    service_manager.request(
-        "automl_core", lambda: _AutoMLCoreService(module), recoverable=False, daemon=False
-    )
-    service_manager.join("automl_core")
-    service_manager.release("automl_core")
+    module.main()
 
     memory_manager.cleanup()
     if _diagnostics_manager:
