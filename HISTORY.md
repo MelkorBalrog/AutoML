@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.213 - Pause services only when the last reference is released to prevent
+          stalling shared services.
 - 0.2.212 - Introduce pausable service manager with acquire/release API,
           migrate watchdog and background threads to ServiceManager and
           provide global shutdown on exit.
