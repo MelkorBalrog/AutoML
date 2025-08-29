@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import threading
 import time
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from tools.thread_manager import manager as thread_manager
 
@@ -46,10 +46,11 @@ class ServiceManager:
     necessary.
     """
 
-    def __init__(self, interval: float = 1.0) -> None:
+    def __init__(self, interval: float = 1.0, idle_timeout: float = 60.0) -> None:
         self._services: Dict[str, _ServiceInfo] = {}
         self._lock = threading.Lock()
         self._interval = interval
+        self._idle_timeout = idle_timeout
         thread_manager.register("service_manager", self._watchdog, daemon=True)
 
     def request(
@@ -130,7 +131,21 @@ class ServiceManager:
         while True:
             time.sleep(self._interval)
             with self._lock:
+                now = time.time()
                 for name, info in list(self._services.items()):
+                    if (
+                        info.paused
+                        and info.idle_since is not None
+                        and now - info.idle_since > self._idle_timeout
+                    ):
+                        thread = thread_manager.unregister(f"service:{name}")
+                        shutdown = getattr(info.instance, "shutdown", None)
+                        if callable(shutdown):
+                            shutdown()
+                        if thread and thread.is_alive():
+                            thread.join(timeout=1.0)
+                        del self._services[name]
+                        continue
                     if info.recoverable and not info.thread.is_alive():
                         thread = thread_manager.register(
                             f"service:{name}", getattr(info.instance, "run")

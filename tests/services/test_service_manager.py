@@ -69,6 +69,30 @@ class PausableService:
         self.stop.set()
 
 
+class PausableService:
+    def __init__(self) -> None:
+        self.running = threading.Event()
+        self.paused = threading.Event()
+        self.stop = threading.Event()
+
+    def run(self) -> None:
+        self.running.set()
+        while not self.stop.is_set():
+            if self.paused.is_set():
+                time.sleep(0.01)
+                continue
+            time.sleep(0.01)
+
+    def pause(self) -> None:
+        self.paused.set()
+
+    def resume(self) -> None:
+        self.paused.clear()
+
+    def shutdown(self) -> None:
+        self.stop.set()
+
+
 class TestServiceManagerLifecycle:
     def test_start_and_pause_service(self) -> None:
         """Services start in threads and pause when released."""
@@ -87,6 +111,15 @@ class TestServiceManagerLifecycle:
         thread = service_manager._services["dummy2"].thread
         service_manager.release("dummy2")
         service_manager.shutdown("dummy2")
+        thread.join(1.0)
+        assert not thread.is_alive()
+
+    def test_release_waits_for_thread(self) -> None:
+        """Releasing a service waits for its thread to finish."""
+        service = service_manager.request("dummy2", DummyService)
+        assert service.running.wait(1.0)
+        thread = service_manager._services["dummy2"].thread
+        service_manager.release("dummy2")
         thread.join(1.0)
         assert not thread.is_alive()
 
