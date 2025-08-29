@@ -162,3 +162,16 @@ class TestServiceManagerPauseResume:
         finally:
             service_manager._interval = original_interval
             service_manager._idle_timeout = original_idle
+
+    def test_resume_restarts_dead_thread(self) -> None:
+        """Resuming a paused service restarts its thread if needed."""
+        service = service_manager.request("restart", PausableService)
+        assert service.running.wait(1.0)
+        service_manager.release("restart")
+        service.stop.set()  # kill the thread after pausing
+        thread = service_manager._services["restart"].thread
+        thread.join()
+        service.stop.clear()
+        service_manager.request("restart", PausableService)
+        assert service_manager._services["restart"].thread.is_alive()
+        service_manager.release("restart")
