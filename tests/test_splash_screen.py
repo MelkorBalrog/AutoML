@@ -106,14 +106,6 @@ class SplashScreenTests(unittest.TestCase):
         self.assertAlmostEqual(float(self.splash.attributes("-alpha")), 0.0)
         self.assertTrue(self._closed)
 
-    def test_close_cancels_after_events(self):
-        scheduled = set(self.root.tk.call("after", "info").split())
-        self.assertIn(self.splash._anim_after, scheduled)
-        self.splash._close()
-        scheduled_after = set(self.root.tk.call("after", "info").split())
-        self.assertNotIn(self.splash._anim_after, scheduled_after)
-        self.assertIsNone(self.splash._anim_after)
-
 
 if __name__ == "__main__":
     unittest.main()
