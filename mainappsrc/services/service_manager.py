@@ -111,12 +111,10 @@ class ServiceManager:
                     info.paused = True
                     info.idle_since = time.time()
                 else:
-                    thread = thread_manager.unregister(f"service:{name}")
+                    thread_manager.unregister(f"service:{name}")
                     shutdown = getattr(info.instance, "shutdown", None)
                     if callable(shutdown):
                         shutdown()
-                    if thread and thread.is_alive():
-                        thread.join(timeout=1.0)
                     del self._services[name]
 
     def join(self, name: str, timeout: float | None = None) -> None:
@@ -138,12 +136,10 @@ class ServiceManager:
                         and info.idle_since is not None
                         and now - info.idle_since > self._idle_timeout
                     ):
-                        thread = thread_manager.unregister(f"service:{name}")
+                        thread_manager.unregister(f"service:{name}")
                         shutdown = getattr(info.instance, "shutdown", None)
                         if callable(shutdown):
                             shutdown()
-                        if thread and thread.is_alive():
-                            thread.join(timeout=1.0)
                         del self._services[name]
                         continue
                     if info.recoverable and not info.thread.is_alive():
