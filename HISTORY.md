@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.212 - Introduce pausable service manager with acquire/release API,
+          migrate watchdog and background threads to ServiceManager and
+          provide global shutdown on exit.
 - 0.2.211 - Pause service threads on release and add explicit shutdown API so
           threads persist until manually terminated.
 - 0.2.210 - Restart paused service threads if they exited and clamp reference
