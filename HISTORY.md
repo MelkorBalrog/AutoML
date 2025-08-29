@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.209 - Wait for service threads to terminate on release, preventing
+          ``Tcl_AsyncDelete`` errors when reopening saved diagrams.
+- 0.2.208 - Suspend unused service threads instead of killing them so diagram
+          tabs can reopen without crashes. Threads are terminated only after
+          remaining idle beyond a timeout.
 - 0.2.207 - Skip joining the current thread during thread manager shutdown
           to prevent runtime errors and ``Tcl_AsyncDelete`` warnings.
 - 0.2.206 - Track stop events in the service thread manager so threads
