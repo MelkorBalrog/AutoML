@@ -39,8 +39,6 @@ class _ThreadInfo:
     kwargs: Dict[str, Any]
     daemon: bool
     thread: threading.Thread
-    stop_event: Optional[threading.Event]
-    restart: bool
 
 
 class ThreadMonitor(threading.Thread):
@@ -81,8 +79,6 @@ class ThreadManager:
         args: Tuple[Any, ...] | None = None,
         kwargs: Optional[Dict[str, Any]] = None,
         daemon: bool = True,
-        stop_event: Optional[threading.Event] = None,
-        restart: bool = True,
     ) -> threading.Thread:
         """Register and start *target* as a monitored thread."""
         if args is None:
@@ -92,9 +88,7 @@ class ThreadManager:
         thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=daemon)
         thread.start()
         with self._lock:
-            self._threads[name] = _ThreadInfo(
-                target, args, kwargs, daemon, thread, stop_event, restart
-            )
+            self._threads[name] = _ThreadInfo(target, args, kwargs, daemon, thread)
         return thread
 
     def unregister(self, name: str) -> Optional[threading.Thread]:
@@ -107,9 +101,6 @@ class ThreadManager:
         with self._lock:
             for name, info in list(self._threads.items()):
                 if not info.thread.is_alive():
-                    if info.stop_event and info.stop_event.is_set() or not info.restart:
-                        self._threads.pop(name, None)
-                        continue
                     thread = threading.Thread(
                         target=info.target,
                         args=info.args,
@@ -118,13 +109,7 @@ class ThreadManager:
                     )
                     thread.start()
                     self._threads[name] = _ThreadInfo(
-                        info.target,
-                        info.args,
-                        info.kwargs,
-                        info.daemon,
-                        thread,
-                        info.stop_event,
-                        info.restart,
+                        info.target, info.args, info.kwargs, info.daemon, thread
                     )
 
     def stop_all(self) -> None:
