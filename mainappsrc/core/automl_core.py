@@ -109,6 +109,7 @@ from analysis.scenario_description import template_phrases
 from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
 from tools.crash_report_logger import install_best, watchdog_best
 from tools.thread_manager import manager as thread_manager
+from mainappsrc.services.service_manager import manager as service_manager
 from gui.styles.editing_labels_styling import Editing_Labels_Styling
 import copy
 import tkinter.font as tkFont
@@ -3079,13 +3080,13 @@ def main() -> None:
     install_best()
     wd = watchdog_best(10.0)
     stop_event = threading.Event()
-    thread_manager.register(
-        "watchdog", _watchdog_feeder, args=(wd, stop_event), stop_event=stop_event
-    )
+    service_manager.acquire("watchdog", _watchdog_feeder, wd, stop_event)
     try:
         _launch_app()
     finally:
         stop_event.set()
+        service_manager.release("watchdog")
+        service_manager.shutdown_all()
         thread_manager.stop_all()
 
 if __name__ == "__main__":
