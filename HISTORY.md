@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.212 - Queue worker thread UI updates on the Tk main loop via
+          `run_on_main_thread` and document diagram service thread-safety
+          rules.
 - 0.2.211 - Pause service threads on release and add explicit shutdown API so
           threads persist until manually terminated.
 - 0.2.210 - Restart paused service threads if they exited and clamp reference

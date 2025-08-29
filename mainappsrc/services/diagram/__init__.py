@@ -16,7 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Diagram service package."""
+"""Diagram service package.
+
+Thread-safety
+-------------
+All interactions with Tk widgets must occur on the main UI thread.
+Worker threads should schedule UI updates via
+``gui.utils.thread_safe_call.run_on_main_thread``.
+"""
 
 from .diagram_renderer_service import DiagramRendererService
 
