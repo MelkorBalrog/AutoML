@@ -15,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 """Threaded service loader and monitor."""
 
 from __future__ import annotations
@@ -35,7 +34,6 @@ class _ServiceInfo:
     refcount: int
     recoverable: bool
     paused: bool = False
-    idle_since: float | None = None
 
 
 class ServiceManager:
@@ -93,14 +91,10 @@ class ServiceManager:
                     if callable(resume):
                         resume()
                     info.paused = False
-                    info.idle_since = None
                 elif not info.thread.is_alive():
                     info.thread = thread_manager.register(
                         f"service:{name}", getattr(info.instance, "run"), daemon=daemon
                     )
-                    info.idle_since = None
-                else:
-                    info.idle_since = None
                 return info.instance
             instance = factory()
             target = getattr(instance, "run", None)
@@ -121,8 +115,9 @@ class ServiceManager:
                 pause = getattr(info.instance, "pause", None)
                 if callable(pause):
                     pause()
-                info.paused = True
-                info.idle_since = time.time()
+                    info.paused = True
+                else:
+                    info.paused = True
 
     def join(self, name: str, timeout: float | None = None) -> None:
         """Wait for the named service thread to finish."""
@@ -156,7 +151,6 @@ class ServiceManager:
                             f"service:{name}", getattr(info.instance, "run")
                         )
                         info.thread = thread
-                        info.idle_since = None
 
     def shutdown(self, name: str) -> None:
         """Completely stop and unregister a service."""
