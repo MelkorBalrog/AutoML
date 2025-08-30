@@ -1529,57 +1529,55 @@ class ClosableNotebook(ttk.Notebook):
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
-        for _orig, clone in mapping.items():
-            self._rewrite_widget_options(clone, mapping)
-            if isinstance(clone, tk.Menu):
-                self._rewrite_menu_entries(clone, mapping)
 
-    def _rewrite_widget_options(
-        self, clone: tk.Widget, mapping: dict[tk.Widget, tk.Widget]
-    ) -> None:
-        try:
-            config = clone.configure() or {}
-        except Exception:
-            return
-        if not isinstance(config, dict):
-            return
         ref_opts = {
-            opt for opt in config if opt.endswith("command") or opt.endswith("variable")
+            "command",
+            "yscrollcommand",
+            "xscrollcommand",
+            "textvariable",
+            "variable",
+            "postcommand",
         }
-        for opt in ref_opts:
+        for _orig, clone in mapping.items():
             try:
-                value = clone.cget(opt)
+                config = clone.configure() or {}
             except Exception:
                 continue
-            if not isinstance(value, str):
+            if not isinstance(config, dict):
                 continue
-            new_value = self._replace_widget_paths(value, mapping)
-            if new_value != value:
+            for opt in ref_opts:
+                if opt not in config:
+                    continue
                 try:
-                    clone.configure({opt: new_value})
+                    value = clone.cget(opt)
                 except Exception:
-                    pass
-
-    def _rewrite_menu_entries(
-        self, menu: tk.Menu, mapping: dict[tk.Widget, tk.Widget]
-    ) -> None:
-        try:
-            end = menu.index("end") or -1
-        except Exception:
-            end = -1
-        for i in range(end + 1):
-            try:
-                cmd = menu.entrycget(i, "command")
-            except Exception:
-                continue
-            if not isinstance(cmd, str):
-                continue
-            new_cmd = self._replace_widget_paths(cmd, mapping)
-            if new_cmd != cmd:
+                    continue
+                if not isinstance(value, str):
+                    continue
+                new_value = self._replace_widget_paths(value, mapping)
+                if new_value != value:
+                    try:
+                        clone.configure({opt: new_value})
+                    except Exception:
+                        pass
+            if isinstance(clone, tk.Menu):
                 try:
-                    menu.entryconfigure(i, command=new_cmd)
+                    end = clone.index("end") or -1
                 except Exception:
-                    pass
+                    end = -1
+                for i in range(end + 1):
+                    try:
+                        cmd = clone.entrycget(i, "command")
+                    except Exception:
+                        continue
+                    if not isinstance(cmd, str):
+                        continue
+                    new_cmd = self._replace_widget_paths(cmd, mapping)
+                    if new_cmd != cmd:
+                        try:
+                            clone.entryconfigure(i, command=new_cmd)
+                        except Exception:
+                            pass
 
     def rebind_scrollbars(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rebind cloned scrollbars to their cloned targets."""
