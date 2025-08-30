@@ -19,10 +19,6 @@
 -->
 
 # Version History
-- 0.2.216 - Parse bound event command lists during widget cloning so path
-           references are rewritten to their cloned widgets.
-          - Add grouped tests verifying hover and click callbacks operate on
-            detached widget clones.
 - 0.2.215 - Replace original toplevel names in cloned widget ``bindtags``
            with the new window's toplevel so detached buttons propagate
            events correctly.
