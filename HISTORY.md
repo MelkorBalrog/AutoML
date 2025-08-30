@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.214 - Detect common toolbox attributes during toolbar discovery so
+- 0.2.214 - Record intermediate drop positions during diagram moves so
+           undo steps through each drag instead of jumping to the initial
+           placement.
+          - Detect common toolbox attributes during toolbar discovery so
             detached windows retain their original toolboxes.
           - Pack identified toolboxes into floating windows and invoke any
             available ``_switch_toolbox`` hooks.

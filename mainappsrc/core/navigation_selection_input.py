@@ -76,7 +76,7 @@ class Navigation_Selection_Input:
                 break
         app.selected_node = clicked_node
         if clicked_node:
-            app.push_undo_state()
+            app.push_undo_state(force=True)
             app.dragging_node = clicked_node
             app.drag_offset_x = x - clicked_node.x
             app.drag_offset_y = y - clicked_node.y

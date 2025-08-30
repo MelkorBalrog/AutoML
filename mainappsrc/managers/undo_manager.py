@@ -60,7 +60,9 @@ class UndoRedoManager:
     # ------------------------------------------------------------
     # State recording
     # ------------------------------------------------------------
-    def push_undo_state(self, strategy: str = "v4", sync_repo: bool = True) -> None:
+    def push_undo_state(
+        self, strategy: str = "v4", sync_repo: bool = True, force: bool = False
+    ) -> None:
         """Save the current model state for undo operations."""
 
         repo = SysMLRepository.get_instance()
@@ -73,18 +75,22 @@ class UndoRedoManager:
             state = {}
             stripped = {}
 
-        handler = getattr(self, f"_push_undo_state_{strategy}", self._push_undo_state_v1)
-        changed = handler(state, stripped)
+        handler = getattr(
+            self, f"_push_undo_state_{strategy}", self._push_undo_state_v1
+        )
+        changed = handler(state, stripped, force)
 
         if changed and len(self._undo_stack) > 20:
             self._undo_stack.pop(0)
         if changed:
             self._redo_stack.clear()
 
-    def _push_undo_state_v1(self, state: dict, stripped: dict) -> bool:
+    def _push_undo_state_v1(
+        self, state: dict, stripped: dict, force: bool = False
+    ) -> bool:
         if self._undo_stack:
             last = self._undo_stack[-1]
-            if last == state:
+            if not force and last == state:
                 return False
             if self._strip_object_positions(last) == stripped:
                 if (
@@ -102,8 +108,10 @@ class UndoRedoManager:
         self._undo_stack.append(state)
         return True
 
-    def _push_undo_state_v2(self, state: dict, stripped: dict) -> bool:
-        if self._undo_stack and self._undo_stack[-1] == state:
+    def _push_undo_state_v2(
+        self, state: dict, stripped: dict, force: bool = False
+    ) -> bool:
+        if self._undo_stack and not force and self._undo_stack[-1] == state:
             return False
         if self._undo_stack and self._strip_object_positions(self._undo_stack[-1]) == stripped:
             if self._last_move_base == stripped:
@@ -116,8 +124,10 @@ class UndoRedoManager:
         self._undo_stack.append(state)
         return True
 
-    def _push_undo_state_v3(self, state: dict, stripped: dict) -> bool:
-        if self._undo_stack and self._undo_stack[-1] == state:
+    def _push_undo_state_v3(
+        self, state: dict, stripped: dict, force: bool = False
+    ) -> bool:
+        if self._undo_stack and not force and self._undo_stack[-1] == state:
             return False
         if self._undo_stack and self._strip_object_positions(self._undo_stack[-1]) == stripped:
             if self._move_run_length:
@@ -130,11 +140,13 @@ class UndoRedoManager:
         self._undo_stack.append(state)
         return True
 
-    def _push_undo_state_v4(self, state: dict, stripped: dict) -> bool:
-        if self._undo_stack and self._undo_stack[-1] == state:
+    def _push_undo_state_v4(
+        self, state: dict, stripped: dict, force: bool = False
+    ) -> bool:
+        if self._undo_stack and not force and self._undo_stack[-1] == state:
             return False
         self._undo_stack.append(state)
-        if len(self._undo_stack) >= 3:
+        if not force and len(self._undo_stack) >= 3:
             s1 = self._strip_object_positions(self._undo_stack[-3])
             s2 = self._strip_object_positions(self._undo_stack[-2])
             if s1 == s2 == stripped:

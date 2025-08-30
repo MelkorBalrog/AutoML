@@ -2723,20 +2723,32 @@ class AutoMLApp(
     # ------------------------------------------------------------
     # Undo support
     # ------------------------------------------------------------
-    def push_undo_state(self, strategy: str = "v4", sync_repo: bool = True) -> None:
-        self.undo_manager.push_undo_state(strategy=strategy, sync_repo=sync_repo)
+    def push_undo_state(
+        self, strategy: str = "v4", sync_repo: bool = True, force: bool = False
+    ) -> None:
+        self.undo_manager.push_undo_state(
+            strategy=strategy, sync_repo=sync_repo, force=force
+        )
 
-    def _push_undo_state_v1(self, state: dict, stripped: dict) -> bool:
-        return self.undo_manager._push_undo_state_v1(state, stripped)
+    def _push_undo_state_v1(
+        self, state: dict, stripped: dict, force: bool = False
+    ) -> bool:
+        return self.undo_manager._push_undo_state_v1(state, stripped, force)
 
-    def _push_undo_state_v2(self, state: dict, stripped: dict) -> bool:
-        return self.undo_manager._push_undo_state_v2(state, stripped)
+    def _push_undo_state_v2(
+        self, state: dict, stripped: dict, force: bool = False
+    ) -> bool:
+        return self.undo_manager._push_undo_state_v2(state, stripped, force)
 
-    def _push_undo_state_v3(self, state: dict, stripped: dict) -> bool:
-        return self.undo_manager._push_undo_state_v3(state, stripped)
+    def _push_undo_state_v3(
+        self, state: dict, stripped: dict, force: bool = False
+    ) -> bool:
+        return self.undo_manager._push_undo_state_v3(state, stripped, force)
 
-    def _push_undo_state_v4(self, state: dict, stripped: dict) -> bool:
-        return self.undo_manager._push_undo_state_v4(state, stripped)
+    def _push_undo_state_v4(
+        self, state: dict, stripped: dict, force: bool = False
+    ) -> bool:
+        return self.undo_manager._push_undo_state_v4(state, stripped, force)
 
     def _undo_hotkey(self, event):
         """Keyboard shortcut handler for undo."""
