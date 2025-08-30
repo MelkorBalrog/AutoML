@@ -602,7 +602,7 @@ class ClosableNotebook(ttk.Notebook):
                     )
                     mapping[child] = child_clone
             self._copy_widget_state(widget, clone)
-            self._copy_widget_bindings(widget, clone)
+            self._copy_widget_bindings(widget, clone, mapping)
             self._copy_widget_layout(widget, clone, mapping, layouts)
             try:
                 self._cancel_after_events(widget)
@@ -626,7 +626,7 @@ class ClosableNotebook(ttk.Notebook):
         except Exception as exc:  # pragma: no cover - log and continue
             logger.exception("Failed to copy config for %s: %s", widget, exc)
         self._copy_widget_state(widget, clone)
-        self._copy_widget_bindings(widget, clone)
+        self._copy_widget_bindings(widget, clone, mapping)
         if isinstance(widget, (tk.Button, ttk.Button)):
             self._rebind_button_command(widget, clone, mapping)
             self.rewrite_option_references(mapping)
@@ -946,8 +946,18 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-    def _copy_widget_bindings(self, widget: tk.Widget, clone: tk.Widget) -> None:
-        """Replicate event bindings and tags from *widget* to *clone*."""
+    def _copy_widget_bindings(
+        self,
+        widget: tk.Widget,
+        clone: tk.Widget,
+        mapping: dict[tk.Widget, tk.Widget],
+    ) -> None:
+        """Replicate event bindings and tags from *widget* to *clone*.
+
+        Bound Tcl command strings are parsed so widget path references are
+        replaced with their cloned counterparts using *mapping*.
+        """
+
         try:
             clone.bindtags(widget.bindtags())
         except Exception:
@@ -956,10 +966,14 @@ class ClosableNotebook(ttk.Notebook):
             sequences = widget.tk.call("bind", widget._w).split()
         except Exception:
             sequences = []
+        name_map = {str(o): str(c) for o, c in mapping.items()}
         for seq in sequences:
             try:
                 cmd = widget.bind(seq)
                 if cmd:
+                    for src, dst in name_map.items():
+                        if src in cmd:
+                            cmd = cmd.replace(src, dst)
                     clone.bind(seq, cmd)
             except Exception:
                 continue

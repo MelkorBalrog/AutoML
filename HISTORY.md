@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.213 - Rewrite bound event command strings during widget cloning so
+            bindings reference cloned widgets.
+          - Add grouped hover and click tests verifying command rewrites.
 - 0.2.212 - Move core API into dedicated package and expose service
             methods via DLL wrappers.
           - Guard memory manager caches and processes with thread locks and
