@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.208 - Run memory and service managers through central thread manager and
+            execute the main application under thread supervision.
 - 0.2.207 - Remove threaded service manager and launch core directly.
 - 0.2.206 - Internal version synchronisation.
 - 0.2.205 - Launch AutoML core through service manager and allow non-daemon
