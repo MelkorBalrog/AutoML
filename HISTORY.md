@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.216 - Preserve complete Governance Core relationship listings by
+           exempting Governance Core from global relation filtering and
+           cross-category deduplication. Extract helper functions to reduce
+           toolbox rebuild complexity.
 - 0.2.215 - Ensure hazard and threat analysis work products activate their
            parent tool groups so lifecycle phase menus like "Qualitative
            Analysis" enable when diagrams (e.g. HAZOP) are present.
