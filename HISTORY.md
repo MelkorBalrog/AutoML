@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.214 - Parse and rewrite all widget path references in bound command
+            strings and option scripts during tab cloning.
+          - Reschedule ``after`` callbacks on cloned widgets and expand
+            option reference rewriting to menu commands and postcommands.
+          - Add grouped tests confirming hover and click callbacks fire in
+            detached windows.
 - 0.2.213 - Call `_switch_toolbox` after rebuilding toolboxes so detached
             governance diagrams display the selected toolbox.
           - Add governance toolbox visibility tests for detached tabs.

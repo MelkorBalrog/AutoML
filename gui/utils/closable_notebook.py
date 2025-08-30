@@ -33,6 +33,7 @@ import typing as t
 import tkinter as tk
 import weakref
 import functools
+import re
 from tkinter import ttk
 
 logger = logging.getLogger(__name__)
@@ -112,12 +113,15 @@ _KNOWN_TEXT_WIDGETS = {"CapsuleButton"}
 # their own drawing logic instead of ``_copy_canvas_items``.
 _SELF_DRAWING_CANVASES = {"CapsuleButton"}
 
+
 class ClosableNotebook(ttk.Notebook):
     """Notebook widget with an 'x' button on the left side of each tab."""
 
     _style_initialized = False
     _close_img: tk.PhotoImage | None = None
-    _tab_hosts: weakref.WeakKeyDictionary[tk.Widget, tk.Toplevel] = weakref.WeakKeyDictionary()
+    _tab_hosts: weakref.WeakKeyDictionary[tk.Widget, tk.Toplevel] = (
+        weakref.WeakKeyDictionary()
+    )
 
     def __init__(self, master: tk.Widget | None = None, **kw):
         if not ClosableNotebook._style_initialized:
@@ -151,8 +155,20 @@ class ClosableNotebook(ttk.Notebook):
                                                     "side": "top",
                                                     "sticky": "nswe",
                                                     "children": [
-                                                        ("close", {"side": "left", "sticky": ""}),
-                                                        ("Notebook.label", {"side": "left", "sticky": ""}),
+                                                        (
+                                                            "close",
+                                                            {
+                                                                "side": "left",
+                                                                "sticky": "",
+                                                            },
+                                                        ),
+                                                        (
+                                                            "Notebook.label",
+                                                            {
+                                                                "side": "left",
+                                                                "sticky": "",
+                                                            },
+                                                        ),
                                                     ],
                                                 },
                                             )
@@ -271,13 +287,19 @@ class ClosableNotebook(ttk.Notebook):
     # is impossible.  Provide tiny wrappers so the old API continues to
     # work.
 
-    def _on_tab_press(self, event: tk.Event) -> str | None:  # pragma: no cover - thin wrapper
+    def _on_tab_press(
+        self, event: tk.Event
+    ) -> str | None:  # pragma: no cover - thin wrapper
         return self._on_press(event)
 
-    def _on_tab_release(self, event: tk.Event) -> None:  # pragma: no cover - thin wrapper
+    def _on_tab_release(
+        self, event: tk.Event
+    ) -> None:  # pragma: no cover - thin wrapper
         self._on_release(event)
 
-    def _on_tab_motion(self, event: tk.Event) -> None:  # pragma: no cover - thin wrapper
+    def _on_tab_motion(
+        self, event: tk.Event
+    ) -> None:  # pragma: no cover - thin wrapper
         self._on_motion(event)
 
     # ------------------------------------------------------------------
@@ -603,6 +625,7 @@ class ClosableNotebook(ttk.Notebook):
                     mapping[child] = child_clone
             self._copy_widget_state(widget, clone)
             self._copy_widget_bindings(widget, clone, mapping)
+            self._reschedule_after_callbacks(widget, clone, mapping)
             self._copy_widget_layout(widget, clone, mapping, layouts)
             try:
                 self._cancel_after_events(widget)
@@ -627,6 +650,7 @@ class ClosableNotebook(ttk.Notebook):
             logger.exception("Failed to copy config for %s: %s", widget, exc)
         self._copy_widget_state(widget, clone)
         self._copy_widget_bindings(widget, clone, mapping)
+        self._reschedule_after_callbacks(widget, clone, mapping)
         if isinstance(widget, (tk.Button, ttk.Button)):
             self._rebind_button_command(widget, clone, mapping)
             self.rewrite_option_references(mapping)
@@ -668,7 +692,6 @@ class ClosableNotebook(ttk.Notebook):
             pass
 
         return clone, mapping, layouts
-
 
     def _rebind_button_command(
         self,
@@ -718,7 +741,6 @@ class ClosableNotebook(ttk.Notebook):
             if replaced:
                 clone.configure(command=functools.partial(cmd.func, *args, **kwargs))
 
-
     def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return children of *widget* in geometry-manager order.
 
@@ -759,7 +781,9 @@ class ClosableNotebook(ttk.Notebook):
         mapping: dict[tk.Widget, tk.Widget],
         layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]],
         cancelled: set[str] | None,
-    ) -> tuple[dict[tk.Widget, tk.Widget], dict[tk.Widget, tuple[str, dict[str, t.Any]]]]:
+    ) -> tuple[
+        dict[tk.Widget, tk.Widget], dict[tk.Widget, tuple[str, dict[str, t.Any]]]
+    ]:
         """Clone canvas *items* from *widget* into *clone*.
 
         ``window`` items are cloned recursively and inserted using
@@ -788,9 +812,7 @@ class ClosableNotebook(ttk.Notebook):
                     if isinstance(v, tuple) and len(v) >= 5
                 }
                 cfg.pop("window", None)
-                new_item = clone.create_window(
-                    *coords, window=child_clone, **cfg
-                )
+                new_item = clone.create_window(*coords, window=child_clone, **cfg)
             else:
                 creator = getattr(clone, f"create_{item_type}")
                 if item_type == "image":
@@ -828,7 +850,9 @@ class ClosableNotebook(ttk.Notebook):
                         clone.tag_bind(tag, seq, cmd)
         return mapping, layouts
 
-    def _collect_required_kwargs(self, widget: tk.Widget, cls: type) -> dict[str, t.Any]:
+    def _collect_required_kwargs(
+        self, widget: tk.Widget, cls: type
+    ) -> dict[str, t.Any]:
         """Return constructor kwargs required to recreate *widget* of type *cls*.
 
         Some subclasses only expose ``*args``/``**kwargs`` in ``__init__``.  Walk
@@ -850,7 +874,8 @@ class ClosableNotebook(ttk.Notebook):
             # Skip bases that only accept *args/**kwargs and provide no
             # information about available parameters.
             if all(
-                p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+                p.kind
+                in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
                 or name == "master"
                 for name, p in params
             ):
@@ -921,7 +946,9 @@ class ClosableNotebook(ttk.Notebook):
                 try:
                     tkapp = getattr(widget, "tk", None)
                     width = int(tkapp.call("image", "width", img_name)) if tkapp else 0
-                    height = int(tkapp.call("image", "height", img_name)) if tkapp else 0
+                    height = (
+                        int(tkapp.call("image", "height", img_name)) if tkapp else 0
+                    )
                     new_img = tk.PhotoImage(master=clone, width=width, height=height)
                     new_img.tk.call(new_img, "copy", img_name)
                     clone.configure(image=new_img)
@@ -952,6 +979,59 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
+    def _replace_widget_paths(
+        self, script: str, mapping: dict[tk.Widget, tk.Widget]
+    ) -> str:
+        """Return *script* with widget paths replaced per *mapping*.
+
+        The command string is tokenised so multiple path references are
+        consistently rewritten without partial replacements.
+        """
+
+        name_pairs = sorted(
+            ((str(o), str(c)) for o, c in mapping.items()),
+            key=lambda x: -len(x[0]),
+        )
+        for src, dst in name_pairs:
+            script = re.sub(
+                rf"(?<!\S){re.escape(src)}(?!\S)",
+                dst,
+                script,
+            )
+        return script
+
+    def _reschedule_after_callbacks(
+        self, widget: tk.Widget, clone: tk.Widget, mapping: dict[tk.Widget, tk.Widget]
+    ) -> None:
+        """Re-register ``after`` callbacks from *widget* on *clone*.
+
+        Attributes ending with ``_after``, ``_timer`` or ``_animate`` that
+        contain ``after`` identifiers are cancelled on the original widget and
+        scheduled on the clone with rewritten widget path references.
+        """
+
+        tkapp = getattr(widget, "tk", None)
+        if tkapp is None:
+            return
+        for name in dir(widget):
+            if not name.endswith(("_after", "_timer", "_animate")):
+                continue
+            ident = getattr(widget, name, None)
+            if not isinstance(ident, str):
+                continue
+            try:
+                script = tkapp.call("after", "info", ident)
+            except Exception:
+                continue
+            if not isinstance(script, str) or not script:
+                continue
+            script = self._replace_widget_paths(script, mapping)
+            try:
+                new_id = clone.tk.call("after", "idle", script)
+            except Exception:
+                continue
+            setattr(clone, name, new_id)
+
     def _copy_widget_bindings(
         self,
         widget: tk.Widget,
@@ -979,14 +1059,11 @@ class ClosableNotebook(ttk.Notebook):
             sequences = widget.tk.call("bind", widget._w).split()
         except Exception:
             sequences = []
-        name_map = {str(o): str(c) for o, c in mapping.items()}
         for seq in sequences:
             try:
                 cmd = widget.bind(seq)
                 if cmd:
-                    for src, dst in name_map.items():
-                        if src in cmd:
-                            cmd = cmd.replace(src, dst)
+                    cmd = self._replace_widget_paths(cmd, mapping)
                     clone.bind(seq, cmd)
             except Exception:
                 continue
@@ -1190,7 +1267,7 @@ class ClosableNotebook(ttk.Notebook):
         """Wrapper for :func:`cancel_after_events` for backward compatibility."""
 
         cancel_after_events(widget, cancelled)
-            
+
     def _ensure_fills(self, widget: tk.Widget) -> None:
         """Ensure *widget* expands to fill its immediate container.
 
@@ -1304,9 +1381,8 @@ class ClosableNotebook(ttk.Notebook):
         toolbox_orig = getattr(orig, "toolbox", None)
         toolbox_clone = mapping.get(toolbox_orig) if mapping else None
         roots: dict[tk.Widget, tk.Widget] = {}
-        if (
-            isinstance(toolbox_canvas_orig, tk.Widget)
-            and isinstance(toolbox_canvas_clone, tk.Widget)
+        if isinstance(toolbox_canvas_orig, tk.Widget) and isinstance(
+            toolbox_canvas_clone, tk.Widget
         ):
             roots[toolbox_canvas_orig] = toolbox_canvas_clone
 
@@ -1422,9 +1498,7 @@ class ClosableNotebook(ttk.Notebook):
             win.destroy()
             raise
 
-    def rewrite_option_references(
-        self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> None:
+    def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
 
         ref_opts = {
@@ -1433,8 +1507,8 @@ class ClosableNotebook(ttk.Notebook):
             "xscrollcommand",
             "textvariable",
             "variable",
+            "postcommand",
         }
-        name_map = {str(o): str(c) for o, c in mapping.items()}
         for _orig, clone in mapping.items():
             try:
                 config = clone.configure() or {}
@@ -1451,16 +1525,32 @@ class ClosableNotebook(ttk.Notebook):
                     continue
                 if not isinstance(value, str):
                     continue
-                for src_name, dst_name in name_map.items():
-                    if src_name in value:
+                new_value = self._replace_widget_paths(value, mapping)
+                if new_value != value:
+                    try:
+                        clone.configure({opt: new_value})
+                    except Exception:
+                        pass
+            if isinstance(clone, tk.Menu):
+                try:
+                    end = clone.index("end") or -1
+                except Exception:
+                    end = -1
+                for i in range(end + 1):
+                    try:
+                        cmd = clone.entrycget(i, "command")
+                    except Exception:
+                        continue
+                    if not isinstance(cmd, str):
+                        continue
+                    new_cmd = self._replace_widget_paths(cmd, mapping)
+                    if new_cmd != cmd:
                         try:
-                            clone.configure({opt: value.replace(src_name, dst_name)})
+                            clone.entryconfigure(i, command=new_cmd)
                         except Exception:
                             pass
 
-    def rebind_scrollbars(
-        self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> None:
+    def rebind_scrollbars(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rebind cloned scrollbars to their cloned targets."""
 
         for _orig, clone in mapping.items():
@@ -1501,9 +1591,7 @@ class ClosableNotebook(ttk.Notebook):
             except Exception:
                 continue
 
-    def update_canvas_windows(
-        self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> None:
+    def update_canvas_windows(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Update canvas window items to point at cloned windows."""
 
         name_map = {str(o): str(c) for o, c in mapping.items()}
@@ -1527,9 +1615,7 @@ class ClosableNotebook(ttk.Notebook):
             except tk.TclError:
                 continue
 
-    def _reassign_widget_references(
-        self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> None:
+    def _reassign_widget_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite internal widget references after cloning."""
 
         self.rewrite_option_references(mapping)
@@ -1557,7 +1643,11 @@ class ClosableNotebook(ttk.Notebook):
                 return updated if changed else value
             if isinstance(value, list):
                 new_list = [_rewrite(v) for v in value]
-                return new_list if any(n is not o for n, o in zip(new_list, value)) else value
+                return (
+                    new_list
+                    if any(n is not o for n, o in zip(new_list, value))
+                    else value
+                )
             if isinstance(value, tuple):
                 new_tuple = tuple(_rewrite(v) for v in value)
                 return new_tuple if new_tuple != value else value
@@ -1730,9 +1820,7 @@ class ClosableNotebook(ttk.Notebook):
                     pass
             if self._drag_root_release:
                 try:
-                    self._drag_root.unbind(
-                        "<ButtonRelease-1>", self._drag_root_release
-                    )
+                    self._drag_root.unbind("<ButtonRelease-1>", self._drag_root_release)
                 except tk.TclError:
                     pass
             self._drag_root = None
