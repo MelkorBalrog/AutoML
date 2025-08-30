@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.213 - Replace original toplevel paths in cloned widget ``bindtags`` so
+- 0.2.213 - Rewrite bound event command strings during widget cloning so
+            bindings reference cloned widgets.
+          - Add grouped hover and click tests verifying command rewrites.
+          - Replace original toplevel paths in cloned widget ``bindtags`` so
             detached tabs propagate events to their new windows.
           - Add regression tests verifying hover and click events on detached
             tab widgets.
