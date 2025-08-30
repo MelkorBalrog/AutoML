@@ -59,7 +59,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             root = None
         if root is not None:
             tcl_cmds = getattr(root, "_tclCommands", None)
-            if tcl_cmds and ident in tcl_cmds:
+            if tcl_cmds is not None:
                 try:
                     root.deletecommand(ident)
                 except Exception:
@@ -69,6 +69,16 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
     tkapp = getattr(widget, "tk", None)
     if tkapp is not None and getattr(tkapp, "call", None) is not None:
         try:
+            widget_ids = tkapp.call("after", "info", str(widget))
+        except Exception:
+            widget_ids = ()
+        if isinstance(widget_ids, str):
+            widget_ids = (widget_ids,)
+        for ident in widget_ids:
+            if ident and ident not in cancelled:
+                _cancel_ident(ident)
+
+        try:
             all_ids = tkapp.call("after", "info")
         except Exception:
             all_ids = ()
@@ -76,6 +86,9 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             all_ids = (all_ids,)
         for ident in all_ids:
             if not isinstance(ident, str) or ident in cancelled:
+                continue
+            if ident.startswith(str(widget)):
+                _cancel_ident(ident)
                 continue
             try:
                 script = tkapp.call("after", "info", ident)
