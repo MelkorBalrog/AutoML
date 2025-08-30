@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.214 - Detect common toolbox attributes during toolbar discovery so
+            detached windows retain their original toolboxes.
+          - Pack identified toolboxes into floating windows and invoke any
+            available ``_switch_toolbox`` hooks.
+          - Add grouped tests confirming detached architecture and STPA
+            windows display functional toolboxes.
 - 0.2.213 - Call `_switch_toolbox` after rebuilding toolboxes so detached
             governance diagrams display the selected toolbox.
           - Add governance toolbox visibility tests for detached tabs.
