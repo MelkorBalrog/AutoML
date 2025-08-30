@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.213 - Call `_switch_toolbox` after rebuilding toolboxes so detached
+            governance diagrams display the selected toolbox.
+          - Add governance toolbox visibility tests for detached tabs.
 - 0.2.212 - Move core API into dedicated package and expose service
             methods via DLL wrappers.
           - Guard memory manager caches and processes with thread locks and

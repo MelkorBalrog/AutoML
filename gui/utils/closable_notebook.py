@@ -1349,6 +1349,10 @@ class ClosableNotebook(ttk.Notebook):
             if callable(func):
                 try:
                     func()
+                    if name == "_rebuild_toolboxes":
+                        switch = getattr(new_widget, "_switch_toolbox", None)
+                        if callable(switch):
+                            switch()
                 except Exception:
                     pass
 
