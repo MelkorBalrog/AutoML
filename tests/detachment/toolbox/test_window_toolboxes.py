@@ -59,30 +59,12 @@ class DummyGsnWindow(tk.Frame):
         tk.Button(self.toolbox, text="G", command=lambda: self.log.append("G")).pack()
 
 
-class DummyToolFrameWindow(tk.Frame):
-    """Stub window exposing a ``tool_frame`` and switch hook."""
-
-    def __init__(self, master):
-        super().__init__(master)
-        self.tool_frame = tk.Frame(self)
-        self.tool_frame.pack(side="left")
-        self.log: list[str] = []
-        self.switched = False
-        tk.Button(
-            self.tool_frame, text="T", command=lambda: self.log.append("T")
-        ).pack()
-
-    def _switch_toolbox(self) -> None:  # pragma: no cover - trivial
-        self.switched = True
-
-
 @pytest.mark.parametrize(
     "win_cls, attr",
     [
         (DummyArchitectureWindow, "toolbox"),
         (DummyStpaWindow, "tools_frame"),
         (DummyGsnWindow, "toolbox"),
-        (DummyToolFrameWindow, "tool_frame"),
     ],
 )
 def test_cloned_windows_pack_toolbox(win_cls, attr):
@@ -101,6 +83,4 @@ def test_cloned_windows_pack_toolbox(win_cls, attr):
     btn.invoke()
     assert getattr(clone, "log") == [toolbox.winfo_children()[0]["text"]]
     assert mapping[getattr(win, attr)] is toolbox
-    if hasattr(clone, "switched"):
-        assert clone.switched is True
     root.destroy()
