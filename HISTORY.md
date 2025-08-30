@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.225 - Scope toolbox caches to diagram sessions and clean obsolete
+          frames when windows close. Add regression tests ensuring related
+          elements and relationships persist across sequential diagrams.
 - 0.2.224 - Deduplicate relations only within each toolbox category so
           Governance Core no longer prunes shared relations. Rebuild
           toolboxes without cross-category seeding and add persistence

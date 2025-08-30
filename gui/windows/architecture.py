@@ -10227,7 +10227,8 @@ class SysMLDiagramWindow(tk.Frame):
 
     def on_close(self):
         diag_id = getattr(self, "diagram_id", "0")
-        memory_manager.discard_prefix(f"{diag_id}:toolbox:")
+        memory_manager.discard_prefix(f"{diag_id}:{id(self)}:toolbox:")
+        memory_manager.cleanup()
         ARCH_WINDOWS.discard(getattr(self, "_arch_ref", None))
         self._sync_to_repository()
         self.relation_tools = []
@@ -12197,7 +12198,7 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     # ------------------------------------------------------------------
     def _rebuild_toolboxes(self) -> None:
         diag_id = getattr(self, "diagram_id", "0")
-        memory_manager.discard_prefix(f"{diag_id}:toolbox:")
+        memory_manager.discard_prefix(f"{diag_id}:{id(self)}:toolbox:")
         defs = copy.deepcopy(_toolbox_defs())
         ai_data = defs.pop("Safety & AI Lifecycle", None)
         defs["Governance Core"] = _core_toolbox_template()
@@ -12355,7 +12356,7 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
                     frame.pack_forget()
         frames = self._toolbox_frames.setdefault(choice, [])
         diag_id = getattr(self, "diagram_id", "0")
-        key = f"{diag_id}:toolbox:{choice}"
+        key = f"{diag_id}:{id(self)}:toolbox:{choice}"
         loader = getattr(self, "_frame_loaders", {}).get(choice)
         if loader:
             frame = memory_manager.lazy_load(key, loader)
