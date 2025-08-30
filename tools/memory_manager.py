@@ -33,6 +33,8 @@ import time
 from typing import Any, Callable, Dict, Set
 import atexit
 
+from .thread_manager import manager as thread_manager
+
 try:  # pragma: no cover - optional dependency
     import psutil
 except Exception:  # pragma: no cover - psutil may not be installed
@@ -55,8 +57,7 @@ class MemoryManager:
         self._procs: Dict[str, Any] = {}
         self._interval = interval
         self._stop_event = threading.Event()
-        self._thread = threading.Thread(target=self._monitor, daemon=True)
-        self._thread.start()
+        self._thread = thread_manager.register("memory_manager", self._monitor, daemon=True)
 
     def lazy_load(self, key: str, loader: Callable[[], Any]) -> Any:
         """Return cached object for *key*, loading it if necessary."""
@@ -117,8 +118,9 @@ class MemoryManager:
     def shutdown(self) -> None:
         """Stop the monitoring thread."""
         self._stop_event.set()
-        if self._thread.is_alive():
-            self._thread.join(timeout=1)
+        thread = thread_manager.unregister("memory_manager")
+        if thread and thread.is_alive():
+            thread.join(timeout=1)
 
 
 def lazy_import(name: str) -> Any:

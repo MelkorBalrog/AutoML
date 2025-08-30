@@ -17,6 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import time
+import threading
 
 from tools.thread_manager import ThreadManager
 
@@ -31,4 +32,12 @@ def test_thread_manager_restarts_dead_thread() -> None:
     manager.register("t1", worker, daemon=True)
     time.sleep(0.15)  # allow thread to run and be restarted
     assert runs["count"] >= 2
+    manager.stop_all()
+
+
+def test_register_current_thread() -> None:
+    manager = ThreadManager(interval=0.05)
+    current = manager.register_current("main")
+    assert current is threading.current_thread()
+    manager._check_threads()  # ensure no restart attempt
     manager.stop_all()

@@ -34,7 +34,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 @dataclass
 class _ThreadInfo:
-    target: Callable[..., Any]
+    target: Optional[Callable[..., Any]]
     args: Tuple[Any, ...]
     kwargs: Dict[str, Any]
     daemon: bool
@@ -91,6 +91,13 @@ class ThreadManager:
             self._threads[name] = _ThreadInfo(target, args, kwargs, daemon, thread)
         return thread
 
+    def register_current(self, name: str) -> threading.Thread:
+        """Register the currently running thread without starting a new one."""
+        thread = threading.current_thread()
+        with self._lock:
+            self._threads[name] = _ThreadInfo(None, (), {}, thread.daemon, thread)
+        return thread
+
     def unregister(self, name: str) -> Optional[threading.Thread]:
         """Stop monitoring *name* and return the thread if present."""
         with self._lock:
@@ -101,6 +108,8 @@ class ThreadManager:
         with self._lock:
             for name, info in list(self._threads.items()):
                 if not info.thread.is_alive():
+                    if info.target is None:
+                        continue
                     thread = threading.Thread(
                         target=info.target,
                         args=info.args,
@@ -120,7 +129,7 @@ class ThreadManager:
             threads = list(self._threads.values())
             self._threads.clear()
         for info in threads:
-            if info.thread.is_alive():
+            if info.thread.is_alive() and info.thread is not threading.current_thread():
                 info.thread.join(timeout=0)
 
 

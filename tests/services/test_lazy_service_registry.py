@@ -45,3 +45,4 @@ class TestLazyServiceRegistry:
         with registry.use("AnalysisUtilsService") as second:
             assert isinstance(second, AnalysisUtilsService)
             assert first is not second
+        registry.shutdown()
