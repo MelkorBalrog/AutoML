@@ -1053,9 +1053,12 @@ class ClosableNotebook(ttk.Notebook):
         try:
             tags = widget.bindtags()
             try:
-                orig_top = str(widget.winfo_toplevel())
-                clone_top = str(clone.winfo_toplevel())
-                tags = tuple(clone_top if t == orig_top else t for t in tags)
+                orig_top = widget.winfo_toplevel()
+                clone_top = clone.winfo_toplevel()
+                tags = tuple(
+                    clone_top if t in {orig_top, str(orig_top)} else t
+                    for t in tags
+                )
             except Exception:
                 pass
             clone.bindtags(tags)
