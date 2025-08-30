@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.214 - Record intermediate drop positions during diagram moves so
+           undo steps through each drag instead of jumping to the initial
+           placement.
 - 0.2.213 - Call `_switch_toolbox` after rebuilding toolboxes so detached
             governance diagrams display the selected toolbox.
           - Add governance toolbox visibility tests for detached tabs.
