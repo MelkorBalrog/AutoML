@@ -19,7 +19,13 @@
 -->
 
 # Version History
-- 0.2.214 - Parse and rewrite all widget path references in bound command
+- 0.2.214 - Detect common toolbox attributes during toolbar discovery so
+            detached windows retain their original toolboxes.
+          - Pack identified toolboxes into floating windows and invoke any
+            available ``_switch_toolbox`` hooks.
+          - Add grouped tests confirming detached architecture and STPA
+            windows display functional toolboxes.
+          - Parse and rewrite all widget path references in bound command
             strings and option scripts during tab cloning.
           - Reschedule ``after`` callbacks on cloned widgets and expand
             option reference rewriting to menu commands and postcommands.

@@ -1444,6 +1444,10 @@ class ClosableNotebook(ttk.Notebook):
         toolbar = self._find_toolbar_frame(new_widget)
         if toolbar is not None:
             mapping.setdefault(toolbar, toolbar)
+            try:
+                toolbar.pack(side="left")
+            except Exception:
+                pass
         self._remove_duplicate_widgets(win, nb, mapping)
         self._reassign_container_attributes(mapping)
         if toolbar is not None and not toolbar.winfo_children():
@@ -1458,12 +1462,14 @@ class ClosableNotebook(ttk.Notebook):
             if callable(func):
                 try:
                     func()
-                    if name == "_rebuild_toolboxes":
-                        switch = getattr(new_widget, "_switch_toolbox", None)
-                        if callable(switch):
-                            switch()
                 except Exception:
                     pass
+        switch = getattr(new_widget, "_switch_toolbox", None)
+        if callable(switch):
+            try:
+                switch()
+            except Exception:
+                pass
 
     def _create_floating_window(
         self, width: int, height: int, x: int, y: int
@@ -1686,6 +1692,17 @@ class ClosableNotebook(ttk.Notebook):
 
         if not widget.winfo_exists():
             return None
+        for attr in ("toolbox", "tools_frame", "tool_frame"):
+            try:
+                tb = getattr(widget, attr)
+            except AttributeError:
+                tb = None
+            if isinstance(tb, tk.Widget):
+                try:
+                    if tb.winfo_exists():
+                        return tb
+                except tk.TclError:
+                    continue
 
         try:
             children = widget.winfo_children()
