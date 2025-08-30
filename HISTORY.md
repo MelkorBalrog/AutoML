@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.214 - Cancel Tk ``after`` callbacks whose scripts reference detached widgets.
+          - Guard ``root.deletecommand`` when Tcl command table is missing.
+          - Add grouped regression tests ensuring animated buttons detach and
+            close without ``invalid command name`` logs.
 - 0.2.213 - Call `_switch_toolbox` after rebuilding toolboxes so detached
             governance diagrams display the selected toolbox.
           - Add governance toolbox visibility tests for detached tabs.
