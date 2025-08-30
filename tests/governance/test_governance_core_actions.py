@@ -20,7 +20,7 @@ import types
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from gui.architecture import GovernanceDiagramWindow
 from gui import architecture
@@ -103,3 +103,84 @@ def test_governance_core_has_add_buttons(monkeypatch):
     assert len(rel_sections) == 1
     rel_labels = [child.text for child in getattr(rel_sections[0], "children", [])]
     assert len(rel_labels) == len(set(rel_labels))
+
+
+def test_governance_core_present_without_nodes(monkeypatch):
+    monkeypatch.setattr(architecture, "GOV_CORE_NODES", [])
+    monkeypatch.setattr(architecture, "GOV_ELEMENT_CLASSES", {})
+    defs = architecture._toolbox_defs()
+    assert "Governance Core" in defs
+    assert defs["Governance Core"]["nodes"] == []
+
+
+def test_rebuild_toolboxes_defers_initial_switch(monkeypatch):
+    called = {}
+
+    class DummyFrame:
+        def __init__(self, master=None, text=None):
+            self.master = master
+            self.text = text
+            self.children = []
+            if master and hasattr(master, "children"):
+                master.children.append(self)
+
+        def pack(self, *args, **kwargs):
+            pass
+
+        def pack_forget(self, *args, **kwargs):
+            pass
+
+        def destroy(self, *args, **kwargs):
+            pass
+
+    class DummyToolbox(DummyFrame):
+        tk = True
+
+        def after(self, delay, func):
+            called["delay"] = delay
+            called["func"] = func
+
+    monkeypatch.setattr(architecture.ttk, "Frame", DummyFrame)
+    monkeypatch.setattr(architecture.ttk, "LabelFrame", DummyFrame)
+    class DummyButton:
+        def __init__(self, master=None, text="", image=None, compound=None, command=None):
+            self.master = master
+            self.text = text
+            self.command = command
+            if master and hasattr(master, "children"):
+                master.children.append(self)
+
+        def pack(self, *args, **kwargs):
+            pass
+
+        def configure(self, **kwargs):
+            self.text = kwargs.get("text", self.text)
+
+        def destroy(self):
+            pass
+
+    class DummyTranslucidButton(DummyButton):
+        pass
+
+    monkeypatch.setattr(architecture, "TranslucidButton", DummyTranslucidButton)
+    monkeypatch.setattr(architecture.ttk, "Button", DummyButton)
+
+    win = GovernanceDiagramWindow.__new__(GovernanceDiagramWindow)
+    toolbox = DummyToolbox()
+    win.toolbox = toolbox
+    win.tools_frame = DummyFrame(toolbox)
+    win._toolbox_frames = {}
+    win._frame_loaders = {}
+    win.toolbox_selector = types.SimpleNamespace(configure=lambda **k: None)
+    win.toolbox_var = types.SimpleNamespace(get=lambda: "Governance Core", set=lambda v: None)
+    monkeypatch.setattr(architecture, "_toolbox_defs", lambda: {})
+    win._icon_for = lambda name: None
+
+    def fake_switch():
+        called["executed"] = True
+
+    win._switch_toolbox = fake_switch
+    win._rebuild_toolboxes()
+    assert called.get("delay") == 0
+    assert called.get("func") is fake_switch
+    assert "executed" not in called
