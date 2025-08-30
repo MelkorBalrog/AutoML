@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.221 - Inspect registered Tcl commands when cancelling ``after`` callbacks
+           so root-level events without widget paths are removed.
+          - Add regression test ensuring unstored root callbacks referencing
+            detached widgets produce no ``invalid command name`` logs.
 - 0.2.220 - Include script-bearing options when rewriting widget configuration
            references so commands target cloned widgets.
           - Add grouped tests verifying button and menu commands operate on

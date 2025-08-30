@@ -45,6 +45,17 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
     if cancelled is None:
         cancelled = set()
 
+    def _callback_references_widget(func: t.Any) -> bool:
+        if getattr(func, "__self__", None) is widget:
+            return True
+        try:
+            closure = inspect.getclosurevars(func)
+            if widget in closure.nonlocals.values() or widget in closure.globals.values():
+                return True
+        except Exception:
+            pass
+        return False
+
     def _cancel_ident(ident: str) -> None:
         tkapp_local = getattr(widget, "tk", None)
         if tkapp_local is None:
@@ -83,6 +94,16 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
                 continue
             if str(widget) in script:
                 _cancel_ident(ident)
+                continue
+            try:
+                root = widget._root()
+            except Exception:
+                root = None
+            if root is not None:
+                tcl_cmds = getattr(root, "_tclCommands", {}) or {}
+                cb = tcl_cmds.get(script)
+                if cb is not None and _callback_references_widget(cb):
+                    _cancel_ident(ident)
 
     try:
         for name in dir(widget):

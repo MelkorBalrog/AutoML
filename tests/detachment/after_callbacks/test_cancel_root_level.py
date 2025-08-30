@@ -43,3 +43,13 @@ class TestCancelRootLevel:
         root.update()
         assert "invalid command name" not in capsys.readouterr().err
         root.destroy()
+
+    def test_unstored_command_references_widget(self, capsys):
+        root = tk.Tk(); root.withdraw()
+        btn = tk.Button(root, text="Go")
+        btn.pack()
+        cmd = btn.register(lambda: btn.config(text="Foo"))
+        root.tk.call("after", "1", cmd)
+        cancel_after_events(btn)
+        root.destroy()
+        assert "invalid command name" not in capsys.readouterr().err
