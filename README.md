@@ -1,4 +1,4 @@
-version: 0.2.215
+version: 0.2.220
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
@@ -69,6 +69,8 @@ These steps start the application with an empty project so you can explore the w
 Governance diagrams map the lifecycle of an item to the standards it must
 comply with so teams can see when each guideline applies. To build one in
 AutoML:
+
+*The Governance Core toolbox always lists all of its relationships and related elements, even when global relation filters are active.*
 
 1. **List the standards** that govern the item (e.g. ISO 26262, ISO 21448,
    ISO 21434, ISO 8800). Capture their key milestones, work products and

@@ -19,6 +19,20 @@
 -->
 
 # Version History
+- 0.2.220 - Rebuild Governance Core toolbox from pristine definitions after
+          global filtering and deduplication so all core relations and related
+          elements remain visible across diagram sessions.
+- 0.2.219 - Guard Governance Core from all relation filtering and dedup
+           passes so its related elements and relationships are always
+           visible. Add helper tests covering the exemption logic.
+- 0.2.218 - Deep-copy toolbox definitions so Governance Core relations remain
+           intact across multiple diagram windows. Add regression test.
+- 0.2.217 - Maintain Governance Core relations and related elements when
+           global relation tools are active and deduplicate others.
+- 0.2.216 - Preserve complete Governance Core relationship listings by
+           exempting Governance Core from global relation filtering and
+           cross-category deduplication. Extract helper functions to reduce
+           toolbox rebuild complexity.
 - 0.2.215 - Ensure hazard and threat analysis work products activate their
            parent tool groups so lifecycle phase menus like "Qualitative
            Analysis" enable when diagrams (e.g. HAZOP) are present.
