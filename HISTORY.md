@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.223 - Reset relation tool lists on window focus change/close and guard
+          toolbox rebuilds so relation filtering runs only when diagrams
+          supply explicit filters. Add regression test for sequential
+          windows.
 - 0.2.222 - Scope toolbox caches to individual diagrams and clear them on
           rebuild or window close. Add prefix-based cache eviction helper and
           tests.

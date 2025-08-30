@@ -3707,6 +3707,11 @@ class SysMLDiagramWindow(tk.Frame):
         else:
             diagram = self.repo.create_diagram(title, name=title, diag_id=diagram_id)
         self.diagram_id = diagram.diag_id
+
+        relation_tools = list(relation_tools or [])
+        self.relation_tools = relation_tools
+        self._has_relation_filters = bool(relation_tools)
+
         if isinstance(self.master, tk.Toplevel):
             self.master.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -3946,6 +3951,8 @@ class SysMLDiagramWindow(tk.Frame):
 
     def _on_focus_out(self, event=None):
         self._sync_to_repository()
+        self.relation_tools = []
+        self._has_relation_filters = False
 
     def _fit_toolbox(self) -> None:
         """Resize the toolbox to the smallest width that shows all button text."""
@@ -10228,6 +10235,8 @@ class SysMLDiagramWindow(tk.Frame):
         memory_manager.discard_prefix(f"{diag_id}:toolbox:")
         ARCH_WINDOWS.discard(getattr(self, "_arch_ref", None))
         self._sync_to_repository()
+        self.relation_tools = []
+        self._has_relation_filters = False
         self.destroy()
 
 
@@ -12198,8 +12207,8 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         ai_data = defs.pop("Safety & AI Lifecycle", None)
         core_data = _core_toolbox_template()
         defs.pop("Governance Core", None)
-        global_rels = set(getattr(self, "relation_tools", []) or [])
-        if global_rels:
+        global_rels = set(self.relation_tools)
+        if getattr(self, "_has_relation_filters", False) and global_rels:
             _filter_global_relations(defs, ai_data, global_rels)
         defs = {"Governance Core": core_data, **defs}
         _deduplicate_relations(defs, ai_data)
