@@ -15,20 +15,28 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Math service delegating arithmetic to the C API DLL."""
+"""Tests for the core DLL API bindings."""
 
-from __future__ import annotations
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 
 from mainappsrc.api import api
 
-
-class MathService:
-    """Expose arithmetic helpers backed by the core C API."""
-
-    @staticmethod
-    def add(left: int, right: int) -> int:
-        """Return the sum of two integers via the DLL-backed API."""
-        return api.add(left, right)
+add = api.add
+call_service = api.call_service
 
 
-__all__ = ["MathService"]
+class TestCoreApi:
+    def test_add(self) -> None:
+        """Addition via the DLL should mirror Python."""
+
+        assert add(2, 3) == 5
+
+    def test_call_service_math(self) -> None:
+        """Call a standard library function through the generic bridge."""
+
+        result = call_service("math", "sqrt", "[9]")
+        assert result == 3.0

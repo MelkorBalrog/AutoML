@@ -19,7 +19,9 @@
 -->
 
 # Version History
-- 0.2.212 - Guard memory manager caches and processes with thread locks and
+- 0.2.212 - Move core API into dedicated package and expose service
+            methods via DLL wrappers.
+          - Guard memory manager caches and processes with thread locks and
             add concurrent cleanup tests to ensure active items remain
             protected.
 - 0.2.211 - Defer initial toolbox switch so Governance Core related elements

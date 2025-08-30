@@ -15,20 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Math service delegating arithmetic to the C API DLL."""
+"""Public API surface exposing the core bridge and service helpers."""
 
-from __future__ import annotations
+from .api import *  # noqa: F401,F403
 
-from mainappsrc.api import api
-
-
-class MathService:
-    """Expose arithmetic helpers backed by the core C API."""
-
-    @staticmethod
-    def add(left: int, right: int) -> int:
-        """Return the sum of two integers via the DLL-backed API."""
-        return api.add(left, right)
-
-
-__all__ = ["MathService"]
+__all__ = [name for name in globals() if not name.startswith("_")]
