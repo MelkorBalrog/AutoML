@@ -501,20 +501,15 @@ def _filter_global_relations(
 
 
 def _deduplicate_relations(defs: dict[str, dict], ai_data: dict | None) -> None:
-    """Deduplicate relations across categories while preserving input order."""
+    """Deduplicate relations within each category while preserving order."""
 
-    seen_rels: set[str] = set()
-    core = defs.get("Governance Core")
-    if core:
-        seen_rels.update(core.get("relations", []) or [])
-        for sub in core.get("externals", {}).values():
-            seen_rels.update(sub.get("relations", []) or [])
     for name, data in defs.items():
         if name == "Governance Core":
-            continue
-        _dedup_category(data, seen_rels)
+            _dedup_core_category(data)
+        else:
+            _dedup_category(data)
     if ai_data:
-        _dedup_category(ai_data, seen_rels)
+        _dedup_category(ai_data)
 
 
 def _gov_connection_text(node_type: str) -> str:
@@ -12205,14 +12200,11 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         memory_manager.discard_prefix(f"{diag_id}:toolbox:")
         defs = copy.deepcopy(_toolbox_defs())
         ai_data = defs.pop("Safety & AI Lifecycle", None)
-        core_data = _core_toolbox_template()
-        defs.pop("Governance Core", None)
-        global_rels = set(self.relation_tools)
+        defs["Governance Core"] = _core_toolbox_template()
+        global_rels = set(getattr(self, "relation_tools", []))
         if getattr(self, "_has_relation_filters", False) and global_rels:
             _filter_global_relations(defs, ai_data, global_rels)
-        defs = {"Governance Core": core_data, **defs}
         _deduplicate_relations(defs, ai_data)
-        defs["Governance Core"] = _core_toolbox_template()
         if hasattr(self.tools_frame, "pack_forget"):
             self.tools_frame.pack_forget()
         if getattr(self, "rel_frame", None) and hasattr(self.rel_frame, "pack_forget"):
