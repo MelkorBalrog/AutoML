@@ -37,6 +37,8 @@ from typing import Any, Callable, Dict, Set
 
 from .thread_manager import manager as thread_manager
 
+from .thread_manager import manager as thread_manager
+
 try:  # pragma: no cover - optional dependency
     import psutil
 except Exception:  # pragma: no cover - psutil may not be installed
