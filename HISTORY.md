@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.220 - Include script-bearing options when rewriting widget configuration
+           references so commands target cloned widgets.
+          - Add grouped tests verifying button and menu commands operate on
+            cloned widgets.
 - 0.2.219 - Invoke ``_switch_toolbox`` immediately after rebuilding toolboxes
            during toolbar cloning.
           - Add grouped tests ensuring detached governance diagrams display
