@@ -26,12 +26,16 @@ framework for the tool to only keep resources required for the currently
 visible data.
 """
 
+import atexit
+import ctypes
 import gc
 import importlib
+import sys
 import threading
 import time
 from typing import Any, Callable, Dict, Set
-import atexit
+
+from .thread_manager import manager as thread_manager
 
 try:  # pragma: no cover - optional dependency
     import psutil
@@ -40,23 +44,22 @@ except Exception:  # pragma: no cover - psutil may not be installed
 
 
 class MemoryManager:
-    """Manage cached objects and subprocesses.
+    """Manage cached objects, subprocesses and trim process memory.
 
     Objects are loaded on demand via :meth:`lazy_load`.  Keys can be marked as
     active with :meth:`mark_active`; any remaining cached objects and processes
-    are discarded by :meth:`cleanup`.  A background thread periodically invokes
-    :meth:`cleanup` so stale resources are removed even if clients forget to
-    call it explicitly.
+    are discarded by :meth:`cleanup`.  A background thread periodically checks
+    memory pressure and invokes :meth:`cleanup` to free unused resources.
     """
 
-    def __init__(self, interval: float = 60.0) -> None:
+    def __init__(self, interval: float = 60.0, max_usage_percent: float = 70.0) -> None:
         self._cache: Dict[str, Any] = {}
         self._active: Set[str] = set()
         self._procs: Dict[str, Any] = {}
         self._interval = interval
+        self._max_usage = max_usage_percent
         self._stop_event = threading.Event()
-        self._thread = threading.Thread(target=self._monitor, daemon=True)
-        self._thread.start()
+        self._thread = thread_manager.register("memory_manager", self._monitor, daemon=True)
 
     def lazy_load(self, key: str, loader: Callable[[], Any]) -> Any:
         """Return cached object for *key*, loading it if necessary."""
@@ -89,8 +92,6 @@ class MemoryManager:
                     except Exception:  # pragma: no cover - best effort cleanup
                         pass
                 del obj
-        if inactive:
-            gc.collect()
 
         for key, proc in list(self._procs.items()):
             if key not in self._active:
@@ -107,18 +108,37 @@ class MemoryManager:
                 finally:
                     self._procs.pop(key, None)
         self._active.clear()
+        self._trim_memory()
+
+    def _memory_percent(self) -> float:
+        if psutil is not None:
+            try:
+                return psutil.Process().memory_percent()
+            except Exception:  # pragma: no cover - best effort
+                return 0.0
+        return 0.0
+
+    def _trim_memory(self) -> None:
+        gc.collect()
+        if sys.platform.startswith("linux"):
+            try:
+                ctypes.CDLL("libc.so.6").malloc_trim(0)
+            except Exception:  # pragma: no cover - optional
+                pass
 
     def _monitor(self) -> None:
-        """Background thread periodically running :meth:`cleanup`."""
+        """Background thread monitoring memory usage."""
         while not self._stop_event.is_set():
             time.sleep(self._interval)
-            self.cleanup()
+            if self._memory_percent() > self._max_usage:
+                self.cleanup()
 
     def shutdown(self) -> None:
         """Stop the monitoring thread."""
         self._stop_event.set()
-        if self._thread.is_alive():
-            self._thread.join(timeout=1)
+        thread = thread_manager.unregister("memory_manager")
+        if thread and thread.is_alive():
+            thread.join(timeout=1)
 
 
 def lazy_import(name: str) -> Any:
