@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.222 - Scope toolbox caches to individual diagrams and clear them on
+          rebuild or window close. Add prefix-based cache eviction helper and
+          tests.
 - 0.2.221 - Restore Governance Core toolboxes from pristine templates after
           every rebuild so other diagram sessions cannot strip relations or
           related elements.
