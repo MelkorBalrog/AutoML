@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.210 - Deduplicate Governance Core toolbox relations across categories for
+            consistent element display.
 - 0.2.209 - Run AutoML core on the main thread and register it with the
             thread manager to prevent Tk asynchronous deletion errors.
 - 0.2.208 - Run memory and service managers through central thread manager and

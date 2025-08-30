@@ -67,7 +67,7 @@ def test_global_relation_not_duplicated(monkeypatch):
         self.toolbox_var = types.SimpleNamespace(get=lambda: "", set=lambda v: None)
         self.relation_tools = relation_tools or []
         self._toolbox_frames = {}
-        self.canvas = types.SimpleNamespace(master=DummyWidget())
+        self.canvas = types.SimpleNamespace(master=DummyWidget(), configure=lambda *a, **k: None)
 
     monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", fake_sysml_init)
     monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
@@ -140,7 +140,7 @@ def test_category_relations_deduplicated(monkeypatch):
         self.toolbox_var = types.SimpleNamespace(get=lambda: "", set=lambda v: None)
         self.relation_tools = relation_tools or []
         self._toolbox_frames = {}
-        self.canvas = types.SimpleNamespace(master=DummyWidget())
+        self.canvas = types.SimpleNamespace(master=DummyWidget(), configure=lambda *a, **k: None)
 
     monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", fake_sysml_init)
     monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
@@ -216,7 +216,7 @@ def test_governance_core_relations_deduplicated(monkeypatch):
         self.toolbox_var = types.SimpleNamespace(get=lambda: "", set=lambda v: None)
         self.relation_tools = relation_tools or []
         self._toolbox_frames = {}
-        self.canvas = types.SimpleNamespace(master=DummyWidget())
+        self.canvas = types.SimpleNamespace(master=DummyWidget(), configure=lambda *a, **k: None)
 
     monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", fake_sysml_init)
     monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
@@ -286,7 +286,7 @@ def test_relations_deduplicated_across_categories(monkeypatch):
         self.toolbox_var = types.SimpleNamespace(get=lambda: "", set=lambda v: None)
         self.relation_tools = relation_tools or []
         self._toolbox_frames = {}
-        self.canvas = types.SimpleNamespace(master=DummyWidget())
+        self.canvas = types.SimpleNamespace(master=DummyWidget(), configure=lambda *a, **k: None)
 
     monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", fake_sysml_init)
     monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
@@ -301,3 +301,71 @@ def test_relations_deduplicated_across_categories(monkeypatch):
     GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
     assert defs_data["First"]["relations"] == ["Link"]
     assert defs_data["Second"]["relations"] == ["Trace"]
+
+
+def test_governance_core_dedup_across_categories(monkeypatch):
+    SysMLRepository._instance = None
+    repo = SysMLRepository.get_instance()
+    diag = repo.create_diagram("Governance Diagram")
+
+    defs_data = {
+        "Entities": {"nodes": [], "relations": ["Link"], "externals": {}},
+        "Governance Core": {"nodes": [], "relations": ["Link", "Trace"], "externals": {}},
+    }
+    monkeypatch.setattr(arch, "_toolbox_defs", lambda: defs_data)
+
+    class DummyWidget:
+        def __init__(self, *a, **k):
+            pass
+
+        def pack(self, *a, **k):
+            pass
+
+        def pack_forget(self, *a, **k):
+            pass
+
+        def bind(self, *a, **k):
+            pass
+
+        def configure(self, *a, **k):
+            pass
+
+        def destroy(self, *a, **k):
+            pass
+
+    def fake_sysml_init(
+        self,
+        master,
+        title,
+        tools,
+        diagram_id=None,
+        app=None,
+        history=None,
+        relation_tools=None,
+        tool_groups=None,
+    ):
+        self.app = app
+        self.repo = repo
+        self.diagram_id = diagram_id
+        self.toolbox = DummyWidget()
+        self.tools_frame = DummyWidget()
+        self.rel_frame = DummyWidget()
+        self.toolbox_selector = DummyWidget()
+        self.toolbox_var = types.SimpleNamespace(get=lambda: "", set=lambda v: None)
+        self.relation_tools = relation_tools or []
+        self._toolbox_frames = {}
+        self.canvas = types.SimpleNamespace(master=DummyWidget(), configure=lambda *a, **k: None)
+
+    monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", fake_sysml_init)
+    monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
+    monkeypatch.setattr(
+        arch.GovernanceDiagramWindow, "refresh_from_repository", lambda self: None
+    )
+    monkeypatch.setattr(arch.ttk, "Combobox", DummyWidget)
+    monkeypatch.setattr(arch.ttk, "Frame", DummyWidget)
+    monkeypatch.setattr(arch.ttk, "LabelFrame", DummyWidget)
+    monkeypatch.setattr(arch.ttk, "Button", DummyWidget)
+
+    GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
+    assert defs_data["Entities"]["relations"] == ["Link"]
+    assert defs_data["Governance Core"]["relations"] == ["Trace"]
