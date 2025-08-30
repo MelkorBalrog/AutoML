@@ -25,6 +25,16 @@
             available ``_switch_toolbox`` hooks.
           - Add grouped tests confirming detached architecture and STPA
             windows display functional toolboxes.
+          - Parse and rewrite all widget path references in bound command
+            strings and option scripts during tab cloning.
+          - Reschedule ``after`` callbacks on cloned widgets and expand
+            option reference rewriting to menu commands and postcommands.
+          - Add grouped tests confirming hover and click callbacks fire in
+            detached windows.
+          - Cancel Tk ``after`` callbacks whose scripts reference detached widgets.
+          - Guard ``root.deletecommand`` when Tcl command table is missing.
+          - Add grouped regression tests ensuring animated buttons detach and
+            close without ``invalid command name`` logs.
 - 0.2.213 - Call `_switch_toolbox` after rebuilding toolboxes so detached
             governance diagrams display the selected toolbox.
           - Add governance toolbox visibility tests for detached tabs.
