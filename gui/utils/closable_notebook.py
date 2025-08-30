@@ -1072,13 +1072,7 @@ class ClosableNotebook(ttk.Notebook):
             try:
                 cmd = widget.bind(seq)
                 if cmd:
-                    try:
-                        parts = widget.tk.splitlist(cmd)
-                    except Exception:
-                        cmd = self._replace_widget_paths(cmd, mapping)
-                    else:
-                        parts = [self._replace_widget_paths(p, mapping) for p in parts]
-                        cmd = widget.tk.call("join", parts, " ")
+                    cmd = self._replace_widget_paths(cmd, mapping)
                     clone.bind(seq, cmd)
             except Exception:
                 continue
