@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.217 - Maintain Governance Core relations and related elements when
+           global relation tools are active and deduplicate others.
 - 0.2.216 - Preserve complete Governance Core relationship listings by
            exempting Governance Core from global relation filtering and
            cross-category deduplication. Extract helper functions to reduce

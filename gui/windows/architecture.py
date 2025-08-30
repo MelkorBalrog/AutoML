@@ -429,6 +429,14 @@ def _dedup_category(data: dict, seen: set[str] | None = None) -> None:
         sub["relations"] = sub_rels
 
 
+def _dedup_core_category(data: dict) -> None:
+    """Deduplicate Governance Core lists without cross-checking externals."""
+
+    data["relations"] = list(dict.fromkeys(data.get("relations", []) or []))
+    for sub in data.get("externals", {}).values():
+        sub["relations"] = list(dict.fromkeys(sub.get("relations", []) or []))
+
+
 def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
     """Return mapping of toolbox name to node/relation lists."""
     defs: dict[str, dict[str, list[str] | dict]] = {}
@@ -465,11 +473,9 @@ def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
 def _filter_global_relations(
     defs: dict[str, dict], ai_data: dict | None, global_rels: set[str]
 ) -> None:
-    """Remove ``global_rels`` from category definitions except Governance Core."""
+    """Remove ``global_rels`` from category definitions."""
 
-    for name, data in defs.items():
-        if name == "Governance Core":
-            continue
+    for data in defs.values():
         data["relations"] = [
             r for r in data.get("relations", []) if r not in global_rels
         ]
@@ -487,20 +493,14 @@ def _filter_global_relations(
             ]
 
 
-def _deduplicate_relations(
-    defs: dict[str, dict], ai_data: dict | None, core_data: dict | None
-) -> None:
-    """Deduplicate relations across categories while preserving Governance Core."""
+def _deduplicate_relations(defs: dict[str, dict], ai_data: dict | None) -> None:
+    """Deduplicate relations across categories while preserving input order."""
 
     seen_rels: set[str] = set()
-    for name, data in defs.items():
-        if name == "Governance Core":
-            continue
+    for data in defs.values():
         _dedup_category(data, seen_rels)
     if ai_data:
         _dedup_category(ai_data, seen_rels)
-    if core_data:
-        _dedup_category(core_data)
 
 
 def _gov_connection_text(node_type: str) -> str:
@@ -12176,11 +12176,15 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     def _rebuild_toolboxes(self) -> None:
         defs = _toolbox_defs()
         ai_data = defs.pop("Safety & AI Lifecycle", None)
-        core_data = defs.get("Governance Core")
+        core_data = defs.pop("Governance Core", None)
+        if core_data:
+            _dedup_core_category(core_data)
         global_rels = set(getattr(self, "relation_tools", []) or [])
         if global_rels:
             _filter_global_relations(defs, ai_data, global_rels)
-        _deduplicate_relations(defs, ai_data, core_data)
+        _deduplicate_relations(defs, ai_data)
+        if core_data:
+            defs["Governance Core"] = core_data
         if hasattr(self.tools_frame, "pack_forget"):
             self.tools_frame.pack_forget()
         if getattr(self, "rel_frame", None) and hasattr(self.rel_frame, "pack_forget"):
