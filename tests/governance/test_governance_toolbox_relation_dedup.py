@@ -207,7 +207,6 @@ class TestCategoryDeduplication:
         SysMLRepository._instance = None
         repo = SysMLRepository.get_instance()
         diag = repo.create_diagram("Governance Diagram")
-
         monkeypatch.setattr(arch, "_toolbox_defs", lambda: {})
         monkeypatch.setattr(arch, "GOV_CORE_NODES", ["dummy"])
         monkeypatch.setattr(
