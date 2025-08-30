@@ -448,7 +448,6 @@ def _core_toolbox_template() -> dict[str, list[str] | dict]:
     _dedup_core_category(core)
     return core
 
-
 def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
     """Return mapping of toolbox name to node/relation lists."""
     defs: dict[str, dict[str, list[str] | dict]] = {}
