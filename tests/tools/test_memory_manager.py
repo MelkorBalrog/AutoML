@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import time
 
+import threading
+
 from tools.memory_manager import MemoryManager
 
 
@@ -32,7 +34,8 @@ class TestMemoryManager:
         manager = MemoryManager(interval=0.05, max_usage_percent=100)
         try:
             manager.lazy_load("a", lambda: object())
-            manager._active.clear()
+            with manager._lock:
+                manager._active.clear()
             manager.cleanup()
             assert manager._cache == {}
         finally:
@@ -48,10 +51,37 @@ class TestMemoryManager:
 
         monkeypatch.setattr(manager, "_memory_percent", fake_percent)
         manager.lazy_load("a", lambda: object())
-        manager._active.clear()
+        with manager._lock:
+            manager._active.clear()
         try:
             time.sleep(0.1)
             assert manager._cache == {}
             assert called["value"] is True
+        finally:
+            manager.shutdown()
+
+    def test_concurrent_access_preserves_active(self) -> None:
+        manager = MemoryManager(interval=0.05, max_usage_percent=100)
+        try:
+            manager.lazy_load("keep", lambda: object())
+            manager.lazy_load("tmp", lambda: object())
+            with manager._lock:
+                manager._active.discard("tmp")
+
+            t_cleanup = threading.Thread(target=manager.cleanup)
+
+            def mark_later() -> None:
+                time.sleep(0.01)
+                manager.mark_active("keep")
+
+            t_mark = threading.Thread(target=mark_later)
+            t_cleanup.start()
+            t_mark.start()
+            t_cleanup.join()
+            t_mark.join()
+
+            with manager._lock:
+                assert "keep" in manager._cache
+                assert "tmp" not in manager._cache
         finally:
             manager.shutdown()
