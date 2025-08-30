@@ -462,6 +462,47 @@ def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
     return defs
 
 
+def _filter_global_relations(
+    defs: dict[str, dict], ai_data: dict | None, global_rels: set[str]
+) -> None:
+    """Remove ``global_rels`` from category definitions except Governance Core."""
+
+    for name, data in defs.items():
+        if name == "Governance Core":
+            continue
+        data["relations"] = [
+            r for r in data.get("relations", []) if r not in global_rels
+        ]
+        for sub in data.get("externals", {}).values():
+            sub["relations"] = [
+                r for r in sub.get("relations", []) if r not in global_rels
+            ]
+    if ai_data:
+        ai_data["relations"] = [
+            r for r in ai_data.get("relations", []) if r not in global_rels
+        ]
+        for sub in ai_data.get("externals", {}).values():
+            sub["relations"] = [
+                r for r in sub.get("relations", []) if r not in global_rels
+            ]
+
+
+def _deduplicate_relations(
+    defs: dict[str, dict], ai_data: dict | None, core_data: dict | None
+) -> None:
+    """Deduplicate relations across categories while preserving Governance Core."""
+
+    seen_rels: set[str] = set()
+    for name, data in defs.items():
+        if name == "Governance Core":
+            continue
+        _dedup_category(data, seen_rels)
+    if ai_data:
+        _dedup_category(ai_data, seen_rels)
+    if core_data:
+        _dedup_category(core_data)
+
+
 def _gov_connection_text(node_type: str) -> str:
     """Return tooltip text listing governance connections for ``node_type``."""
     node_type = _GOV_TYPE_ALIASES.get(node_type, node_type)
@@ -12135,34 +12176,11 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     def _rebuild_toolboxes(self) -> None:
         defs = _toolbox_defs()
         ai_data = defs.pop("Safety & AI Lifecycle", None)
-        # Exclude relationships already available in the global relationships
-        # toolbox.  Without this filtering a relation like ``Flow`` added to the
-        # left-hand toolbox via ``relation_tools`` would also appear under each
-        # category that referenced it, leading to duplicate buttons when
-        # switching categories.
+        core_data = defs.get("Governance Core")
         global_rels = set(getattr(self, "relation_tools", []) or [])
         if global_rels:
-            for data in defs.values():
-                data["relations"] = [
-                    r for r in data.get("relations", []) if r not in global_rels
-                ]
-                for sub in data.get("externals", {}).values():
-                    sub["relations"] = [
-                        r for r in sub.get("relations", []) if r not in global_rels
-                    ]
-            if ai_data:
-                ai_data["relations"] = [
-                    r for r in ai_data.get("relations", []) if r not in global_rels
-                ]
-                for sub in ai_data.get("externals", {}).values():
-                    sub["relations"] = [
-                        r for r in sub.get("relations", []) if r not in global_rels
-                    ]
-        seen_rels: set[str] = set()
-        for data in defs.values():
-            _dedup_category(data, seen_rels)
-        if ai_data:
-            _dedup_category(ai_data, seen_rels)
+            _filter_global_relations(defs, ai_data, global_rels)
+        _deduplicate_relations(defs, ai_data, core_data)
         if hasattr(self.tools_frame, "pack_forget"):
             self.tools_frame.pack_forget()
         if getattr(self, "rel_frame", None) and hasattr(self.rel_frame, "pack_forget"):
