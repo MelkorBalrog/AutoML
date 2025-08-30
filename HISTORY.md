@@ -19,7 +19,11 @@
 -->
 
 # Version History
-- 0.2.210 - Monitor process memory usage, trim freed heap pages and clean
+- 0.2.211 - Defer initial toolbox switch so Governance Core related elements
+            appear immediately without tab toggling.
+- 0.2.210 - Always expose Governance Core toolbox so governance diagrams show
+            consistent elements regardless of configuration.
+          - Monitor process memory usage, trim freed heap pages and clean
             cached objects when memory exceeds configurable thresholds.
           - Deduplicate Governance Core toolbox relations across categories for
             consistent element display.
