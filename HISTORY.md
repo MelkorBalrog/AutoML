@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.224 - Deduplicate relations only within each toolbox category so
+          Governance Core no longer prunes shared relations. Rebuild
+          toolboxes without cross-category seeding and add persistence
+          tests for non-core categories.
 - 0.2.223 - Reset relation tool lists on window focus change/close and guard
           toolbox rebuilds so relation filtering runs only when diagrams
           supply explicit filters. Add regression test for sequential
