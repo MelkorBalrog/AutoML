@@ -26,18 +26,35 @@ context manager automates this pattern.
 
 from __future__ import annotations
 
+import threading
 from contextlib import contextmanager
 from typing import Any
 
 from tools.memory_manager import manager as memory_manager
+from tools.thread_manager import manager as thread_manager
 from mainappsrc import services
 
 
 class LazyServiceRegistry:
     """Provide on-demand access to application services."""
 
-    def __init__(self, app: Any) -> None:
+    def __init__(self, app: Any, interval: float = 60.0) -> None:
         self._app = app
+        self._interval = interval
+        self._stop = threading.Event()
+        self._name = f"service_registry_{id(self)}"
+        thread_manager.register(self._name, self._monitor, daemon=True)
+
+    def _monitor(self) -> None:
+        while not self._stop.is_set():
+            self._stop.wait(self._interval)
+            memory_manager.cleanup()
+
+    def shutdown(self) -> None:
+        self._stop.set()
+        thread = thread_manager.unregister(self._name)
+        if thread:
+            thread.join()
 
     def get(self, name: str) -> Any:
         """Return service *name*, creating it if necessary."""

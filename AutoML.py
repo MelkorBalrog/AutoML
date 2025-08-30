@@ -72,6 +72,7 @@ from tools.crash_report_logger import (
     start_watchdog_thread,
     stop_watchdog_thread,
 )
+from tools.thread_manager import manager as thread_manager
 from tools.diagnostics_manager import PollingDiagnosticsManager
 from tools.memory_manager import manager as memory_manager
 from tools.model_loader import start_cleanup_thread, stop_cleanup_thread
@@ -258,17 +259,22 @@ def _bootstrap() -> object:
         The main application module which provides a ``main`` entry point.
     """
 
+    import AutoML as automl
+
     global _watchdog_stop, _model_cleanup_stop, _diagnostics_manager
-    parse_args()
-    install_best()
-    _watchdog_stop = start_watchdog_thread()
+    automl.parse_args()
+    automl.install_best()
+    _watchdog_stop = automl.start_watchdog_thread()
+    automl._watchdog_stop = _watchdog_stop
     _diagnostics_manager = PollingDiagnosticsManager()
     _diagnostics_manager.start()
-    _model_cleanup_stop = start_cleanup_thread()
-    with ThreadPoolExecutor() as executor:
+    automl._diagnostics_manager = _diagnostics_manager
+    _model_cleanup_stop = automl.start_cleanup_thread()
+    automl._model_cleanup_stop = _model_cleanup_stop
+    with automl.ThreadPoolExecutor() as executor:
         futures = [
-            executor.submit(ensure_packages),
-            executor.submit(ensure_ghostscript),
+            executor.submit(automl.ensure_packages),
+            executor.submit(automl.ensure_ghostscript),
         ]
         for f in futures:
             f.result()
@@ -280,7 +286,7 @@ def _bootstrap() -> object:
     for path in (str(mainappsrc_path), str(base_path)):
         if path not in sys.path:
             sys.path.insert(0, path)
-    manager_eater.start()
+    automl.manager_eater.start()
     return importlib.import_module("mainappsrc.automl_core")
 
 
@@ -299,7 +305,9 @@ def main() -> None:
     if module is None:  # pragma: no cover - defensive
         return
 
-    module.main()
+    app_thread = thread_manager.register("main_app", module.main, daemon=False)
+    app_thread.join()
+    thread_manager.unregister("main_app")
 
     memory_manager.cleanup()
     if _diagnostics_manager:
