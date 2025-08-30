@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.220 - Rebuild Governance Core toolbox from pristine definitions after
+          global filtering and deduplication so all core relations and related
+          elements remain visible across diagram sessions.
 - 0.2.219 - Guard Governance Core from all relation filtering and dedup
            passes so its related elements and relationships are always
            visible. Add helper tests covering the exemption logic.

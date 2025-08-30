@@ -12183,14 +12183,19 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     # Dynamic toolbox construction
     # ------------------------------------------------------------------
     def _rebuild_toolboxes(self) -> None:
-        defs = _toolbox_defs()
+        defs = copy.deepcopy(_toolbox_defs())
         ai_data = defs.pop("Safety & AI Lifecycle", None)
-        core_data = defs.get("Governance Core")
-        if core_data:
-            _dedup_core_category(core_data)
+        defs.pop("Governance Core", None)
+        core_data = {
+            "nodes": [],
+            "relations": _relations_for(GOV_CORE_NODES),
+            "externals": copy.deepcopy(_external_relations_for(GOV_CORE_NODES)),
+        }
+        _dedup_core_category(core_data)
         global_rels = set(getattr(self, "relation_tools", []) or [])
         if global_rels:
             _filter_global_relations(defs, ai_data, global_rels)
+        defs = {"Governance Core": core_data, **defs}
         _deduplicate_relations(defs, ai_data)
         if hasattr(self.tools_frame, "pack_forget"):
             self.tools_frame.pack_forget()
