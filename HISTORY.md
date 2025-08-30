@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.217 - Iterate through registered Tk ``after`` callbacks and cancel
+           those whose scripts reference detached widgets.
+          - Guard ``root.deletecommand`` when the Tcl command table is
+            missing.
+          - Add grouped regression tests ensuring root-level callbacks
+            close without ``invalid command name`` logs.
 - 0.2.216 - Parse bound event command lists during widget cloning so path
            references are rewritten to their cloned widgets.
           - Add grouped tests verifying hover and click callbacks operate on
