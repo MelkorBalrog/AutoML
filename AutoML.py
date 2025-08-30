@@ -305,18 +305,19 @@ def main() -> None:
     if module is None:  # pragma: no cover - defensive
         return
 
-    app_thread = thread_manager.register("main_app", module.main, daemon=False)
-    app_thread.join()
-    thread_manager.unregister("main_app")
-
-    memory_manager.cleanup()
-    if _diagnostics_manager:
-        _diagnostics_manager.stop()
-    if _watchdog_stop:
-        stop_watchdog_thread(_watchdog_stop)
-    if _model_cleanup_stop:
-        stop_cleanup_thread(_model_cleanup_stop)
-    manager_eater.stop()
+    thread_manager.register_current("main_app")
+    try:
+        module.main()
+    finally:
+        thread_manager.unregister("main_app")
+        memory_manager.cleanup()
+        if _diagnostics_manager:
+            _diagnostics_manager.stop()
+        if _watchdog_stop:
+            stop_watchdog_thread(_watchdog_stop)
+        if _model_cleanup_stop:
+            stop_cleanup_thread(_model_cleanup_stop)
+        manager_eater.stop()
 
 if __name__ == "__main__":
     main()
