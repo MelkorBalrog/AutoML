@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.215 - Ensure hazard and threat analysis work products activate their
+           parent tool groups so lifecycle phase menus like "Qualitative
+           Analysis" enable when diagrams (e.g. HAZOP) are present.
 - 0.2.214 - Record intermediate drop positions during diagram moves so
            undo steps through each drag instead of jumping to the initial
            placement.
