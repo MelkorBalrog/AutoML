@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.215 - Replace original toplevel names in cloned widget ``bindtags``
+           with the new window's toplevel so detached buttons propagate
+           events correctly.
+          - Add grouped tests verifying ``<Enter>``, ``<Leave>`` and
+            ``<Button-1>`` events on detached buttons.
 - 0.2.214 - Record intermediate drop positions during diagram moves so
            undo steps through each drag instead of jumping to the initial
            placement.
