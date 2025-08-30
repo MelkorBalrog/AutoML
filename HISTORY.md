@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.213 - Clone toolboxes for all window subclasses during tab detachment.
+- 0.2.213 - Rewrite bound event command strings during widget cloning so
+            bindings reference cloned widgets.
+          - Add grouped hover and click tests verifying command rewrites.
+          - Clone toolboxes for all window subclasses during tab detachment.
           - Add grouped tests verifying detached architecture, STPA and GSN
             windows retain functional toolboxes.
           - Rewrite bound event command strings during widget cloning so
