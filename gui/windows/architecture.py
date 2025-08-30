@@ -446,18 +446,19 @@ def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
             "relations": _relations_for(SAFETY_AI_NODES),
             "externals": _external_relations_for(SAFETY_AI_NODES),
         }
-    if GOV_CORE_NODES:
-        # Governance core elements like Work Products and Lifecycle Phases are
-        # inserted via dedicated actions rather than direct toolbox buttons.
-        # Still derive their relationships so users can connect existing
-        # boundary elements.
-        core = {
-            "nodes": [],
-            "relations": _relations_for(GOV_CORE_NODES),
-            "externals": _external_relations_for(GOV_CORE_NODES),
-        }
-        _dedup_category(core)
-        defs["Governance Core"] = core
+    # Always expose the Governance Core toolbox so its actions and relation
+    # helpers remain available regardless of configuration. Work Products and
+    # Lifecycle Phases are added via dedicated commands rather than direct
+    # toolbox buttons, but their relationships should still be accessible for
+    # existing elements. When ``GOV_CORE_NODES`` is empty the relationship lists
+    # simply remain blank.
+    core = {
+        "nodes": [],
+        "relations": _relations_for(GOV_CORE_NODES),
+        "externals": _external_relations_for(GOV_CORE_NODES),
+    }
+    _dedup_category(core)
+    defs["Governance Core"] = core
     return defs
 
 
@@ -12297,7 +12298,12 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         current = self.toolbox_var.get()
         if current not in options:
             self.toolbox_var.set(options[0] if options else "")
-        self._switch_toolbox()
+        # Defer the initial toolbox switch until the GUI event loop runs to
+        # avoid missing related element frames on first display.
+        if hasattr(self.toolbox, "after"):
+            self.toolbox.after(0, self._switch_toolbox)
+        else:  # pragma: no cover - non-tkinter fallback
+            self._switch_toolbox()
 
     def _switch_toolbox(self) -> None:
         choice = self.toolbox_var.get()

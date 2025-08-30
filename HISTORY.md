@@ -19,9 +19,16 @@
 -->
 
 # Version History
-- 0.2.211 - Move core API into dedicated package and expose service
+- 0.2.212 - Move core API into dedicated package and expose service
             methods via DLL wrappers.
-- 0.2.210 - Monitor process memory usage, trim freed heap pages and clean
+          - Guard memory manager caches and processes with thread locks and
+            add concurrent cleanup tests to ensure active items remain
+            protected.
+- 0.2.211 - Defer initial toolbox switch so Governance Core related elements
+            appear immediately without tab toggling.
+- 0.2.210 - Always expose Governance Core toolbox so governance diagrams show
+            consistent elements regardless of configuration.
+          - Monitor process memory usage, trim freed heap pages and clean
             cached objects when memory exceeds configurable thresholds.
           - Deduplicate Governance Core toolbox relations across categories for
             consistent element display.

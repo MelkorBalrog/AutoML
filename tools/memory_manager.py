@@ -37,8 +37,6 @@ from typing import Any, Callable, Dict, Set
 
 from .thread_manager import manager as thread_manager
 
-from .thread_manager import manager as thread_manager
-
 try:  # pragma: no cover - optional dependency
     import psutil
 except Exception:  # pragma: no cover - psutil may not be installed
@@ -58,6 +56,7 @@ class MemoryManager:
         self._cache: Dict[str, Any] = {}
         self._active: Set[str] = set()
         self._procs: Dict[str, Any] = {}
+        self._lock = threading.Lock()
         self._interval = interval
         self._max_usage = max_usage_percent
         self._stop_event = threading.Event()
@@ -65,51 +64,55 @@ class MemoryManager:
 
     def lazy_load(self, key: str, loader: Callable[[], Any]) -> Any:
         """Return cached object for *key*, loading it if necessary."""
-        if key not in self._cache:
-            self._cache[key] = loader()
-        self._active.add(key)
-        return self._cache[key]
+        with self._lock:
+            if key not in self._cache:
+                self._cache[key] = loader()
+            self._active.add(key)
+            return self._cache[key]
 
     def mark_active(self, key: str) -> None:
         """Mark *key* as currently needed."""
-        self._active.add(key)
+        with self._lock:
+            self._active.add(key)
 
     def register_process(self, key: str, proc: Any) -> None:
         """Register a subprocess keyed by *key* for later cleanup."""
         if psutil is not None and not isinstance(proc, psutil.Process):
             proc = psutil.Process(proc.pid)
-        self._procs[key] = proc
-        self._active.add(key)
+        with self._lock:
+            self._procs[key] = proc
+            self._active.add(key)
 
     def cleanup(self) -> None:
         """Drop inactive cached objects and terminate unused processes."""
-        inactive = set(self._cache) - self._active
-        for key in inactive:
-            obj = self._cache.pop(key, None)
-            if obj is not None:
-                destroy = getattr(obj, "destroy", None)
-                if callable(destroy):
-                    try:
-                        destroy()
-                    except Exception:  # pragma: no cover - best effort cleanup
-                        pass
-                del obj
+        with self._lock:
+            inactive = set(self._cache) - self._active
+            for key in inactive:
+                obj = self._cache.pop(key, None)
+                if obj is not None:
+                    destroy = getattr(obj, "destroy", None)
+                    if callable(destroy):
+                        try:
+                            destroy()
+                        except Exception:  # pragma: no cover - best effort cleanup
+                            pass
+                    del obj
 
-        for key, proc in list(self._procs.items()):
-            if key not in self._active:
-                try:
-                    if psutil is not None:
-                        if proc.is_running():
+            for key, proc in list(self._procs.items()):
+                if key not in self._active:
+                    try:
+                        if psutil is not None:
+                            if proc.is_running():
+                                proc.terminate()
+                                proc.wait(timeout=1)
+                        else:
                             proc.terminate()
-                            proc.wait(timeout=1)
-                    else:
-                        proc.terminate()
-                        proc.wait(1)
-                except Exception:
-                    pass
-                finally:
-                    self._procs.pop(key, None)
-        self._active.clear()
+                            proc.wait(1)
+                    except Exception:
+                        pass
+                    finally:
+                        self._procs.pop(key, None)
+            self._active.clear()
         self._trim_memory()
 
     def _memory_percent(self) -> float:
