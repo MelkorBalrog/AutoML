@@ -19,10 +19,6 @@
 -->
 
 # Version History
-- 0.2.219 - Invoke ``_switch_toolbox`` immediately after rebuilding toolboxes
-           during toolbar cloning.
-          - Add grouped tests ensuring detached governance diagrams display
-            responsive toolboxes.
 - 0.2.218 - Clone common window toolboxes during widget cloning and activate
            them immediately.
           - Detect ``toolbox``, ``tools_frame`` and ``tool_frame`` attributes
