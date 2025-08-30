@@ -644,20 +644,26 @@ class ClosableNotebook(ttk.Notebook):
             mapping[child] = child_clone
         self._copy_widget_layout(widget, clone, mapping, layouts)
 
-        try:  # Invoke toolbox rebuilds on governance diagram clones
-            from gui.windows.architecture import GovernanceDiagramWindow
-
-            if isinstance(clone, GovernanceDiagramWindow):
-                orig_toolbox = getattr(widget, "toolbox", getattr(widget, "tools_frame", None))
-                clone._rebuild_toolboxes()
-                toolbox = getattr(clone, "toolbox", getattr(clone, "tools_frame", None))
-                if isinstance(toolbox, tk.Widget):
+        try:  # Invoke toolbox rebuilds on window clones exposing a toolbox frame
+            for attr in ("toolbox", "tools_frame"):
+                orig_tb = getattr(widget, attr, None)
+                clone_tb = getattr(clone, attr, None)
+                if not isinstance(clone_tb, tk.Widget):
+                    continue
+                rebuild = getattr(clone, "_rebuild_toolboxes", None)
+                if callable(rebuild):
                     try:
-                        toolbox.pack(side="left")
+                        rebuild()
+                        clone_tb = getattr(clone, attr, clone_tb)
                     except Exception:
                         pass
-                    if isinstance(orig_toolbox, tk.Widget):
-                        mapping[orig_toolbox] = toolbox
+                try:
+                    if not clone_tb.winfo_ismapped():
+                        clone_tb.pack(side="left")
+                except Exception:
+                    pass
+                if isinstance(orig_tb, tk.Widget):
+                    mapping[orig_tb] = clone_tb
         except Exception:
             pass
 

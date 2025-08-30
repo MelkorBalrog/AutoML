@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.213 - Clone toolboxes for all window subclasses during tab detachment.
+          - Add grouped tests verifying detached architecture, STPA and GSN
+            windows retain functional toolboxes.
 - 0.2.212 - Move core API into dedicated package and expose service
             methods via DLL wrappers.
           - Guard memory manager caches and processes with thread locks and
