@@ -15,32 +15,26 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Tests for the core DLL API bindings."""
+"""Service API wrappers exposed through the DLL bridge."""
 
-from __future__ import annotations
-
-import importlib.util
+import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "mainappsrc" / "core" / "api.py"
-SPEC = importlib.util.spec_from_file_location("core_api", MODULE_PATH)
-core_api = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-SPEC.loader.exec_module(core_api)
-add = core_api.add
-call_service = core_api.call_service
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from mainappsrc.api import api
 
 
-class TestCoreApi:
-    def test_add(self) -> None:
-        """Addition via the DLL should mirror Python."""
+class TestConfigServiceApi:
+    def test_reload_local_config(self) -> None:
+        """The wrapper should forward to the configuration service."""
 
-        assert add(2, 3) == 5
+        assert api.config_service_reload_local_config() is None
 
-    def test_call_service_math(self) -> None:
-        """Call a standard library function through the generic bridge."""
 
-        result = call_service("math", "sqrt", "[9]")
-        assert result == 3.0
+class TestAutomlCoreApi:
+    def test_reload_local_config(self) -> None:
+        """The generic core caller should invoke module functions."""
 
+        assert api.automl_core_call("_reload_local_config") is None

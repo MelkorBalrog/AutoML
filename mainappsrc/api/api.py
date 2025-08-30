@@ -21,9 +21,14 @@ from __future__ import annotations
 
 import ctypes
 import json
+import inspect
+from importlib import import_module
 from pathlib import Path
 import subprocess
 import sysconfig
+from typing import Any, Callable
+
+from mainappsrc.services import _SERVICE_ATTRS
 
 _LIB_NAME = "libcore_api.so"
 _SRC_PATH = Path(__file__).with_suffix(".c")
@@ -100,5 +105,43 @@ def call_service(module: str, function: str, args_json: str = "[]") -> object:
     return json.loads(result_json)
 
 
+def _make_wrapper(module_name: str, func_path: str) -> Callable[..., Any]:
+    def _wrapper(*args: Any, **kwargs: Any) -> Any:
+        payload: Any
+        if kwargs:
+            payload = {"args": args, **kwargs} if args else kwargs
+        else:
+            payload = list(args)
+        return call_service(module_name, func_path, json.dumps(payload))
+
+    return _wrapper
+
+
 __all__ = ["add", "call_service"]
 
+for attr, (module_name, attr_name) in _SERVICE_ATTRS.items():
+    module = import_module(module_name)
+    target = getattr(module, attr_name)
+    if inspect.isclass(target):
+        members = inspect.getmembers(target, inspect.isfunction)
+    else:
+        members = inspect.getmembers(target, predicate=callable)
+    for name, _ in members:
+        if name.startswith("_"):
+            continue
+        wrapper_name = f"{attr_name}_{name}"
+        globals()[wrapper_name] = _make_wrapper(module_name, f"{attr_name}.{name}")
+        __all__.append(wrapper_name)
+
+
+def automl_core_call(function: str, *args: Any, **kwargs: Any) -> Any:
+    """Execute a function from :mod:`automl_core` via the DLL."""
+    payload: Any
+    if kwargs:
+        payload = {"args": args, **kwargs} if args else kwargs
+    else:
+        payload = list(args)
+    return call_service("mainappsrc.core.automl_core", function, json.dumps(payload))
+
+
+__all__.append("automl_core_call")

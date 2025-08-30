@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.211 - Move core API into dedicated package and expose service
+            methods via DLL wrappers.
 - 0.2.210 - Monitor process memory usage, trim freed heap pages and clean
             cached objects when memory exceeds configurable thresholds.
           - Deduplicate Governance Core toolbox relations across categories for
