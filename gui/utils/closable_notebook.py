@@ -1469,22 +1469,17 @@ class ClosableNotebook(ttk.Notebook):
                     rebuild()
                 except Exception:
                     pass
-        rebuild_toolboxes = getattr(new_widget, "_rebuild_toolboxes", None)
-        if callable(rebuild_toolboxes):
+        for name in ("_rebuild_toolboxes", "_activate_parent_phase"):
+            func = getattr(new_widget, name, None)
+            if callable(func):
+                try:
+                    func()
+                except Exception:
+                    pass
+        switch = getattr(new_widget, "_switch_toolbox", None)
+        if callable(switch):
             try:
-                rebuild_toolboxes()
-            except Exception:
-                pass
-        switch_toolbox = getattr(new_widget, "_switch_toolbox", None)
-        if callable(switch_toolbox):
-            try:
-                switch_toolbox()
-            except Exception:
-                pass
-        activate_parent = getattr(new_widget, "_activate_parent_phase", None)
-        if callable(activate_parent):
-            try:
-                activate_parent()
+                switch()
             except Exception:
                 pass
 
