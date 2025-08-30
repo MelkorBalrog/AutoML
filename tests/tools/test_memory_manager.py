@@ -41,6 +41,20 @@ class TestMemoryManager:
         finally:
             manager.shutdown()
 
+    def test_discard_prefix_removes_keys(self) -> None:
+        manager = MemoryManager(interval=0.05, max_usage_percent=100)
+        try:
+            manager.lazy_load("d1:toolbox:core", lambda: object())
+            manager.lazy_load("d1:toolbox:extra", lambda: object())
+            manager.lazy_load("d2:toolbox:core", lambda: object())
+            manager.discard_prefix("d1:toolbox:")
+            with manager._lock:
+                assert "d1:toolbox:core" not in manager._cache
+                assert "d1:toolbox:extra" not in manager._cache
+                assert "d2:toolbox:core" in manager._cache
+        finally:
+            manager.shutdown()
+
     def test_monitor_triggers_on_threshold(self, monkeypatch) -> None:
         manager = MemoryManager(interval=0.05, max_usage_percent=50)
         called = {"value": False}

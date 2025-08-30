@@ -83,6 +83,37 @@ class MemoryManager:
             self._procs[key] = proc
             self._active.add(key)
 
+    def discard_prefix(self, prefix: str) -> None:
+        """Remove cached entries and processes starting with *prefix*."""
+        with self._lock:
+            keys = [k for k in self._cache if k.startswith(prefix)]
+            for key in keys:
+                obj = self._cache.pop(key, None)
+                if obj is not None:
+                    destroy = getattr(obj, "destroy", None)
+                    if callable(destroy):
+                        try:
+                            destroy()
+                        except Exception:
+                            pass
+                    del obj
+            proc_keys = [k for k in self._procs if k.startswith(prefix)]
+            for key in proc_keys:
+                proc = self._procs.pop(key, None)
+                if proc is not None:
+                    try:
+                        if psutil is not None:
+                            if proc.is_running():
+                                proc.terminate()
+                                proc.wait(timeout=1)
+                        else:
+                            proc.terminate()
+                            proc.wait(1)
+                    except Exception:
+                        pass
+            self._active = {k for k in self._active if not k.startswith(prefix)}
+        self._trim_memory()
+
     def cleanup(self) -> None:
         """Drop inactive cached objects and terminate unused processes."""
         with self._lock:
