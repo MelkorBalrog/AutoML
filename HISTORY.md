@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.221 - Restore Governance Core toolboxes from pristine templates after
+          every rebuild so other diagram sessions cannot strip relations or
+          related elements.
 - 0.2.220 - Rebuild Governance Core toolbox from pristine definitions after
           global filtering and deduplication so all core relations and related
           elements remain visible across diagram sessions.

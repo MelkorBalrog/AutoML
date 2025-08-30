@@ -437,6 +437,17 @@ def _dedup_core_category(data: dict) -> None:
         sub["relations"] = list(dict.fromkeys(sub.get("relations", []) or []))
 
 
+def _core_toolbox_template() -> dict[str, list[str] | dict]:
+    """Return a pristine Governance Core toolbox definition."""
+
+    core = {
+        "nodes": [],
+        "relations": _relations_for(GOV_CORE_NODES),
+        "externals": copy.deepcopy(_external_relations_for(GOV_CORE_NODES)),
+    }
+    _dedup_core_category(core)
+    return core
+
 def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
     """Return mapping of toolbox name to node/relation lists."""
     defs: dict[str, dict[str, list[str] | dict]] = {}
@@ -460,13 +471,7 @@ def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
     # toolbox buttons, but their relationships should still be accessible for
     # existing elements. When ``GOV_CORE_NODES`` is empty the relationship lists
     # simply remain blank.
-    core = {
-        "nodes": [],
-        "relations": _relations_for(GOV_CORE_NODES),
-        "externals": copy.deepcopy(_external_relations_for(GOV_CORE_NODES)),
-    }
-    _dedup_core_category(core)
-    defs["Governance Core"] = core
+    defs["Governance Core"] = _core_toolbox_template()
     return defs
 
 
@@ -12185,18 +12190,14 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     def _rebuild_toolboxes(self) -> None:
         defs = copy.deepcopy(_toolbox_defs())
         ai_data = defs.pop("Safety & AI Lifecycle", None)
+        core_data = _core_toolbox_template()
         defs.pop("Governance Core", None)
-        core_data = {
-            "nodes": [],
-            "relations": _relations_for(GOV_CORE_NODES),
-            "externals": copy.deepcopy(_external_relations_for(GOV_CORE_NODES)),
-        }
-        _dedup_core_category(core_data)
         global_rels = set(getattr(self, "relation_tools", []) or [])
         if global_rels:
             _filter_global_relations(defs, ai_data, global_rels)
         defs = {"Governance Core": core_data, **defs}
         _deduplicate_relations(defs, ai_data)
+        defs["Governance Core"] = _core_toolbox_template()
         if hasattr(self.tools_frame, "pack_forget"):
             self.tools_frame.pack_forget()
         if getattr(self, "rel_frame", None) and hasattr(self.rel_frame, "pack_forget"):

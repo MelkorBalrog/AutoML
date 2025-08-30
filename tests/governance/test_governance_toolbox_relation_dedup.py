@@ -416,6 +416,30 @@ class TestGovernanceCorePersistence:
         core = second._frame_loaders["Governance Core"].__defaults__[0]
         assert core["relations"] == ["Link", "Trace"]
 
+    def test_core_survives_non_governance_window(self, monkeypatch):
+        SysMLRepository._instance = None
+        repo = SysMLRepository.get_instance()
+        gov = repo.create_diagram("Governance Diagram")
+        other = repo.create_diagram("Block Definition Diagram")
+
+        monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", self._init(repo))
+        monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
+        monkeypatch.setattr(
+            arch.GovernanceDiagramWindow, "refresh_from_repository", lambda self: None
+        )
+        monkeypatch.setattr(arch.ttk, "Combobox", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Frame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "LabelFrame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Button", DummyWidget)
+
+        arch.SysMLDiagramWindow(None, None, None, diagram_id=other.diag_id)
+
+        win = GovernanceDiagramWindow(None, None, diagram_id=gov.diag_id)
+        core = win._frame_loaders["Governance Core"].__defaults__[0]
+        template = arch._core_toolbox_template()
+        assert core["relations"] == template["relations"]
+        assert core["externals"] == template["externals"]
+
 
 class TestGovernanceCoreHelperExemptions:
     """Verify helper functions never strip Governance Core relations."""
