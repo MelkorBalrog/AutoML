@@ -312,5 +312,85 @@ class TestCrossCategoryDeduplication:
         monkeypatch.setattr(arch.ttk, "Button", DummyWidget)
 
         GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
-        assert defs_data["Entities"]["relations"] == ["Link"]
+        assert defs_data["Entities"]["relations"] == []
         assert defs_data["Governance Core"]["relations"] == ["Link", "Trace"]
+
+
+class TestGovernanceCorePersistence:
+    def _init(self, repo):
+        def fake_sysml_init(
+            self,
+            master,
+            title,
+            tools,
+            diagram_id=None,
+            app=None,
+            history=None,
+            relation_tools=None,
+            tool_groups=None,
+        ):
+            self.app = app
+            self.repo = repo
+            self.diagram_id = diagram_id
+            self.toolbox = DummyWidget()
+            self.tools_frame = DummyWidget()
+            self.rel_frame = DummyWidget()
+            self.toolbox_selector = DummyWidget()
+            self.toolbox_var = types.SimpleNamespace(get=lambda: "", set=lambda v: None)
+            self._toolbox_frames = {}
+            self.canvas = types.SimpleNamespace(
+                master=DummyWidget(), configure=lambda *a, **k: None
+            )
+
+        return fake_sysml_init
+
+    def test_governance_core_consistent_across_windows(self, monkeypatch):
+        SysMLRepository._instance = None
+        repo = SysMLRepository.get_instance()
+        diag = repo.create_diagram("Governance Diagram")
+
+        monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", self._init(repo))
+        monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
+        monkeypatch.setattr(
+            arch.GovernanceDiagramWindow, "refresh_from_repository", lambda self: None
+        )
+        monkeypatch.setattr(arch.ttk, "Combobox", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Frame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "LabelFrame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Button", DummyWidget)
+
+        baseline = arch._toolbox_defs()["Governance Core"]["relations"].copy()
+        GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
+        after_first = arch._toolbox_defs()["Governance Core"]["relations"].copy()
+        GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
+        after_second = arch._toolbox_defs()["Governance Core"]["relations"].copy()
+
+        assert baseline == after_first == after_second
+
+
+class TestGovernanceCoreHelperExemptions:
+    """Verify helper functions never strip Governance Core relations."""
+
+    def test_filter_global_relations_skips_core(self):
+        defs = {
+            "Governance Core": {
+                "nodes": [],
+                "relations": ["Trace"],
+                "externals": {},
+            }
+        }
+        arch._filter_global_relations(defs, None, {"Trace"})
+        assert defs["Governance Core"]["relations"] == ["Trace"]
+
+    def test_deduplicate_relations_skips_core(self):
+        defs = {
+            "Other": {"nodes": [], "relations": ["Link"], "externals": {}},
+            "Governance Core": {
+                "nodes": [],
+                "relations": ["Link", "Trace"],
+                "externals": {},
+            },
+        }
+        arch._deduplicate_relations(defs, None)
+        assert defs["Governance Core"]["relations"] == ["Link", "Trace"]
+        assert defs["Other"]["relations"] == []

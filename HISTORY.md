@@ -19,6 +19,11 @@
 -->
 
 # Version History
+- 0.2.219 - Guard Governance Core from all relation filtering and dedup
+           passes so its related elements and relationships are always
+           visible. Add helper tests covering the exemption logic.
+- 0.2.218 - Deep-copy toolbox definitions so Governance Core relations remain
+           intact across multiple diagram windows. Add regression test.
 - 0.2.217 - Maintain Governance Core relations and related elements when
            global relation tools are active and deduplicate others.
 - 0.2.216 - Preserve complete Governance Core relationship listings by
