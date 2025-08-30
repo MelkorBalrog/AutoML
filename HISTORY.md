@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.213 - Replace original toplevel paths in cloned widget ``bindtags`` so
+            detached tabs propagate events to their new windows.
+          - Add regression tests verifying hover and click events on detached
+            tab widgets.
 - 0.2.212 - Move core API into dedicated package and expose service
             methods via DLL wrappers.
           - Guard memory manager caches and processes with thread locks and
