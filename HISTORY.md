@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.212 - Guard memory manager caches and processes with thread locks and
+            add concurrent cleanup tests to ensure active items remain
+            protected.
 - 0.2.211 - Defer initial toolbox switch so Governance Core related elements
             appear immediately without tab toggling.
 - 0.2.210 - Always expose Governance Core toolbox so governance diagrams show
