@@ -662,9 +662,18 @@ class ClosableNotebook(ttk.Notebook):
         self._copy_widget_layout(widget, clone, mapping, layouts)
 
         try:  # Invoke toolbox rebuilds on window clones exposing a toolbox frame
-            for attr in ("toolbox", "tools_frame"):
+            for attr in ("toolbox", "tools_frame", "tool_frame"):
                 orig_tb = getattr(widget, attr, None)
                 clone_tb = getattr(clone, attr, None)
+                if not isinstance(clone_tb, tk.Widget) and isinstance(
+                    orig_tb, tk.Widget
+                ):
+                    clone_tb = mapping.get(orig_tb)
+                    if clone_tb is not None:
+                        try:
+                            setattr(clone, attr, clone_tb)
+                        except Exception:
+                            pass
                 if not isinstance(clone_tb, tk.Widget):
                     continue
                 rebuild = getattr(clone, "_rebuild_toolboxes", None)
@@ -683,6 +692,13 @@ class ClosableNotebook(ttk.Notebook):
                     mapping[orig_tb] = clone_tb
         except Exception:
             pass
+
+        switch = getattr(clone, "_switch_toolbox", None)
+        if callable(switch):
+            try:
+                switch()
+            except Exception:
+                pass
 
         return clone, mapping, layouts
 

@@ -19,6 +19,14 @@
 -->
 
 # Version History
+- 0.2.218 - Clone common window toolboxes during widget cloning and activate
+           them immediately.
+          - Detect ``toolbox``, ``tools_frame`` and ``tool_frame`` attributes
+            on window subclasses and pack cloned frames into floating windows.
+          - Invoke ``_switch_toolbox`` after cloning so detached windows expose
+            the active toolbox.
+          - Add grouped tests ensuring governance, architecture, STPA and GSN
+            diagrams show responsive toolboxes in detached windows.
 - 0.2.217 - Iterate through registered Tk ``after`` callbacks and cancel
            those whose scripts reference detached widgets.
           - Guard ``root.deletecommand`` when the Tcl command table is
