@@ -19,7 +19,10 @@
 -->
 
 # Version History
-- 0.2.213 - Rewrite bound event command strings during widget cloning so
+- 0.2.213 - Call `_switch_toolbox` after rebuilding toolboxes so detached
+            governance diagrams display the selected toolbox.
+          - Add governance toolbox visibility tests for detached tabs.
+          - Rewrite bound event command strings during widget cloning so
             bindings reference cloned widgets.
           - Add grouped hover and click tests verifying command rewrites.
           - Clone toolboxes for all window subclasses during tab detachment.
