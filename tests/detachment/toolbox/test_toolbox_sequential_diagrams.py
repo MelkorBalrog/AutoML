@@ -24,6 +24,30 @@ import types
 from dataclasses import dataclass
 
 from tools.memory_manager import manager as memory_manager
+import copy
+import gui.windows.architecture as arch
+from gui.windows.architecture import GovernanceDiagramWindow
+from mainappsrc.models.sysml.sysml_repository import SysMLRepository
+
+
+class DummyWidget:
+    def __init__(self, *a, **k):
+        pass
+
+    def pack(self, *a, **k):
+        pass
+
+    def pack_forget(self, *a, **k):
+        pass
+
+    def bind(self, *a, **k):
+        pass
+
+    def configure(self, *a, **k):
+        pass
+
+    def destroy(self, *a, **k):
+        pass
 
 
 @dataclass
@@ -106,3 +130,68 @@ class TestSequentialToolboxPersistence:
         assert frame1.relations == ["R1"]
         assert frame2.relations == ["R2"]
         win2.on_close()
+
+
+class TestRelationFilterIsolation:
+    """Grouped tests verifying relation tools reset across diagram windows."""
+
+    def _init(self, repo):
+        def fake_sysml_init(
+            self,
+            master,
+            title,
+            tools,
+            diagram_id=None,
+            app=None,
+            history=None,
+            relation_tools=None,
+            tool_groups=None,
+        ):
+            self.app = app
+            self.repo = repo
+            self.diagram_id = diagram_id
+            self.toolbox = DummyWidget()
+            self.tools_frame = DummyWidget()
+            self.rel_frame = DummyWidget()
+            self.toolbox_selector = DummyWidget()
+            self.toolbox_var = types.SimpleNamespace(get=lambda: "")
+            self.relation_tools = relation_tools or []
+            self._has_relation_filters = False
+            self._toolbox_frames = {}
+            self.canvas = types.SimpleNamespace(
+                master=DummyWidget(), configure=lambda *a, **k: None
+            )
+            self._sync_to_repository = lambda: None
+            self.destroy = lambda: None
+
+        return fake_sysml_init
+
+    def test_second_diagram_without_filters_shows_all_relations(self, monkeypatch):
+        SysMLRepository._instance = None
+        repo = SysMLRepository.get_instance()
+        d1 = repo.create_diagram("Governance Diagram")
+        d2 = repo.create_diagram("Governance Diagram")
+
+        defs = {
+            "Safety & AI Lifecycle": {"nodes": [], "relations": ["Trace", "Flow"], "externals": {}}
+        }
+        monkeypatch.setattr(arch, "_toolbox_defs", lambda: copy.deepcopy(defs))
+        monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", self._init(repo))
+        monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
+        monkeypatch.setattr(GovernanceDiagramWindow, "refresh_from_repository", lambda self: None)
+        monkeypatch.setattr(arch.ttk, "Combobox", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Frame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "LabelFrame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Button", DummyWidget)
+
+        first = GovernanceDiagramWindow(None, None, diagram_id=d1.diag_id)
+        first.relation_tools = ["Trace"]
+        first._has_relation_filters = True
+        first._rebuild_toolboxes()
+
+        second = GovernanceDiagramWindow(None, None, diagram_id=d2.diag_id)
+        second.relation_tools = []
+        second._has_relation_filters = False
+        second._rebuild_toolboxes()
+        rels = second._frame_loaders["Safety & AI Lifecycle"].__defaults__[0]["relations"]
+        assert rels == ["Trace", "Flow"]
