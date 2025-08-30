@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.227 - Retain per-category relations during deduplication and log any
+          duplicates across categories. Extend toolbox persistence tests to
+          cover additional non-governance categories.
 - 0.2.225 - Scope toolbox caches to diagram sessions and clean obsolete
             frames when windows close. Add regression tests ensuring related
             elements and relationships persist across sequential diagrams.
