@@ -70,10 +70,13 @@ class TestGlobalRelationFiltering:
             self.toolbox_selector = DummyWidget()
             self.toolbox_var = types.SimpleNamespace(get=lambda: "", set=lambda v: None)
             self.relation_tools = relation_tools or []
+            self._has_relation_filters = bool(relation_tools)
             self._toolbox_frames = {}
             self.canvas = types.SimpleNamespace(
                 master=DummyWidget(), configure=lambda *a, **k: None
             )
+            self._sync_to_repository = lambda: None
+            self.destroy = lambda: None
 
         return fake_sysml_init
 
@@ -101,6 +104,7 @@ class TestGlobalRelationFiltering:
 
         win = GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
         win.relation_tools = ["Flow"]
+        win._has_relation_filters = True
         win._rebuild_toolboxes()
         ai_copy = win._frame_loaders["Safety & AI Lifecycle"].__defaults__[0]
         assert ai_copy["relations"] == ["Assess"]
@@ -134,12 +138,54 @@ class TestGlobalRelationFiltering:
 
         win = GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
         win.relation_tools = ["Trace"]
+        win._has_relation_filters = True
         win._rebuild_toolboxes()
         entities = win._frame_loaders["Entities"].__defaults__[0]
         core = win._frame_loaders["Governance Core"].__defaults__[0]
         assert entities["relations"] == []
         assert core["relations"] == ["Trace"]
         assert core["externals"]["Entities"]["relations"] == ["Trace"]
+
+    def test_relation_tools_reset_between_windows(self, monkeypatch):
+        SysMLRepository._instance = None
+        repo = SysMLRepository.get_instance()
+        diag1 = repo.create_diagram("Governance Diagram")
+        diag2 = repo.create_diagram("Governance Diagram")
+
+        calls = []
+
+        def record_filter(defs, ai_data, rels):
+            calls.append(set(rels))
+
+        monkeypatch.setattr(arch, "_filter_global_relations", record_filter)
+        defs_data = {
+            "Safety & AI Lifecycle": {"nodes": [], "relations": ["Trace", "Flow"], "externals": {}}
+        }
+        monkeypatch.setattr(arch, "_toolbox_defs", lambda: copy.deepcopy(defs_data))
+
+        monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", self._init(repo))
+        monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
+        monkeypatch.setattr(
+            arch.GovernanceDiagramWindow, "refresh_from_repository", lambda self: None
+        )
+        monkeypatch.setattr(arch.ttk, "Combobox", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Frame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "LabelFrame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Button", DummyWidget)
+
+        first = GovernanceDiagramWindow(None, None, diagram_id=diag1.diag_id)
+        first.relation_tools = ["Trace"]
+        first._has_relation_filters = True
+        first._rebuild_toolboxes()
+        first.on_close()
+
+        second = GovernanceDiagramWindow(None, None, diagram_id=diag2.diag_id)
+        second.relation_tools = ["Flow"]
+        second._has_relation_filters = True
+        second._rebuild_toolboxes()
+
+        assert calls[-1] == {"Flow"}
+
 
 class TestCategoryDeduplication:
     def _init(self, repo):
@@ -237,7 +283,7 @@ class TestCategoryDeduplication:
         assert core["externals"]["Entities"]["relations"] == ["Propagate"]
 
 
-class TestCrossCategoryDeduplication:
+class TestCrossCategoryRetention:
     def _init(self, repo):
         def fake_sysml_init(
             self,
@@ -264,7 +310,7 @@ class TestCrossCategoryDeduplication:
 
         return fake_sysml_init
 
-    def test_relations_deduplicated_across_categories(self, monkeypatch):
+    def test_relations_preserved_across_categories(self, monkeypatch):
         SysMLRepository._instance = None
         repo = SysMLRepository.get_instance()
         diag = repo.create_diagram("Governance Diagram")
@@ -292,9 +338,9 @@ class TestCrossCategoryDeduplication:
         first = win._frame_loaders["First"].__defaults__[0]
         second = win._frame_loaders["Second"].__defaults__[0]
         assert first["relations"] == ["Link"]
-        assert second["relations"] == ["Trace"]
+        assert second["relations"] == ["Link", "Trace"]
 
-    def test_governance_core_dedup_across_categories(self, monkeypatch):
+    def test_governance_core_does_not_prune_categories(self, monkeypatch):
         SysMLRepository._instance = None
         repo = SysMLRepository.get_instance()
         diag = repo.create_diagram("Governance Diagram")
@@ -320,7 +366,7 @@ class TestCrossCategoryDeduplication:
         win = GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
         entities = win._frame_loaders["Entities"].__defaults__[0]
         core = win._frame_loaders["Governance Core"].__defaults__[0]
-        assert entities["relations"] == []
+        assert entities["relations"] == ["Link"]
         assert core["relations"] == ["Link", "Trace"]
 
 
@@ -406,6 +452,7 @@ class TestGovernanceCorePersistence:
 
         first = GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
         first.relation_tools = ["Trace"]
+        first._has_relation_filters = True
         first._rebuild_toolboxes()
 
         second = GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
@@ -439,6 +486,103 @@ class TestGovernanceCorePersistence:
         assert core["relations"] == template["relations"]
         assert core["externals"] == template["externals"]
 
+
+class TestNonCoreCategoryPersistence:
+    def _init(self, repo):
+        def fake_sysml_init(
+            self,
+            master,
+            title,
+            tools,
+            diagram_id=None,
+            app=None,
+            history=None,
+            tool_groups=None,
+        ):
+            self.app = app
+            self.repo = repo
+            self.diagram_id = diagram_id
+            self.toolbox = DummyWidget()
+            self.tools_frame = DummyWidget()
+            self.rel_frame = DummyWidget()
+            self.toolbox_selector = DummyWidget()
+            self.toolbox_var = types.SimpleNamespace(get=lambda: "", set=lambda v: None)
+            self._toolbox_frames = {}
+            self.canvas = types.SimpleNamespace(
+                master=DummyWidget(), configure=lambda *a, **k: None
+            )
+
+        return fake_sysml_init
+
+    def test_entities_relations_persist_across_rebuilds(self, monkeypatch):
+        SysMLRepository._instance = None
+        repo = SysMLRepository.get_instance()
+        diag = repo.create_diagram("Governance Diagram")
+
+        defs_template = {
+            "Entities": {"nodes": [], "relations": ["Link"], "externals": {}}
+        }
+
+        monkeypatch.setattr(arch, "_toolbox_defs", lambda: copy.deepcopy(defs_template))
+        monkeypatch.setattr(arch, "GOV_CORE_NODES", ["dummy"])
+        monkeypatch.setattr(arch, "_relations_for", lambda nodes: ["Link", "Trace"])
+        monkeypatch.setattr(arch, "_external_relations_for", lambda nodes: {})
+
+        monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", self._init(repo))
+        monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
+        monkeypatch.setattr(
+            arch.GovernanceDiagramWindow, "refresh_from_repository", lambda self: None
+        )
+        monkeypatch.setattr(arch.ttk, "Combobox", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Frame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "LabelFrame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Button", DummyWidget)
+
+        win = GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
+        entities1 = win._frame_loaders["Entities"].__defaults__[0]
+        assert entities1["relations"] == ["Link"]
+        win._rebuild_toolboxes()
+        entities2 = win._frame_loaders["Entities"].__defaults__[0]
+        assert entities2["relations"] == ["Link"]
+        win._rebuild_toolboxes()
+        entities3 = win._frame_loaders["Entities"].__defaults__[0]
+        assert entities3["relations"] == ["Link"]
+
+    def test_artifacts_relations_persist_across_rebuilds(self, monkeypatch):
+        SysMLRepository._instance = None
+        repo = SysMLRepository.get_instance()
+        diag = repo.create_diagram("Governance Diagram")
+
+        defs_template = {
+            "Artifacts": {"nodes": [], "relations": ["Create"], "externals": {}}
+        }
+
+        monkeypatch.setattr(arch, "_toolbox_defs", lambda: copy.deepcopy(defs_template))
+        monkeypatch.setattr(arch, "GOV_CORE_NODES", ["dummy"])
+        monkeypatch.setattr(arch, "_relations_for", lambda nodes: ["Create", "Trace"])
+        monkeypatch.setattr(arch, "_external_relations_for", lambda nodes: {})
+
+        monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", self._init(repo))
+        monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
+        monkeypatch.setattr(
+            arch.GovernanceDiagramWindow, "refresh_from_repository", lambda self: None
+        )
+        monkeypatch.setattr(arch.ttk, "Combobox", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Frame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "LabelFrame", DummyWidget)
+        monkeypatch.setattr(arch.ttk, "Button", DummyWidget)
+
+        win = GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
+        artifacts1 = win._frame_loaders["Artifacts"].__defaults__[0]
+        assert artifacts1["relations"] == ["Create"]
+        win._rebuild_toolboxes()
+        artifacts2 = win._frame_loaders["Artifacts"].__defaults__[0]
+        assert artifacts2["relations"] == ["Create"]
+        win._rebuild_toolboxes()
+        artifacts3 = win._frame_loaders["Artifacts"].__defaults__[0]
+        assert artifacts3["relations"] == ["Create"]
+
+
 class TestGovernanceCoreHelperExemptions:
     """Verify helper functions never strip Governance Core relations."""
 
@@ -453,7 +597,7 @@ class TestGovernanceCoreHelperExemptions:
         arch._filter_global_relations(defs, None, {"Trace"})
         assert defs["Governance Core"]["relations"] == ["Trace"]
 
-    def test_deduplicate_relations_skips_core(self):
+    def test_deduplicate_relations_preserves_categories(self):
         defs = {
             "Other": {"nodes": [], "relations": ["Link"], "externals": {}},
             "Governance Core": {
@@ -462,6 +606,7 @@ class TestGovernanceCoreHelperExemptions:
                 "externals": {},
             },
         }
-        arch._deduplicate_relations(defs, None)
+        dup_map = arch._deduplicate_relations(defs, None)
         assert defs["Governance Core"]["relations"] == ["Link", "Trace"]
-        assert defs["Other"]["relations"] == []
+        assert defs["Other"]["relations"] == ["Link"]
+        assert dup_map == {"Governance Core": {"Link"}}
