@@ -19,8 +19,29 @@
 -->
 
 # Version History
-- 0.2.222 - Drop global caching of toolbox frames to prevent governance
+- 0.2.228 - Drop global caching of toolbox frames to prevent governance
           toolboxes from disappearing across open diagrams.
+- 0.2.227 - Retain per-category relations during deduplication and log any
+          duplicates across categories. Extend toolbox persistence tests to
+          cover additional non-governance categories.
+- 0.2.225 - Scope toolbox caches to diagram sessions and clean obsolete
+            frames when windows close. Add regression tests ensuring related
+            elements and relationships persist across sequential diagrams.
+- 0.2.226 - Recompute relation tools when diagrams gain focus or rebuild so
+            stale global filters do not leak across windows. Add grouped test
+            confirming fresh relations appear in new diagrams without active
+            filters.
+- 0.2.224 - Deduplicate relations only within each toolbox category so
+          Governance Core no longer prunes shared relations. Rebuild
+          toolboxes without cross-category seeding and add persistence
+          tests for non-core categories.
+- 0.2.223 - Reset relation tool lists on window focus change/close and guard
+          toolbox rebuilds so relation filtering runs only when diagrams
+          supply explicit filters. Add regression test for sequential
+          windows.
+- 0.2.222 - Scope toolbox caches to individual diagrams and clear them on
+          rebuild or window close. Add prefix-based cache eviction helper and
+          tests.
 - 0.2.221 - Restore Governance Core toolboxes from pristine templates after
           every rebuild so other diagram sessions cannot strip relations or
           related elements.

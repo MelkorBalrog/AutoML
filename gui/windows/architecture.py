@@ -28,6 +28,7 @@ except Exception:  # pragma: no cover - fallback for minimal installs
     ToolTip = None  # type: ignore
 import math
 import re
+import logging
 import types
 import weakref
 import copy
@@ -447,7 +448,6 @@ def _core_toolbox_template() -> dict[str, list[str] | dict]:
     _dedup_core_category(core)
     return core
 
-
 def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
     """Return mapping of toolbox name to node/relation lists."""
     defs: dict[str, dict[str, list[str] | dict]] = {}
@@ -515,7 +515,6 @@ def _deduplicate_relations(defs: dict[str, dict], ai_data: dict | None) -> None:
         _dedup_category(data, seen_rels)
     if ai_data:
         _dedup_category(ai_data, seen_rels)
-
 
 def _gov_connection_text(node_type: str) -> str:
     """Return tooltip text listing governance connections for ``node_type``."""
@@ -3707,6 +3706,12 @@ class SysMLDiagramWindow(tk.Frame):
         else:
             diagram = self.repo.create_diagram(title, name=title, diag_id=diagram_id)
         self.diagram_id = diagram.diag_id
+
+        relation_tools = list(relation_tools or [])
+        self._base_relation_tools = list(relation_tools)
+        self.relation_tools = list(relation_tools)
+        self._has_relation_filters = False
+
         if isinstance(self.master, tk.Toplevel):
             self.master.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -3939,6 +3944,8 @@ class SysMLDiagramWindow(tk.Frame):
             self.pack(fill=tk.BOTH, expand=True)
 
     def _on_focus_in(self, event=None):
+        if not getattr(self, "_has_relation_filters", False):
+            self._reset_relation_tools()
         if self.app:
             self.app.active_arch_window = self
         self._sync_to_repository()
@@ -3946,6 +3953,11 @@ class SysMLDiagramWindow(tk.Frame):
 
     def _on_focus_out(self, event=None):
         self._sync_to_repository()
+        self._reset_relation_tools()
+
+    def _reset_relation_tools(self) -> None:
+        self.relation_tools = list(getattr(self, "_base_relation_tools", []))
+        self._has_relation_filters = False
 
     def _fit_toolbox(self) -> None:
         """Resize the toolbox to the smallest width that shows all button text."""
@@ -10224,7 +10236,12 @@ class SysMLDiagramWindow(tk.Frame):
         self.update_property_view()
 
     def on_close(self):
+        diag_id = getattr(self, "diagram_id", "0")
+        memory_manager.discard_prefix(f"{diag_id}:{id(self)}:toolbox:")
+        memory_manager.cleanup()
+        ARCH_WINDOWS.discard(getattr(self, "_arch_ref", None))
         self._sync_to_repository()
+        self._reset_relation_tools()
         self.destroy()
 
 
@@ -12145,7 +12162,8 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             )
 
         self._rebuild_toolboxes()
-        ARCH_WINDOWS.add(weakref.ref(self))
+        self._arch_ref = weakref.ref(self)
+        ARCH_WINDOWS.add(self._arch_ref)
 
         canvas_frame = self.canvas.master
         canvas_frame.pack_forget()

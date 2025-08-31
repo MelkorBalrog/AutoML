@@ -141,7 +141,6 @@ class TestGlobalRelationFiltering:
         assert core["relations"] == ["Trace"]
         assert core["externals"]["Entities"]["relations"] == ["Trace"]
 
-
 class TestCategoryDeduplication:
     def _init(self, repo):
         def fake_sysml_init(
@@ -207,7 +206,6 @@ class TestCategoryDeduplication:
         SysMLRepository._instance = None
         repo = SysMLRepository.get_instance()
         diag = repo.create_diagram("Governance Diagram")
-
         monkeypatch.setattr(arch, "_toolbox_defs", lambda: {})
         monkeypatch.setattr(arch, "GOV_CORE_NODES", ["dummy"])
         monkeypatch.setattr(
@@ -440,7 +438,6 @@ class TestGovernanceCorePersistence:
         template = arch._core_toolbox_template()
         assert core["relations"] == template["relations"]
         assert core["externals"] == template["externals"]
-
 
 class TestGovernanceCoreHelperExemptions:
     """Verify helper functions never strip Governance Core relations."""
