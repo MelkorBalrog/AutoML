@@ -28,7 +28,6 @@ except Exception:  # pragma: no cover - fallback for minimal installs
     ToolTip = None  # type: ignore
 import math
 import re
-import logging
 import types
 import weakref
 import copy
@@ -500,45 +499,17 @@ def _filter_global_relations(
                 r for r in sub.get("relations", []) if r not in global_rels
             ]
 
-def _deduplicate_relations(defs: dict[str, dict], ai_data: dict | None) -> dict[str, set[str]]:
-    """Deduplicate relations within each category while preserving order.
 
-    Returns mapping of category names to relations that appear in multiple
-    categories.  Duplicates are retained in all categories and merely logged
-    for diagnostic purposes.
-    """
-
-    duplicates: dict[str, set[str]] = {}
-    seen: set[str] = set()
-
-    def _collect(data: dict) -> list[str]:
-        rels = list(data.get("relations", []) or [])
-        for sub in data.get("externals", {}).values():
-            rels.extend(sub.get("relations", []) or [])
-        return rels
+def _deduplicate_relations(defs: dict[str, dict], ai_data: dict | None) -> None:
+    """Deduplicate relations within each category while preserving order."""
 
     for name, data in defs.items():
         if name == "Governance Core":
             _dedup_core_category(data)
         else:
             _dedup_category(data)
-        for rel in _collect(data):
-            if rel in seen:
-                duplicates.setdefault(name, set()).add(rel)
-            else:
-                seen.add(rel)
     if ai_data:
         _dedup_category(ai_data)
-        for rel in _collect(ai_data):
-            if rel in seen:
-                duplicates.setdefault("Safety & AI Lifecycle", set()).add(rel)
-            else:
-                seen.add(rel)
-    if duplicates:
-        logging.debug(
-            "Duplicate relations retained across categories: %s", duplicates
-        )
-    return duplicates
 
 
 def _gov_connection_text(node_type: str) -> str:
