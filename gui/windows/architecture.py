@@ -3704,9 +3704,8 @@ class SysMLDiagramWindow(tk.Frame):
         self.diagram_id = diagram.diag_id
 
         relation_tools = list(relation_tools or [])
-        self._base_relation_tools = list(relation_tools)
-        self.relation_tools = list(relation_tools)
-        self._has_relation_filters = False
+        self.relation_tools = relation_tools
+        self._has_relation_filters = bool(relation_tools)
 
         if isinstance(self.master, tk.Toplevel):
             self.master.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -3940,8 +3939,6 @@ class SysMLDiagramWindow(tk.Frame):
             self.pack(fill=tk.BOTH, expand=True)
 
     def _on_focus_in(self, event=None):
-        if not getattr(self, "_has_relation_filters", False):
-            self._reset_relation_tools()
         if self.app:
             self.app.active_arch_window = self
         self._sync_to_repository()
@@ -3949,10 +3946,7 @@ class SysMLDiagramWindow(tk.Frame):
 
     def _on_focus_out(self, event=None):
         self._sync_to_repository()
-        self._reset_relation_tools()
-
-    def _reset_relation_tools(self) -> None:
-        self.relation_tools = list(getattr(self, "_base_relation_tools", []))
+        self.relation_tools = []
         self._has_relation_filters = False
 
     def _fit_toolbox(self) -> None:
@@ -10237,7 +10231,8 @@ class SysMLDiagramWindow(tk.Frame):
         memory_manager.cleanup()
         ARCH_WINDOWS.discard(getattr(self, "_arch_ref", None))
         self._sync_to_repository()
-        self._reset_relation_tools()
+        self.relation_tools = []
+        self._has_relation_filters = False
         self.destroy()
 
 
@@ -12202,8 +12197,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     # Dynamic toolbox construction
     # ------------------------------------------------------------------
     def _rebuild_toolboxes(self) -> None:
-        if not getattr(self, "_has_relation_filters", False):
-            self._reset_relation_tools()
         diag_id = getattr(self, "diagram_id", "0")
         memory_manager.discard_prefix(f"{diag_id}:{id(self)}:toolbox:")
         defs = copy.deepcopy(_toolbox_defs())
