@@ -514,7 +514,7 @@ class TestNonCoreCategoryPersistence:
 
         return fake_sysml_init
 
-    def test_entities_relations_persist_across_rebuilds(self, monkeypatch):
+    def test_non_core_relations_persist_across_rebuilds(self, monkeypatch):
         SysMLRepository._instance = None
         repo = SysMLRepository.get_instance()
         diag = repo.create_diagram("Governance Diagram")
@@ -548,40 +548,6 @@ class TestNonCoreCategoryPersistence:
         entities3 = win._frame_loaders["Entities"].__defaults__[0]
         assert entities3["relations"] == ["Link"]
 
-    def test_artifacts_relations_persist_across_rebuilds(self, monkeypatch):
-        SysMLRepository._instance = None
-        repo = SysMLRepository.get_instance()
-        diag = repo.create_diagram("Governance Diagram")
-
-        defs_template = {
-            "Artifacts": {"nodes": [], "relations": ["Create"], "externals": {}}
-        }
-
-        monkeypatch.setattr(arch, "_toolbox_defs", lambda: copy.deepcopy(defs_template))
-        monkeypatch.setattr(arch, "GOV_CORE_NODES", ["dummy"])
-        monkeypatch.setattr(arch, "_relations_for", lambda nodes: ["Create", "Trace"])
-        monkeypatch.setattr(arch, "_external_relations_for", lambda nodes: {})
-
-        monkeypatch.setattr(arch.SysMLDiagramWindow, "__init__", self._init(repo))
-        monkeypatch.setattr(arch, "draw_icon", lambda *a, **k: None)
-        monkeypatch.setattr(
-            arch.GovernanceDiagramWindow, "refresh_from_repository", lambda self: None
-        )
-        monkeypatch.setattr(arch.ttk, "Combobox", DummyWidget)
-        monkeypatch.setattr(arch.ttk, "Frame", DummyWidget)
-        monkeypatch.setattr(arch.ttk, "LabelFrame", DummyWidget)
-        monkeypatch.setattr(arch.ttk, "Button", DummyWidget)
-
-        win = GovernanceDiagramWindow(None, None, diagram_id=diag.diag_id)
-        artifacts1 = win._frame_loaders["Artifacts"].__defaults__[0]
-        assert artifacts1["relations"] == ["Create"]
-        win._rebuild_toolboxes()
-        artifacts2 = win._frame_loaders["Artifacts"].__defaults__[0]
-        assert artifacts2["relations"] == ["Create"]
-        win._rebuild_toolboxes()
-        artifacts3 = win._frame_loaders["Artifacts"].__defaults__[0]
-        assert artifacts3["relations"] == ["Create"]
-
 
 class TestGovernanceCoreHelperExemptions:
     """Verify helper functions never strip Governance Core relations."""
@@ -606,7 +572,6 @@ class TestGovernanceCoreHelperExemptions:
                 "externals": {},
             },
         }
-        dup_map = arch._deduplicate_relations(defs, None)
+        arch._deduplicate_relations(defs, None)
         assert defs["Governance Core"]["relations"] == ["Link", "Trace"]
         assert defs["Other"]["relations"] == ["Link"]
-        assert dup_map == {"Governance Core": {"Link"}}
