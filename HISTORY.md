@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.228 - Drop global caching of toolbox frames to prevent governance
+          toolboxes from disappearing across open diagrams.
 - 0.2.227 - Retain per-category relations during deduplication and log any
           duplicates across categories. Extend toolbox persistence tests to
           cover additional non-governance categories.

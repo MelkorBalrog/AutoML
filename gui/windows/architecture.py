@@ -43,7 +43,6 @@ from config import load_diagram_rules, load_json_with_comments
 import json
 from gui.utils.icon_factory import create_icon
 from gui.controls.button_utils import set_uniform_button_width, max_button_reqwidth
-from tools.memory_manager import manager as memory_manager
 
 from mainappsrc.models.sysml.sysml_spec import SYSML_PROPERTIES
 from analysis.models import (
@@ -500,46 +499,22 @@ def _filter_global_relations(
                 r for r in sub.get("relations", []) if r not in global_rels
             ]
 
-def _deduplicate_relations(defs: dict[str, dict], ai_data: dict | None) -> dict[str, set[str]]:
-    """Deduplicate relations within each category while preserving order.
 
-    Returns mapping of category names to relations that appear in multiple
-    categories.  Duplicates are retained in all categories and merely logged
-    for diagnostic purposes.
-    """
+def _deduplicate_relations(defs: dict[str, dict], ai_data: dict | None) -> None:
+    """Deduplicate relations across categories while preserving input order."""
 
-    duplicates: dict[str, set[str]] = {}
-    seen: set[str] = set()
-
-    def _collect(data: dict) -> list[str]:
-        rels = list(data.get("relations", []) or [])
-        for sub in data.get("externals", {}).values():
-            rels.extend(sub.get("relations", []) or [])
-        return rels
-
+    seen_rels: set[str] = set()
+    core = defs.get("Governance Core")
+    if core:
+        seen_rels.update(core.get("relations", []) or [])
+        for sub in core.get("externals", {}).values():
+            seen_rels.update(sub.get("relations", []) or [])
     for name, data in defs.items():
         if name == "Governance Core":
-            _dedup_core_category(data)
-        else:
-            _dedup_category(data)
-        for rel in _collect(data):
-            if rel in seen:
-                duplicates.setdefault(name, set()).add(rel)
-            else:
-                seen.add(rel)
+            continue
+        _dedup_category(data, seen_rels)
     if ai_data:
-        _dedup_category(ai_data)
-        for rel in _collect(ai_data):
-            if rel in seen:
-                duplicates.setdefault("Safety & AI Lifecycle", set()).add(rel)
-            else:
-                seen.add(rel)
-    if duplicates:
-        logging.debug(
-            "Duplicate relations retained across categories: %s", duplicates
-        )
-    return duplicates
-
+        _dedup_category(ai_data, seen_rels)
 
 def _gov_connection_text(node_type: str) -> str:
     """Return tooltip text listing governance connections for ``node_type``."""
@@ -12231,17 +12206,16 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     # Dynamic toolbox construction
     # ------------------------------------------------------------------
     def _rebuild_toolboxes(self) -> None:
-        if not getattr(self, "_has_relation_filters", False):
-            self._reset_relation_tools()
-        diag_id = getattr(self, "diagram_id", "0")
-        memory_manager.discard_prefix(f"{diag_id}:{id(self)}:toolbox:")
         defs = copy.deepcopy(_toolbox_defs())
         ai_data = defs.pop("Safety & AI Lifecycle", None)
-        defs["Governance Core"] = _core_toolbox_template()
-        global_rels = set(getattr(self, "relation_tools", []))
-        if getattr(self, "_has_relation_filters", False) and global_rels:
+        core_data = _core_toolbox_template()
+        defs.pop("Governance Core", None)
+        global_rels = set(getattr(self, "relation_tools", []) or [])
+        if global_rels:
             _filter_global_relations(defs, ai_data, global_rels)
+        defs = {"Governance Core": core_data, **defs}
         _deduplicate_relations(defs, ai_data)
+        defs["Governance Core"] = _core_toolbox_template()
         if hasattr(self.tools_frame, "pack_forget"):
             self.tools_frame.pack_forget()
         if getattr(self, "rel_frame", None) and hasattr(self.rel_frame, "pack_forget"):
@@ -12391,15 +12365,9 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
                 if frame and hasattr(frame, "pack_forget"):
                     frame.pack_forget()
         frames = self._toolbox_frames.setdefault(choice, [])
-        diag_id = getattr(self, "diagram_id", "0")
-        key = f"{diag_id}:{id(self)}:toolbox:{choice}"
         loader = getattr(self, "_frame_loaders", {}).get(choice)
-        if loader:
-            frame = memory_manager.lazy_load(key, loader)
-            if frame not in frames:
-                frames.append(frame)
-        else:
-            memory_manager.mark_active(key)
+        if loader and not frames:
+            frames.append(loader())
         frames[:] = [
             f
             for f in frames
@@ -12408,7 +12376,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         for frame in frames:
             if frame and hasattr(frame, "pack"):
                 frame.pack(fill=tk.X, padx=2, pady=2)
-        memory_manager.cleanup()
 
     class _SelectDialog(simpledialog.Dialog):  # pragma: no cover - requires tkinter
         def __init__(self, parent, title: str, options: list[str]):
