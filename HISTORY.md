@@ -20,12 +20,8 @@
 
 # Version History
 - 0.2.225 - Scope toolbox caches to diagram sessions and clean obsolete
-            frames when windows close. Add regression tests ensuring related
-            elements and relationships persist across sequential diagrams.
-- 0.2.226 - Recompute relation tools when diagrams gain focus or rebuild so
-            stale global filters do not leak across windows. Add grouped test
-            confirming fresh relations appear in new diagrams without active
-            filters.
+          frames when windows close. Add regression tests ensuring related
+          elements and relationships persist across sequential diagrams.
 - 0.2.224 - Deduplicate relations only within each toolbox category so
           Governance Core no longer prunes shared relations. Rebuild
           toolboxes without cross-category seeding and add persistence
