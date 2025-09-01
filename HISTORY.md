@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.226 - Simplified tab detachment by closing tabs and opening documents in
+          separate windows; removed legacy detachment approach and updated
+          tests accordingly.
 - 0.2.225 - Scope toolbox caches to diagram sessions and clean obsolete
           frames when windows close. Add regression tests ensuring related
           elements and relationships persist across sequential diagrams.

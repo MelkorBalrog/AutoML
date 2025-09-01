@@ -1338,177 +1338,19 @@ class ClosableNotebook(ttk.Notebook):
         for child in target.winfo_children():
             self._raise_widgets(child, child)
 
-    def _create_detached_window(
-        self, width: int, height: int, x: int, y: int
-    ) -> tuple[tk.Toplevel, "ClosableNotebook"]:
-        """Return a floating toplevel window hosting a new notebook."""
-
-        root_win = self._app_root
-        win = tk.Toplevel(root_win)
-        win.transient(root_win)
-        win.geometry(f"{width}x{height}+{x}+{y}")
-        self._floating_windows.append(win)
-
-        def _on_destroy(_e, w=win) -> None:
-            try:
-                self._cancel_after_events(w)
-            except Exception:
-                pass
-            if w in self._floating_windows:
-                self._floating_windows.remove(w)
-
-        win.bind("<Destroy>", _on_destroy)
-        nb = ClosableNotebook(win)
-        nb.pack(expand=True, fill="both")
-        return win, nb
-
-    def _clone_tab(
-        self, tab_id: str, nb: "ClosableNotebook", text: str
-    ) -> tuple[tk.Widget, dict[tk.Widget, tk.Widget]]:
-        """Clone *tab_id* into *nb* returning the clone and widget mapping."""
-
-        orig = self.nametowidget(tab_id)
-        cancelled: set[str] = set()
-        self._cancel_after_events(orig, cancelled)
-        self.forget(tab_id)
-        mapping: dict[tk.Widget, tk.Widget] = {}
-        new_widget, mapping, layouts = self._clone_widget(
-            orig, nb, mapping, cancelled=cancelled
-        )
-        self._cancel_after_events(new_widget, cancelled)
-        self._copy_widget_layout(orig, new_widget, mapping, layouts)
-        nb.add(new_widget, text=text)
-        nb.select(new_widget)
-        self._ensure_fills(new_widget)
-        self._reassign_widget_references(mapping)
-
-        toolbox_canvas_orig = getattr(orig, "toolbox_canvas", None)
-        toolbox_canvas_clone = mapping.get(toolbox_canvas_orig) if mapping else None
-        toolbox_orig = getattr(orig, "toolbox", None)
-        toolbox_clone = mapping.get(toolbox_orig) if mapping else None
-        roots: dict[tk.Widget, tk.Widget] = {}
-        if isinstance(toolbox_canvas_orig, tk.Widget) and isinstance(
-            toolbox_canvas_clone, tk.Widget
-        ):
-            roots[toolbox_canvas_orig] = toolbox_canvas_clone
-
-        try:  # Lazy import to avoid heavy dependency during module load
-            from gui.windows.architecture import GovernanceDiagramWindow
-        except Exception:  # pragma: no cover - import errors are non-fatal
-            GovernanceDiagramWindow = None  # type: ignore
-
-        if GovernanceDiagramWindow and isinstance(new_widget, GovernanceDiagramWindow):
-            for name in ("_rebuild_toolboxes", "_switch_toolbox"):
-                func = getattr(new_widget, name, None)
-                if callable(func):
-                    try:
-                        func()
-                    except Exception:
-                        pass
-            frame = getattr(
-                new_widget, "toolbox", getattr(new_widget, "tools_frame", None)
-            )
-            if isinstance(frame, tk.Widget) and not frame.winfo_manager():
-                try:
-                    frame.pack(side="left")
-                except Exception:
-                    pass
-            selector = getattr(new_widget, "toolbox_selector", None)
-            if isinstance(selector, ttk.Combobox):
-                try:
-                    selector.bind(
-                        "<<ComboboxSelected>>", lambda e: new_widget._switch_toolbox()
-                    )
-                except Exception:
-                    pass
-        elif isinstance(toolbox_clone, tk.Widget) and not toolbox_clone.winfo_manager():
-            try:
-                toolbox_clone.pack(side="left")
-            except Exception:
-                pass
-
-        self._raise_widgets(orig, new_widget, mapping, roots)
-        self._cancel_after_events(orig, cancelled)
-        orig.destroy()
-        return new_widget, mapping
-
-    def _clone_toolbar(
-        self,
-        new_widget: tk.Widget,
-        mapping: dict[tk.Widget, tk.Widget],
-        win: tk.Toplevel,
-        nb: ttk.Notebook,
-    ) -> None:
-        """Handle toolbar setup for *new_widget* after cloning."""
-
-        toolbar = self._find_toolbar_frame(new_widget)
-        if toolbar is not None:
-            mapping.setdefault(toolbar, toolbar)
-            try:
-                toolbar.pack(side="left")
-            except Exception:
-                pass
-        self._remove_duplicate_widgets(win, nb, mapping)
-        self._reassign_container_attributes(mapping)
-        if toolbar is not None and not toolbar.winfo_children():
-            rebuild = getattr(new_widget, "_rebuild_toolbar", None)
-            if callable(rebuild):
-                try:
-                    rebuild()
-                except Exception:
-                    pass
-        for name in ("_rebuild_toolboxes", "_activate_parent_phase"):
-            func = getattr(new_widget, name, None)
-            if callable(func):
-                try:
-                    func()
-                except Exception:
-                    pass
-        switch = getattr(new_widget, "_switch_toolbox", None)
-        if callable(switch):
-            try:
-                switch()
-            except Exception:
-                pass
-
-    def _create_floating_window(
-        self, width: int, height: int, x: int, y: int
-    ) -> tuple[tk.Toplevel, ttk.Notebook]:
-        """Create and return a detached window and notebook."""
-
-        return self._create_detached_window(width, height, x, y)
-
-    def _clone_tab_contents(
-        self, tab_id: str, nb: "ClosableNotebook", text: str, win: tk.Toplevel
-    ) -> None:
-        """Clone *tab_id* into *nb* and handle toolbar setup."""
-
-        new_widget, mapping = self._clone_tab(tab_id, nb, text)
-        self._clone_toolbar(new_widget, mapping, win, nb)
-
-    def _post_clone_cleanup(self, nb: "ClosableNotebook") -> None:
-        """Finalize setup after moving a tab to *nb*."""
-
-        tab = nb.tabs()[-1]
-        child = nb.nametowidget(tab)
-        self._ensure_fills(child)
-        self._raise_widgets(child, child)
-        nb.select(tab)
-
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
+        """Move the tab's content to a new toplevel window and close the tab."""
+
         self.update_idletasks()
-        width = self.winfo_width() or 200
-        height = self.winfo_height() or 200
+        widget = self.nametowidget(tab_id)
         text = self.tab(tab_id, "text")
-        win, nb = self._create_floating_window(width, height, x, y)
-        try:
-            if not self._move_tab(tab_id, nb):
-                self._clone_tab_contents(tab_id, nb, text, win)
-            else:
-                self._post_clone_cleanup(nb)
-        except Exception:
-            win.destroy()
-            raise
+        self.forget(tab_id)
+        win = tk.Toplevel(self._app_root)
+        win.title(text)
+        win.geometry(f"+{x}+{y}")
+        widget.master = win
+        widget.pack(expand=True, fill="both")
+        self._floating_windows.append(win)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
