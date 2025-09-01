@@ -16,8 +16,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Tests for notebook tab snapping behaviour."""
 
-VERSION = "0.2.226"
+import tkinter as tk
 
-__all__ = ["VERSION"]
+from gui.utils.closable_notebook import ClosableNotebook
+
+
+def test_detach_closes_tab_and_opens_window() -> None:
+    root = tk.Tk()
+    nb = ClosableNotebook(root)
+    frame = tk.Frame(nb)
+    nb.add(frame, text="Doc")
+    root.update_idletasks()
+    tab_id = nb.tabs()[0]
+    nb._detach_tab(tab_id, 10, 10)
+    root.update_idletasks()
+    assert not nb.tabs()
+    windows = [w for w in root.winfo_children() if isinstance(w, tk.Toplevel)]
+    assert windows, "No new window created"
+    win = windows[0]
+    assert frame.winfo_toplevel() is win
+    win.destroy()
+    root.destroy()
