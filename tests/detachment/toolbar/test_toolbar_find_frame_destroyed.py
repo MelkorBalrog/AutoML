@@ -16,8 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Tests for toolbar frame detection with destroyed widgets."""
 
-VERSION = "0.2.225"
+from __future__ import annotations
 
-__all__ = ["VERSION"]
+import tkinter as tk
+import pytest
+
+from gui.utils.closable_notebook import ClosableNotebook
+
+
+class TestToolbarFrameDetection:
+    """Grouped tests verifying toolbar frame lookup robustness."""
+
+    def test_handles_destroyed_widget(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        frame = tk.Frame(nb)
+        nb.add(frame, text="T")
+        btn = tk.Button(frame, text="B")
+        btn.pack()
+        frame.destroy()
+        assert nb._find_toolbar_frame(frame) is None
+        root.destroy()

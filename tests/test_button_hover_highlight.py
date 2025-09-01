@@ -25,6 +25,7 @@ import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from gui.controls.button_utils import add_hover_highlight
+from gui.utils.closable_notebook import ClosableNotebook
 
 pytestmark = [pytest.mark.controls, pytest.mark.hover]
 
@@ -129,3 +130,45 @@ def test_add_hover_highlight_preserves_transparency_and_glow():
         assert ba == ta == 128
     root.destroy()
 
+
+def _detach_button(nb: ClosableNotebook) -> ttk.Button:
+    monkey_move = lambda tab_id, target: False
+    nb._move_tab = monkey_move  # type: ignore[assignment]
+
+    class Event: ...
+
+    press = Event(); press.x = 5; press.y = 5
+    nb._on_tab_press(press)
+    nb._dragging = True
+    release = Event()
+    release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+    release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+    nb._on_tab_release(release)
+    win = nb._floating_windows[0]
+    new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+    tab = new_nb.tabs()[0]
+    return new_nb.nametowidget(tab)  # type: ignore[return-value]
+
+
+def test_add_hover_highlight_after_detach():
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        pytest.skip("Tk not available")
+
+    nb = ClosableNotebook(root)
+    img = tk.PhotoImage(width=2, height=2)
+    img.put("#808080", to=(0, 0, 2, 2))
+    btn = ttk.Button(nb, image=img)
+    add_hover_highlight(btn, img)
+    nb.add(btn, text="L1")
+    nb.update_idletasks()
+
+    new_btn = _detach_button(nb)
+    new_btn.event_generate("<Enter>")
+    root.update_idletasks()
+    assert new_btn.cget("image") == str(new_btn._hover_image)
+    new_btn.event_generate("<Leave>")
+    root.update_idletasks()
+    assert new_btn.cget("image") == str(new_btn._normal_image)
+    root.destroy()
