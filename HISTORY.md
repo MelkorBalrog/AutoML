@@ -19,8 +19,6 @@
 -->
 
 # Version History
-- 0.2.226 - Simplify tab snapping by closing tabs and reopening documents in
-          standalone windows.
 - 0.2.225 - Scope toolbox caches to diagram sessions and clean obsolete
           frames when windows close. Add regression tests ensuring related
           elements and relationships persist across sequential diagrams.
