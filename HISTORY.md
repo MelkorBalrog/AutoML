@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.226 - Map all nodes appearing in connection rules to toolbox groups and
+          retain unmapped external relations for Safety & AI toolbox.
 - 0.2.225 - Scope toolbox caches to diagram sessions and clean obsolete
           frames when windows close. Add regression tests ensuring related
           elements and relationships persist across sequential diagrams.
