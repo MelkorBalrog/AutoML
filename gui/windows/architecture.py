@@ -509,31 +509,6 @@ def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
     return defs
 
 
-def _filter_global_relations(
-    defs: dict[str, dict], ai_data: dict | None, global_rels: set[str]
-) -> None:
-    """Remove ``global_rels`` from category definitions."""
-
-    for name, data in defs.items():
-        if name == "Governance Core":
-            continue
-        data["relations"] = [
-            r for r in data.get("relations", []) if r not in global_rels
-        ]
-        for sub in data.get("externals", {}).values():
-            sub["relations"] = [
-                r for r in sub.get("relations", []) if r not in global_rels
-            ]
-    if ai_data:
-        ai_data["relations"] = [
-            r for r in ai_data.get("relations", []) if r not in global_rels
-        ]
-        for sub in ai_data.get("externals", {}).values():
-            sub["relations"] = [
-                r for r in sub.get("relations", []) if r not in global_rels
-            ]
-
-
 def _deduplicate_relations(defs: dict[str, dict], ai_data: dict | None) -> None:
     """Deduplicate relations within each category while preserving order."""
 
@@ -3740,7 +3715,6 @@ class SysMLDiagramWindow(tk.Frame):
 
         relation_tools = list(relation_tools or [])
         self.relation_tools = relation_tools
-        self._has_relation_filters = bool(relation_tools)
 
         if isinstance(self.master, tk.Toplevel):
             self.master.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -3982,7 +3956,6 @@ class SysMLDiagramWindow(tk.Frame):
     def _on_focus_out(self, event=None):
         self._sync_to_repository()
         self.relation_tools = []
-        self._has_relation_filters = False
 
     def _fit_toolbox(self) -> None:
         """Resize the toolbox to the smallest width that shows all button text."""
@@ -10267,7 +10240,6 @@ class SysMLDiagramWindow(tk.Frame):
         ARCH_WINDOWS.discard(getattr(self, "_arch_ref", None))
         self._sync_to_repository()
         self.relation_tools = []
-        self._has_relation_filters = False
         self.destroy()
 
 
@@ -12237,9 +12209,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         defs = copy.deepcopy(_toolbox_defs())
         ai_data = defs.pop("Safety & AI Lifecycle", None)
         defs["Governance Core"] = _core_toolbox_template()
-        global_rels = set(getattr(self, "relation_tools", []))
-        if getattr(self, "_has_relation_filters", False) and global_rels:
-            _filter_global_relations(defs, ai_data, global_rels)
         _deduplicate_relations(defs, ai_data)
         if hasattr(self.tools_frame, "pack_forget"):
             self.tools_frame.pack_forget()
