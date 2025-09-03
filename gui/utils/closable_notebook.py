@@ -1587,16 +1587,7 @@ class ClosableNotebook(ttk.Notebook):
             if child in keep or child in reparented:
                 continue
             names = expected.get(parent, set())
-            if child.winfo_name() in names:
-                try:
-                    self._cancel_after_events(child)
-                except Exception:
-                    pass
-                try:
-                    child.destroy()
-                except Exception:
-                    pass
-            else:
+            if child.winfo_name() not in names:
                 # Workaround for orphaned widgets: rather than destroying
                 # unexpected children we simply detach them from layout. Some
                 # frameworks attach hidden state to these widgets and destroying
