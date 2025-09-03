@@ -98,6 +98,18 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
                 _cancel_ident(ident)
 
     try:
+        root = widget._root()
+    except Exception:
+        root = None
+    if root is not None:
+        tcl_cmds = getattr(root, "_tclCommands", None) or []
+        for ident in list(tcl_cmds):
+            if ident in cancelled:
+                continue
+            if ident.startswith(str(widget)) or ident.endswith(("_anim", "_after", "_timer", "_animate")):
+                _cancel_ident(ident)
+
+    try:
         for name in dir(widget):
             if name.endswith(("_anim", "_after", "_timer", "_animate")):
                 ident = getattr(widget, name, None)
@@ -1331,25 +1343,18 @@ class ClosableNotebook(ttk.Notebook):
         for child in target.winfo_children():
             self._raise_widgets(child, child)
 
+    def _create_detached_window(
+        self, width: int, height: int, x: int, y: int
+    ) -> tuple[tk.Toplevel, "ClosableNotebook"]:
+        """Backward compatibility alias for :meth:`_create_floating_window`."""
 
-    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
-        from .detached_window import DetachedWindow
+        return self._create_floating_window(width, height, x, y)
 
-        self.update_idletasks()
-        width = self.winfo_width() or 200
-        height = self.winfo_height() or 200
-        dw = DetachedWindow(self._app_root, width, height, x, y)
-        self._floating_windows.append(dw.win)
+    def _clone_tab(
+        self, tab_id: str, nb: "ClosableNotebook", text: str
+    ) -> tuple[tk.Widget, dict[tk.Widget, tk.Widget]]:
+        """Clone *tab_id* into *nb* returning the clone and widget mapping."""
 
-        def _on_destroy(_e, w=dw.win) -> None:
-            try:
-                self._cancel_after_events(w)
-            except Exception:
-                pass
-            if w in self._floating_windows:
-                self._floating_windows.remove(w)
-
-        dw.win.bind("<Destroy>", _on_destroy, add="+")
         orig = self.nametowidget(tab_id)
         text = self.tab(tab_id, "text")
         moved = self._move_tab(tab_id, dw.nb)
@@ -1428,7 +1433,24 @@ class ClosableNotebook(ttk.Notebook):
     ) -> tuple[tk.Toplevel, ttk.Notebook]:
         """Create and return a detached window and notebook."""
 
-        return self._create_detached_window(width, height, x, y)
+        root_win = self._app_root
+        win = tk.Toplevel(root_win)
+        win.transient(root_win)
+        win.geometry(f"{width}x{height}+{x}+{y}")
+        self._floating_windows.append(win)
+
+        def _on_destroy(_e, w=win) -> None:
+            try:
+                self._cancel_after_events(w)
+            except Exception:
+                pass
+            if w in self._floating_windows:
+                self._floating_windows.remove(w)
+
+        win.bind("<Destroy>", _on_destroy)
+        nb = ClosableNotebook(win)
+        nb.pack(expand=True, fill="both")
+        return win, nb
 
     def _clone_tab_contents(
         self, tab_id: str, nb: "ClosableNotebook", text: str, win: tk.Toplevel
