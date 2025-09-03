@@ -19,6 +19,12 @@
 -->
 
 # Version History
+- 0.2.239 - Preserve functional controls in detached tabs by pruning cloned
+          duplicates instead of initial placeholders. Sync README version
+          header.
+- 0.2.238 - Drop auto-created children from cloned widgets to prevent duplicate
+          controls in detached tabs and dispose original tab frames after
+          cloning. Sync README version header.
 - 0.2.237 - Enforce keyword-only layouts and cancelled parameters in
           ``_clone_widget`` and add regression test confirming detached
           tabs render with and without a layouts mapping.
