@@ -19,8 +19,20 @@
 -->
 
 # Version History
-- 0.2.234 - Remove duplicate toolboxes and diagram areas in detached windows
+- 0.2.238 - Remove duplicate toolboxes and diagram areas in detached windows
           by pruning cloned widgets after rebuilding layouts.
+- 0.2.237 - Enforce keyword-only layouts and cancelled parameters in
+          ``_clone_widget`` and add regression test confirming detached
+          tabs render with and without a layouts mapping.
+- 0.2.236 - Route tab detachment through ``DetachedWindow`` so window creation,
+          toolbar packing and lifecycle hooks are handled by a dedicated
+          utility. Update detachment tests to use the new API.
+- 0.2.235 - Introduce ``DetachedWindow`` helper hosting detached diagrams with
+          functional toolboxes and event bindings. Add grouped window tests.
+- 0.2.234 - Guard ``root.deletecommand`` when the Tcl command table is missing
+          or lacks the callback identifier so widget cleanup avoids
+          ``invalid command name`` logs. Add regression tests covering
+          missing command entries during detachment and destruction.
 - 0.2.233 - Cancel after-callbacks before moving tabs and reinitialize
           toolboxes and parent-phase hooks so detached windows keep
           functional toolboxes and avoid "invalid command name" errors.

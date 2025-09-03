@@ -59,7 +59,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             root = None
         if root is not None:
             tcl_cmds = getattr(root, "_tclCommands", None)
-            if tcl_cmds is not None:
+            if tcl_cmds is not None and ident in tcl_cmds:
                 try:
                     root.deletecommand(ident)
                 except Exception:
@@ -564,6 +564,7 @@ class ClosableNotebook(ttk.Notebook):
         widget: tk.Widget,
         parent: tk.Widget,
         mapping: dict[tk.Widget, tk.Widget] | None = None,
+        *,
         layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]] | None = None,
         cancelled: set[str] | None = None,
     ) -> tuple[
@@ -630,7 +631,11 @@ class ClosableNotebook(ttk.Notebook):
                     if child in mapping:
                         continue
                     child_clone, mapping, layouts = self._clone_widget(
-                        child, clone, mapping, layouts, cancelled
+                        child,
+                        clone,
+                        mapping,
+                        layouts=layouts,
+                        cancelled=cancelled,
                     )
                     mapping[child] = child_clone
             self._copy_widget_state(widget, clone)
@@ -667,7 +672,11 @@ class ClosableNotebook(ttk.Notebook):
         for child in self._ordered_children(widget):
             try:
                 child_clone, mapping, layouts = self._clone_widget(
-                    child, clone, mapping, layouts, cancelled
+                    child,
+                    clone,
+                    mapping,
+                    layouts=layouts,
+                    cancelled=cancelled,
                 )
             except Exception as exc:
                 logger.exception("Failed to clone child %s: %s", child, exc)
@@ -677,30 +686,6 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             mapping[child] = child_clone
         self._copy_widget_layout(widget, clone, mapping, layouts)
-
-        try:  # Invoke toolbox rebuilds on window clones exposing a toolbox frame
-            for attr in ("toolbox", "tools_frame"):
-                orig_tb = getattr(widget, attr, None)
-                clone_tb = getattr(clone, attr, None)
-                if not isinstance(clone_tb, tk.Widget):
-                    continue
-                rebuild = getattr(clone, "_rebuild_toolboxes", None)
-                if callable(rebuild):
-                    try:
-                        rebuild()
-                        clone_tb = getattr(clone, attr, clone_tb)
-                    except Exception:
-                        pass
-                try:
-                    if not clone_tb.winfo_ismapped():
-                        clone_tb.pack(side="left")
-                except Exception:
-                    pass
-                if isinstance(orig_tb, tk.Widget):
-                    mapping[orig_tb] = clone_tb
-        except Exception:
-            pass
-
         return clone, mapping, layouts
 
     def _rebind_button_command(
@@ -813,7 +798,11 @@ class ClosableNotebook(ttk.Notebook):
                 except Exception:
                     continue
                 child_clone, mapping, layouts = self._clone_widget(
-                    child, clone, mapping, layouts, cancelled
+                    child,
+                    clone,
+                    mapping,
+                    layouts=layouts,
+                    cancelled=cancelled,
                 )
                 mapping[child] = child_clone
                 cfg = {
@@ -1342,18 +1331,17 @@ class ClosableNotebook(ttk.Notebook):
         for child in target.winfo_children():
             self._raise_widgets(child, child)
 
-    def _create_detached_window(
-        self, width: int, height: int, x: int, y: int
-    ) -> tuple[tk.Toplevel, "ClosableNotebook"]:
-        """Return a floating toplevel window hosting a new notebook."""
 
-        root_win = self._app_root
-        win = tk.Toplevel(root_win)
-        win.transient(root_win)
-        win.geometry(f"{width}x{height}+{x}+{y}")
-        self._floating_windows.append(win)
+    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
+        from .detached_window import DetachedWindow
 
-        def _on_destroy(_e, w=win) -> None:
+        self.update_idletasks()
+        width = self.winfo_width() or 200
+        height = self.winfo_height() or 200
+        dw = DetachedWindow(self._app_root, width, height, x, y)
+        self._floating_windows.append(dw.win)
+
+        def _on_destroy(_e, w=dw.win) -> None:
             try:
                 self._cancel_after_events(w)
             except Exception:
@@ -1361,29 +1349,25 @@ class ClosableNotebook(ttk.Notebook):
             if w in self._floating_windows:
                 self._floating_windows.remove(w)
 
-        win.bind("<Destroy>", _on_destroy)
-        nb = ClosableNotebook(win)
-        nb.pack(expand=True, fill="both")
-        return win, nb
-
-    def _clone_tab(
-        self, tab_id: str, nb: "ClosableNotebook", text: str
-    ) -> tuple[tk.Widget, dict[tk.Widget, tk.Widget]]:
-        """Clone *tab_id* into *nb* returning the clone and widget mapping."""
-
+        dw.win.bind("<Destroy>", _on_destroy, add="+")
         orig = self.nametowidget(tab_id)
+        text = self.tab(tab_id, "text")
+        moved = self._move_tab(tab_id, dw.nb)
+        if moved:
+            child = dw.nb.nametowidget(dw.nb.tabs()[-1])
+            dw._ensure_toolbox(child)
+            dw._activate_hooks(child)
+            return
         cancelled: set[str] = set()
         self._cancel_after_events(orig, cancelled)
-        self.forget(tab_id)
+        self.forget(orig)
         mapping: dict[tk.Widget, tk.Widget] = {}
-        new_widget, mapping, layouts = self._clone_widget(
-            orig, nb, mapping, cancelled=cancelled
+        child, mapping, _layouts = self._clone_widget(
+            orig,
+            dw.nb,
+            mapping,
+            cancelled=cancelled,
         )
-        self._cancel_after_events(new_widget, cancelled)
-        self._copy_widget_layout(orig, new_widget, mapping, layouts)
-        nb.add(new_widget, text=text)
-        nb.select(new_widget)
-        self._ensure_fills(new_widget)
         self._reassign_widget_references(mapping)
 
         toolbox_canvas_orig = getattr(orig, "toolbox_canvas", None)
@@ -1630,49 +1614,6 @@ class ClosableNotebook(ttk.Notebook):
             self.update_canvas_windows(live_mapping)
         self.rebind_scrollbars(mapping)
 
-    def _reassign_container_attributes(
-        self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> None:
-        """Rebind attributes on cloned containers to point at cloned widgets."""
-
-        def _rewrite(value: t.Any) -> t.Any:
-            if isinstance(value, tk.Widget):
-                return mapping.get(value, value)
-            if isinstance(value, dict):
-                updated: dict[t.Any, t.Any] = {}
-                changed = False
-                for k, v in value.items():
-                    nk = _rewrite(k)
-                    nv = _rewrite(v)
-                    changed = changed or nk is not k or nv is not v
-                    updated[nk] = nv
-                return updated if changed else value
-            if isinstance(value, list):
-                new_list = [_rewrite(v) for v in value]
-                return (
-                    new_list
-                    if any(n is not o for n, o in zip(new_list, value))
-                    else value
-                )
-            if isinstance(value, tuple):
-                new_tuple = tuple(_rewrite(v) for v in value)
-                return new_tuple if new_tuple != value else value
-            if isinstance(value, set):
-                new_set = {_rewrite(v) for v in value}
-                return new_set if new_set != value else value
-            return value
-
-        for orig, clone in mapping.items():
-            module = getattr(orig.__class__, "__module__", "")
-            if module.startswith("tkinter"):
-                continue
-            if not hasattr(orig, "__dict__") or not hasattr(clone, "__dict__"):
-                continue
-            for name, val in vars(orig).items():
-                try:
-                    setattr(clone, name, _rewrite(val))
-                except Exception:
-                    pass
 
     def _find_toolbar_frame(self, widget: tk.Widget) -> tk.Widget | None:
         """Return the first child frame containing toolbar buttons.
@@ -1808,23 +1749,6 @@ class ClosableNotebook(ttk.Notebook):
         except Exception:
             pass
 
-    def _remove_duplicate_widgets(
-        self,
-        win: tk.Toplevel,
-        nb: ttk.Notebook,
-        mapping: dict[tk.Widget, tk.Widget],
-    ) -> None:
-        """Remove widgets that duplicate originals based on parent/child relationships."""
-
-        keep: set[tk.Widget] = {win, nb} | set(mapping.values())
-        mapping_values = set(mapping.values())
-
-        for widget in self._traverse_widgets(win):
-            toolbar = self._find_toolbar_frame(widget)
-            if toolbar and toolbar not in mapping_values:
-                self._safe_destroy(toolbar)
-
-        self._prune_duplicates(win, mapping, keep)
 
     def _reset_drag(self) -> None:
         self._drag_data = {"tab": None, "x": 0, "y": 0}
