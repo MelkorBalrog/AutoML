@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.236 - Route tab detachment through ``DetachedWindow`` so window creation,
+          toolbar packing and lifecycle hooks are handled by a dedicated
+          utility. Update detachment tests to use the new API.
 - 0.2.235 - Introduce ``DetachedWindow`` helper hosting detached diagrams with
           functional toolboxes and event bindings. Add grouped window tests.
 - 0.2.234 - Guard ``root.deletecommand`` when the Tcl command table is missing
