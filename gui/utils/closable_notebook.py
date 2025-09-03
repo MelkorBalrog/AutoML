@@ -1369,6 +1369,13 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
+        # Remove any orphaned originals that slipped through cloning so the
+        # detached window only displays the toolbox on the left and the diagram
+        # on the right.  This restores the pruning routine that was previously
+        # lost, which caused non-functional duplicates to linger in the middle
+        # of the window.
+        self._prune_duplicates(dw.win, mapping, {child})
+        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
@@ -1568,7 +1575,14 @@ class ClosableNotebook(ttk.Notebook):
         expected: dict[tk.Widget, set[str]],
         reparented: set[tk.Widget],
     ) -> None:
-        """Recursively destroy duplicate widgets under *parent*."""
+        """Recursively clean duplicate widgets under *parent*.
+
+        Unexpected children are temporarily unmapped so only the intended
+        toolbox and diagram remain visible. The widgets are left intact to
+        avoid side effects until upstream detachment handling stabilises.
+        Future maintenance should revisit whether safe destruction is
+        preferable once the root cause is fixed.
+        """
 
         if not parent.winfo_exists():
             return
@@ -1578,22 +1592,20 @@ class ClosableNotebook(ttk.Notebook):
             self._prune_widget_tree(child, keep, expected, reparented)
             if child in keep or child in reparented:
                 continue
-            names = expected.get(parent, set())
-            if child.winfo_name() in names or (
-                isinstance(child, (tk.Frame, ttk.Frame, ttk.Treeview))
-                and not any(
-                    isinstance(gc, (tk.Button, ttk.Button))
-                    for gc in child.winfo_children()
-                )
-            ):
-                try:
-                    self._cancel_after_events(child)
-                except Exception:
-                    pass
-                try:
-                    child.destroy()
-                except Exception:
-                    pass
+            names = expected.get(parent)
+            if names and child.winfo_name() not in names:
+                # Hide stray widgets using all geometry managers instead of
+                # destroying them. This workaround keeps clones functional
+                # while preventing inert duplicates from appearing in detached
+                # windows. Revisit once detachment no longer produces
+                # duplicates.
+                for method in ("pack_forget", "grid_forget", "place_forget"):
+                    forget = getattr(child, method, None)
+                    if forget:
+                        try:
+                            forget()
+                        except Exception:
+                            continue
 
     def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return a list of *widget* and all its descendants."""
