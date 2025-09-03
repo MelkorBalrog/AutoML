@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.237 - Enforce keyword-only layouts and cancelled parameters in
+          ``_clone_widget`` and add regression test confirming detached
+          tabs render with and without a layouts mapping.
 - 0.2.236 - Route tab detachment through ``DetachedWindow`` so window creation,
           toolbar packing and lifecycle hooks are handled by a dedicated
           utility. Update detachment tests to use the new API.
