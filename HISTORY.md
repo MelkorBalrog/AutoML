@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.231 - Populate toolbox groups from connection rules so Entities and Safety &
+          Security Mgmt categories expose all rule-defined elements and
+          relations. Add grouped tests for toolbox externals.
 - 0.2.230 - Preserve toolbox contents after undo, redo and clipboard operations by
           refreshing active frames. Add regression tests for sync and
           refresh routines.

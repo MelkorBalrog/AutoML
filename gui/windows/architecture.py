@@ -331,7 +331,17 @@ def _map_rule_nodes() -> None:
         NODE_TO_GROUP.setdefault(node, UNMAPPED_GROUP)
 
 
+def _expand_group_nodes_from_rules() -> None:
+    """Ensure toolbox groups include nodes referenced in connection rules."""
+    for node, group in NODE_TO_GROUP.items():
+        if group in {UNMAPPED_GROUP, "Safety & AI Lifecycle", "Governance Core"}:
+            continue
+        nodes = GOV_ELEMENT_CLASSES.setdefault(group, [])
+        if node not in nodes:
+            nodes.append(node)
+
 _map_rule_nodes()
+_expand_group_nodes_from_rules()
 
 
 def _connection_rule_allows(
