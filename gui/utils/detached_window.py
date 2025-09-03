@@ -22,10 +22,10 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
-import typing as t
 import logging
+import typing as t
 
-if t.TYPE_CHECKING:  # pragma: no cover - type hinting only
+if t.TYPE_CHECKING:  # pragma: no cover - for type checkers
     from .closable_notebook import ClosableNotebook
 
 logger = logging.getLogger(__name__)
@@ -36,12 +36,17 @@ class DetachedWindow:
 
     def __init__(
         self,
-        owner: ClosableNotebook,
+        owner: "ClosableNotebook",
         width: int,
         height: int,
         x: int,
         y: int,
     ) -> None:
+        try:  # pragma: no cover - support standalone imports
+            from .closable_notebook import ClosableNotebook
+        except Exception:  # pragma: no cover
+            from closable_notebook import ClosableNotebook
+
         self.owner = owner
         root_win = owner._app_root
         self.win = tk.Toplevel(root_win)
