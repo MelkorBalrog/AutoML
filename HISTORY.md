@@ -19,8 +19,6 @@
 -->
 
 # Version History
-- 0.2.239 - Provide floating-window creation fallback and cancel stray
-          animation callbacks when detaching tabs.
 - 0.2.238 - Remove duplicate toolboxes and diagram areas in detached windows
           by pruning cloned widgets after rebuilding layouts.
 - 0.2.237 - Enforce keyword-only layouts and cancelled parameters in
