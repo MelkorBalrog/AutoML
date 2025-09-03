@@ -60,6 +60,7 @@ def test_update_canvas_windows():
     root.destroy()
 
 
+@pytest.mark.detached_tab
 @pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
 class TestDetachedTab:
     """Detached tab regression tests."""

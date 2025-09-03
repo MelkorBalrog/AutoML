@@ -1369,6 +1369,13 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
+        # Remove any orphaned originals that slipped through cloning so the
+        # detached window only displays the toolbox on the left and the diagram
+        # on the right.  This restores the pruning routine that was previously
+        # lost, which caused non-functional duplicates to linger in the middle
+        # of the window.
+        self._prune_duplicates(dw.win, mapping, {child})
+        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
@@ -1570,11 +1577,12 @@ class ClosableNotebook(ttk.Notebook):
     ) -> None:
         """Recursively clean duplicate widgets under *parent*.
 
-        Unexpected widgets are safely destroyed to prevent duplicate state while
-        preserving widgets explicitly marked to keep or that were reparented.
-        `_safe_destroy` cancels callbacks before destruction to avoid
-        hard-to-debug errors. Revisiting this logic once upstream detachment
-        bugs are resolved is recommended.
+        Any child whose name is absent from the ``expected`` mapping is merely
+        unmapped via the appropriate geometry manager. Destroying these widgets
+        outright previously broke external references and produced empty
+        windows; hiding them avoids visual duplication while keeping the widget
+        objects alive.  This workaround can be revisited once the detachment
+        process is more robust.
         """
 
         if not parent.winfo_exists():
@@ -1585,11 +1593,20 @@ class ClosableNotebook(ttk.Notebook):
             self._prune_widget_tree(child, keep, expected, reparented)
             if child in keep or child in reparented:
                 continue
-            expected_children = expected.get(parent)
-            if expected_children and child not in expected_children:
-                # Destroy unexpected children while cancelling any pending
-                # callbacks to avoid duplicate state and resource leaks.
-                self._safe_destroy(child)
+            names = expected.get(parent)
+            if names and child.winfo_name() not in names:
+                # Unmap unexpected widgets so only the desired toolbox and
+                # diagram remain visible.
+                for mgr in ("pack", "grid", "place"):
+                    info = getattr(child, f"{mgr}_info", None)
+                    forget = getattr(child, f"{mgr}_forget", None)
+                    if info and forget:
+                        try:
+                            if info():
+                                forget()
+                                break
+                        except Exception:
+                            pass
 
     def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return a list of *widget* and all its descendants."""
