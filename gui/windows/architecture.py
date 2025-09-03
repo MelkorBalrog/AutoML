@@ -9700,6 +9700,7 @@ class SysMLDiagramWindow(tk.Frame):
                     parent_name = self._task_parent_name(self.selected_obj)
                 self.app.diagram_clipboard.diagram_clipboard_parent_name = parent_name
             self.app.diagram_clipboard.diagram_clipboard_type = diag.diag_type if diag else None
+            self._switch_toolbox()
 
     def cut_selected(self, _event=None):
         if self.repo.diagram_read_only(self.diagram_id):
@@ -9735,6 +9736,7 @@ class SysMLDiagramWindow(tk.Frame):
             self._sync_to_repository()
             self.redraw()
             self.update_property_view()
+            self._switch_toolbox()
 
     def paste_selected(self, _event=None):
         if self.repo.diagram_read_only(self.diagram_id):
@@ -9835,6 +9837,7 @@ class SysMLDiagramWindow(tk.Frame):
             self.update_property_view()
             self.app.diagram_clipboard.diagram_clipboard = None
             self.app.diagram_clipboard.cut_mode = False
+            self._switch_toolbox()
 
     def _remove_wp_and_disable(self, name: str, wp) -> None:
         toolbox = getattr(self.app, "safety_mgmt_toolbox", None) or ACTIVE_TOOLBOX
@@ -10191,6 +10194,7 @@ class SysMLDiagramWindow(tk.Frame):
                                 o.obj_id == data["obj_id"] for o in self.objects
                             ):
                                 self.objects.append(SysMLObject(**data))
+        self._switch_toolbox()
 
     def refresh_from_repository(self, _event=None) -> None:
         """Reload diagram objects from the repository and redraw."""
@@ -10231,6 +10235,7 @@ class SysMLDiagramWindow(tk.Frame):
             _next_obj_id = max(o.obj_id for o in self.objects) + 1
         self.redraw()
         self.update_property_view()
+        self._switch_toolbox()
 
     def on_close(self):
         diag_id = getattr(self, "diagram_id", "0")

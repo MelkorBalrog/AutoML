@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.230 - Preserve toolbox contents after undo, redo and clipboard operations by
+          refreshing active frames. Add regression tests for sync and
+          refresh routines.
 - 0.2.229 - Route risk assessment work products to the Risk Assessment menu group.
           - Preserve governance toolbox contents after diagram edits by
           retaining relation tools across focus changes. Add tests
