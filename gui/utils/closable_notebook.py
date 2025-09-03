@@ -59,7 +59,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             root = None
         if root is not None:
             tcl_cmds = getattr(root, "_tclCommands", None)
-            if tcl_cmds is not None:
+            if tcl_cmds is not None and ident in tcl_cmds:
                 try:
                     root.deletecommand(ident)
                 except Exception:
@@ -95,6 +95,18 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             except Exception:
                 continue
             if str(widget) in script:
+                _cancel_ident(ident)
+
+    try:
+        root = widget._root()
+    except Exception:
+        root = None
+    if root is not None:
+        tcl_cmds = getattr(root, "_tclCommands", None) or []
+        for ident in list(tcl_cmds):
+            if ident in cancelled:
+                continue
+            if ident.startswith(str(widget)) or ident.endswith(("_anim", "_after", "_timer", "_animate")):
                 _cancel_ident(ident)
 
     try:
@@ -537,6 +549,10 @@ class ClosableNotebook(ttk.Notebook):
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
+        try:
+            self._cancel_after_events(child)
+        except Exception:
+            pass
         self.forget(tab_id)
         ClosableNotebook._tab_hosts.pop(child, None)
         try:
@@ -1341,26 +1357,9 @@ class ClosableNotebook(ttk.Notebook):
     def _create_detached_window(
         self, width: int, height: int, x: int, y: int
     ) -> tuple[tk.Toplevel, "ClosableNotebook"]:
-        """Return a floating toplevel window hosting a new notebook."""
+        """Backward compatibility alias for :meth:`_create_floating_window`."""
 
-        root_win = self._app_root
-        win = tk.Toplevel(root_win)
-        win.transient(root_win)
-        win.geometry(f"{width}x{height}+{x}+{y}")
-        self._floating_windows.append(win)
-
-        def _on_destroy(_e, w=win) -> None:
-            try:
-                self._cancel_after_events(w)
-            except Exception:
-                pass
-            if w in self._floating_windows:
-                self._floating_windows.remove(w)
-
-        win.bind("<Destroy>", _on_destroy)
-        nb = ClosableNotebook(win)
-        nb.pack(expand=True, fill="both")
-        return win, nb
+        return self._create_floating_window(width, height, x, y)
 
     def _clone_tab(
         self, tab_id: str, nb: "ClosableNotebook", text: str
@@ -1384,48 +1383,11 @@ class ClosableNotebook(ttk.Notebook):
 
         toolbox_canvas_orig = getattr(orig, "toolbox_canvas", None)
         toolbox_canvas_clone = mapping.get(toolbox_canvas_orig) if mapping else None
-        toolbox_orig = getattr(orig, "toolbox", None)
-        toolbox_clone = mapping.get(toolbox_orig) if mapping else None
         roots: dict[tk.Widget, tk.Widget] = {}
         if isinstance(toolbox_canvas_orig, tk.Widget) and isinstance(
             toolbox_canvas_clone, tk.Widget
         ):
             roots[toolbox_canvas_orig] = toolbox_canvas_clone
-
-        try:  # Lazy import to avoid heavy dependency during module load
-            from gui.windows.architecture import GovernanceDiagramWindow
-        except Exception:  # pragma: no cover - import errors are non-fatal
-            GovernanceDiagramWindow = None  # type: ignore
-
-        if GovernanceDiagramWindow and isinstance(new_widget, GovernanceDiagramWindow):
-            for name in ("_rebuild_toolboxes", "_switch_toolbox"):
-                func = getattr(new_widget, name, None)
-                if callable(func):
-                    try:
-                        func()
-                    except Exception:
-                        pass
-            frame = getattr(
-                new_widget, "toolbox", getattr(new_widget, "tools_frame", None)
-            )
-            if isinstance(frame, tk.Widget) and not frame.winfo_manager():
-                try:
-                    frame.pack(side="left")
-                except Exception:
-                    pass
-            selector = getattr(new_widget, "toolbox_selector", None)
-            if isinstance(selector, ttk.Combobox):
-                try:
-                    selector.bind(
-                        "<<ComboboxSelected>>", lambda e: new_widget._switch_toolbox()
-                    )
-                except Exception:
-                    pass
-        elif isinstance(toolbox_clone, tk.Widget) and not toolbox_clone.winfo_manager():
-            try:
-                toolbox_clone.pack(side="left")
-            except Exception:
-                pass
 
         self._raise_widgets(orig, new_widget, mapping, roots)
         self._cancel_after_events(orig, cancelled)
@@ -1470,13 +1432,31 @@ class ClosableNotebook(ttk.Notebook):
                 switch()
             except Exception:
                 pass
+        self._remove_duplicate_widgets(win, nb, mapping)
 
     def _create_floating_window(
         self, width: int, height: int, x: int, y: int
     ) -> tuple[tk.Toplevel, ttk.Notebook]:
         """Create and return a detached window and notebook."""
 
-        return self._create_detached_window(width, height, x, y)
+        root_win = self._app_root
+        win = tk.Toplevel(root_win)
+        win.transient(root_win)
+        win.geometry(f"{width}x{height}+{x}+{y}")
+        self._floating_windows.append(win)
+
+        def _on_destroy(_e, w=win) -> None:
+            try:
+                self._cancel_after_events(w)
+            except Exception:
+                pass
+            if w in self._floating_windows:
+                self._floating_windows.remove(w)
+
+        win.bind("<Destroy>", _on_destroy)
+        nb = ClosableNotebook(win)
+        nb.pack(expand=True, fill="both")
+        return win, nb
 
     def _clone_tab_contents(
         self, tab_id: str, nb: "ClosableNotebook", text: str, win: tk.Toplevel
@@ -1494,6 +1474,32 @@ class ClosableNotebook(ttk.Notebook):
         self._ensure_fills(child)
         self._raise_widgets(child, child)
         nb.select(tab)
+        toolbar = self._find_toolbar_frame(child)
+        if toolbar is not None:
+            try:
+                toolbar.pack(side="left")
+            except Exception:
+                pass
+            if not toolbar.winfo_children():
+                rebuild = getattr(child, "_rebuild_toolbar", None)
+                if callable(rebuild):
+                    try:
+                        rebuild()
+                    except Exception:
+                        pass
+        for name in ("_rebuild_toolboxes", "_activate_parent_phase"):
+            func = getattr(child, name, None)
+            if callable(func):
+                try:
+                    func()
+                except Exception:
+                    pass
+        switch = getattr(child, "_switch_toolbox", None)
+        if callable(switch):
+            try:
+                switch()
+            except Exception:
+                pass
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
