@@ -15,62 +15,77 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Helpers for hosting detached diagrams in their own window."""
 
 from __future__ import annotations
 
-"""Helper class managing notebooks detached into standalone windows."""
-
 import tkinter as tk
 from tkinter import ttk
-import typing as t
-import logging
 
-if t.TYPE_CHECKING:  # pragma: no cover - type hinting only
-    from .closable_notebook import ClosableNotebook
-
-logger = logging.getLogger(__name__)
+from .closable_notebook import ClosableNotebook, cancel_after_events
 
 
 class DetachedWindow:
-    """Manage a floating window hosting a :class:`ClosableNotebook`."""
+    """Create a floating window embedding a :class:`ClosableNotebook`.
+
+    The window re-packs toolbars and toolboxes of the hosted widget and
+    reactivates lifecycle hooks so the detached diagram behaves like it does
+    within the main application.
+    """
 
     def __init__(
-        self,
-        owner: ClosableNotebook,
-        width: int,
-        height: int,
-        x: int,
-        y: int,
+        self, root: tk.Misc, width: int, height: int, x: int, y: int
     ) -> None:
-        self.owner = owner
-        root_win = owner._app_root
-        self.win = tk.Toplevel(root_win)
-        self.win.transient(root_win)
+        self.root = root
+        self.win = tk.Toplevel(root)
+        self.win.transient(root)
         self.win.geometry(f"{width}x{height}+{x}+{y}")
-        owner._floating_windows.append(self.win)
-
-        def _on_destroy(_e, w=self.win) -> None:
-            try:
-                owner._cancel_after_events(w)
-            except Exception:
-                pass
-            if w in owner._floating_windows:
-                owner._floating_windows.remove(w)
-
-        self.win.bind("<Destroy>", _on_destroy)
         self.nb = ClosableNotebook(self.win)
         self.nb.pack(expand=True, fill="both")
+        self.win.bind("<Destroy>", self._on_destroy)
 
-    def detach_tab(self, tab_id: str) -> None:
-        """Move or clone *tab_id* from the owner into this window."""
+    # ------------------------------------------------------------------
+    # Window setup helpers
+    # ------------------------------------------------------------------
+    def add(self, widget: tk.Widget, text: str) -> None:
+        """Add *widget* to the notebook and run activation hooks."""
+        self.nb.add(widget, text=text)
+        self.nb.select(widget)
+        self._ensure_toolbox(widget)
+        self._activate_hooks(widget)
 
-        text = self.owner.tab(tab_id, "text")
+    def _ensure_toolbox(self, widget: tk.Widget) -> None:
+        """Ensure any toolbox frame is packed and functional."""
+        frame = getattr(widget, "toolbox", getattr(widget, "tools_frame", None))
+        if isinstance(frame, tk.Widget) and not frame.winfo_manager():
+            try:
+                frame.pack(side="left")
+            except Exception:
+                pass
+        selector = getattr(widget, "toolbox_selector", None)
+        switch = getattr(widget, "_switch_toolbox", None)
+        if isinstance(selector, ttk.Combobox) and callable(switch):
+            try:
+                selector.bind("<<ComboboxSelected>>", lambda _e: switch())
+            except Exception:
+                pass
+
+    def _activate_hooks(self, widget: tk.Widget) -> None:
+        """Invoke lifecycle hooks on *widget* if present."""
+        for name in ("_rebuild_toolboxes", "_activate_parent_phase", "_switch_toolbox"):
+            func = getattr(widget, name, None)
+            if callable(func):
+                try:
+                    func()
+                except Exception:
+                    pass
+
+    # ------------------------------------------------------------------
+    # Cleanup
+    # ------------------------------------------------------------------
+    def _on_destroy(self, _event: tk.Event) -> None:  # pragma: no cover - GUI event
+        """Cancel pending callbacks when the window is destroyed."""
         try:
-            if not self.owner._move_tab(tab_id, self.nb):
-                self.owner._clone_tab_contents(tab_id, self.nb, text, self.win)
-            else:
-                self.owner._post_clone_cleanup(self.nb)
-        except Exception as exc:  # pragma: no cover - log and re-raise
-            logger.exception("Failed to detach %s: %s", tab_id, exc)
-            self.win.destroy()
-            raise
+            cancel_after_events(self.win)
+        except Exception:
+            pass
