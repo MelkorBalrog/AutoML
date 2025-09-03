@@ -19,8 +19,6 @@
 -->
 
 # Version History
-- 0.2.238 - Remove duplicate toolboxes and diagram areas in detached windows
-          by pruning cloned widgets after rebuilding layouts.
 - 0.2.237 - Enforce keyword-only layouts and cancelled parameters in
           ``_clone_widget`` and add regression test confirming detached
           tabs render with and without a layouts mapping.
