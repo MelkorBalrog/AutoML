@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.240 - Unmap unexpected widgets during tab detachment and drop
+          destructive heuristics so detached tabs retain a single toolbox
+          and diagram. Add regression tests for detached tab content.
 - 0.2.237 - Enforce keyword-only layouts and cancelled parameters in
           ``_clone_widget`` and add regression test confirming detached
           tabs render with and without a layouts mapping.
