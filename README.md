@@ -1,4 +1,4 @@
-version: 0.2.234
+version: 0.2.235
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 # AutoML
 
