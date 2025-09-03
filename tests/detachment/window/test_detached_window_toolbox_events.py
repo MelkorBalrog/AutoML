@@ -57,7 +57,7 @@ class TestDetachedWindowToolboxes:
             pytest.skip("Tk not available")
         diagram = DummyDiagram(root)
         diagram.toolbox.pack_forget()
-        win = DetachedWindow(root, 200, 200, 10, 10)
+        win = DetachedWindow(root, width=200, height=200, x=10, y=10)
         win.add(diagram, "Tab")
         assert diagram.log[:3] == ["rebuild", "activate", "switch"]
         assert diagram.toolbox.winfo_manager() == "pack"
@@ -75,7 +75,7 @@ class TestDetachedWindowWidgetEvents:
             pytest.skip("Tk not available")
         diagram = DummyDiagram(root)
         diagram.toolbox.pack_forget()
-        win = DetachedWindow(root, 200, 200, 10, 10)
+        win = DetachedWindow(root, width=200, height=200, x=10, y=10)
         win.add(diagram, "Tab")
         count = diagram.log.count("switch")
         diagram.toolbox_selector.event_generate("<<ComboboxSelected>>")
