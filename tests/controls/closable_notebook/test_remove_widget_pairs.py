@@ -47,8 +47,8 @@ class TestWidgetRemoval:
 
         _remove_widget_pairs(parent, [(child1, child2)])
 
-        assert not child1.winfo_ismapped()
-        assert not child2.winfo_ismapped()
+        assert not child1.winfo_exists()
+        assert not child2.winfo_exists()
         assert child3.winfo_manager() == "pack"
         assert child3 in parent.winfo_children()
 
@@ -70,8 +70,8 @@ class TestWidgetRemoval:
 
         remove_ad_widgets(tab)
 
-        assert not a.winfo_ismapped()
-        assert not d.winfo_ismapped()
+        assert not a.winfo_exists()
+        assert not d.winfo_exists()
         assert b in tab.winfo_children()
         assert c in tab.winfo_children()
         assert b.winfo_manager() == "pack"
