@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.235 - Introduce ``DetachedWindow`` helper hosting detached diagrams with
+          functional toolboxes and event bindings. Add grouped window tests.
 - 0.2.234 - Guard ``root.deletecommand`` when the Tcl command table is missing
           or lacks the callback identifier so widget cleanup avoids
           ``invalid command name`` logs. Add regression tests covering
