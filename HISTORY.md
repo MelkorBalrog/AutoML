@@ -19,6 +19,7 @@
 -->
 
 # Version History
+- 0.2.229 - Route risk assessment work products to the Risk Assessment menu group.
 - 0.2.228 - Preserve toolbox frames for all open governance diagrams by
           avoiding global memory cleanup during toolbox switches.
 - 0.2.227 - Remove relation filtering when rebuilding toolboxes so all
