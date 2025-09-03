@@ -900,7 +900,6 @@ def reload_config() -> None:
     NODE_CONNECTION_LIMITS = _CONFIG.get("node_connection_limits", {})
     GUARD_NODES = set(_CONFIG.get("guard_nodes", []))
     _map_rule_nodes()
-    _expand_group_nodes_from_rules()
     _enforce_connection_rules()
     for ref in list(ARCH_WINDOWS):
         win = ref()

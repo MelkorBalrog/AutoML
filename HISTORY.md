@@ -25,7 +25,8 @@
 - 0.2.230 - Preserve toolbox contents after undo, redo and clipboard operations by
           refreshing active frames. Add regression tests for sync and
           refresh routines.
-- 0.2.229 - Preserve governance toolbox contents after diagram edits by
+- 0.2.229 - Route risk assessment work products to the Risk Assessment menu group.
+          - Preserve governance toolbox contents after diagram edits by
           retaining relation tools across focus changes. Add tests
           confirming focus events do not drop relations.
 - 0.2.228 - Preserve toolbox frames for all open governance diagrams by
