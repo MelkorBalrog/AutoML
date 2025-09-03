@@ -19,8 +19,6 @@
 -->
 
 # Version History
-- 0.2.242 - Import ClosableNotebook at runtime in DetachedWindow and add
-          integration test ensuring detached windows host a ClosableNotebook.
 - 0.2.241 - Cancel root-level animation callbacks and drop stray Tcl
           commands so detaching tabs no longer raises invalid-command
           errors. Add tests ensuring clone fallback when tab moves fail.
