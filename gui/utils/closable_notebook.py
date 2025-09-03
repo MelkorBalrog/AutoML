@@ -36,11 +36,6 @@ import functools
 import re
 from tkinter import ttk
 
-try:  # pragma: no cover - fallback for standalone imports
-    from .detached_window import DetachedWindow
-except Exception:  # pragma: no cover
-    from detached_window import DetachedWindow
-
 logger = logging.getLogger(__name__)
 
 
@@ -55,18 +50,13 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
         if tkapp_local is None:
             return
         try:
-            root = widget._root()
-        except Exception:
-            root = None
-        if root is not None and getattr(root, "_tclCommands", None) is None:
-            try:
-                root._tclCommands = []  # type: ignore[attr-defined]
-            except Exception:
-                pass
-        try:
             tkapp_local.call("after", "cancel", ident)
         except Exception:
             return
+        try:
+            root = widget._root()
+        except Exception:
+            root = None
         if root is not None:
             tcl_cmds = getattr(root, "_tclCommands", None)
             if tcl_cmds is not None and ident in tcl_cmds:
@@ -1447,8 +1437,24 @@ class ClosableNotebook(ttk.Notebook):
     ) -> tuple[tk.Toplevel, ttk.Notebook]:
         """Create and return a detached window and notebook."""
 
-        dw = DetachedWindow(self, width, height, x, y)
-        return dw.win, dw.nb
+        root_win = self._app_root
+        win = tk.Toplevel(root_win)
+        win.transient(root_win)
+        win.geometry(f"{width}x{height}+{x}+{y}")
+        self._floating_windows.append(win)
+
+        def _on_destroy(_e, w=win) -> None:
+            try:
+                self._cancel_after_events(w)
+            except Exception:
+                pass
+            if w in self._floating_windows:
+                self._floating_windows.remove(w)
+
+        win.bind("<Destroy>", _on_destroy)
+        nb = ClosableNotebook(win)
+        nb.pack(expand=True, fill="both")
+        return win, nb
 
     def _clone_tab_contents(
         self, tab_id: str, nb: "ClosableNotebook", text: str, win: tk.Toplevel
@@ -1497,11 +1503,15 @@ class ClosableNotebook(ttk.Notebook):
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
-        dw = DetachedWindow(self, width, height, x, y)
+        text = self.tab(tab_id, "text")
+        win, nb = self._create_floating_window(width, height, x, y)
         try:
-            dw.detach_tab(tab_id)
+            if not self._move_tab(tab_id, nb):
+                self._clone_tab_contents(tab_id, nb, text, win)
+            else:
+                self._post_clone_cleanup(nb)
         except Exception:
-            dw.win.destroy()
+            win.destroy()
             raise
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
