@@ -19,6 +19,20 @@
 -->
 
 # Version History
+- 0.2.236 - Cancel root-level animation callbacks and drop stray Tcl
+          commands so detaching tabs no longer raises invalid-command
+          errors. Add tests ensuring clone fallback when tab moves fail.
+- 0.2.237 - Introduce ``DetachedWindow`` manager for snapped-out tabs,
+          unifying floating-window creation and keeping toolboxes and
+          selections functional.  Harden after-callback cancellation to
+          avoid ``NoneType`` errors when purging Tcl commands.
+- 0.2.235 - Provide floating-window creation fallback and cancel stray
+          animation callbacks when detaching tabs.
+- 0.2.234 - Remove duplicate toolboxes and diagram areas in detached windows
+          by pruning cloned widgets after rebuilding layouts.
+- 0.2.233 - Cancel after-callbacks before moving tabs and reinitialize
+          toolboxes and parent-phase hooks so detached windows keep
+          functional toolboxes and avoid "invalid command name" errors.
 - 0.2.232 - Guard bug icon antenna drawing from negative coordinates to
              prevent Tk errors. Add regression test.
 - 0.2.231 - Populate toolbox groups from connection rules so Entities and Safety &
