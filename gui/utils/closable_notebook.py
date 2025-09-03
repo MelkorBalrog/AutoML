@@ -1568,16 +1568,14 @@ class ClosableNotebook(ttk.Notebook):
         expected: dict[tk.Widget, set[str]],
         reparented: set[tk.Widget],
     ) -> None:
-        """Recursively destroy widgets not expected under *parent*.
+        """Recursively clean duplicate widgets under *parent*.
 
-        Detached tabs sometimes end up with "middle" clones that neither
-        respond to user input nor render correctly. To keep the functional
-        widgets on the outer edges, unexpected children are deleted outright
-        rather than merely unmapped. The earlier approach of calling
-        ``pack_forget``/``grid_forget``/``place_forget`` left the unusable
-        widgets visible in some scenarios, so this routine now removes them
-        entirely. Future maintenance may revisit this strategy if upstream
-        detachment behaviour changes.
+        Unexpected widgets are merely removed from the geometry manager to
+        avoid destroying stateful components created by external toolkits. The
+        previous heuristic destroyed ``Frame``/``Treeview`` instances lacking
+        buttons which proved too aggressive and could discard user widgets.
+        This workaround keeps such widgets alive but hidden so maintenance can
+        revisit the strategy once upstream fixes land.
         """
 
         if not parent.winfo_exists():
@@ -1590,7 +1588,20 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             names = expected.get(parent, set())
             if child.winfo_name() not in names:
-                self._safe_destroy(child)
+                # Workaround for orphaned widgets: rather than destroying
+                # unexpected children we simply detach them from layout. Some
+                # frameworks attach hidden state to these widgets and destroying
+                # them can lead to hard-to-debug errors. Revisiting this logic
+                # once upstream detachment bugs are resolved is recommended.
+                for forget in (
+                    child.pack_forget,
+                    child.grid_forget,
+                    child.place_forget,
+                ):
+                    try:
+                        forget()
+                    except Exception:
+                        pass
 
     def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return a list of *widget* and all its descendants."""

@@ -19,8 +19,6 @@
 -->
 
 # Version History
-- 0.2.242 - Destroy stray widgets during detachment so only the first toolbox
-          and last diagram remain visible.
 - 0.2.241 - Fix widget pruning logic so detached tabs keep the first
           toolbox and last diagram while unmapping any stray duplicates.
 - 0.2.240 - Unmap unexpected widgets during tab detachment and drop
