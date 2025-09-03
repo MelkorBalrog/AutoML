@@ -537,6 +537,10 @@ class ClosableNotebook(ttk.Notebook):
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
+        try:
+            self._cancel_after_events(child)
+        except Exception:
+            pass
         self.forget(tab_id)
         ClosableNotebook._tab_hosts.pop(child, None)
         try:
@@ -1494,6 +1498,32 @@ class ClosableNotebook(ttk.Notebook):
         self._ensure_fills(child)
         self._raise_widgets(child, child)
         nb.select(tab)
+        toolbar = self._find_toolbar_frame(child)
+        if toolbar is not None:
+            try:
+                toolbar.pack(side="left")
+            except Exception:
+                pass
+            if not toolbar.winfo_children():
+                rebuild = getattr(child, "_rebuild_toolbar", None)
+                if callable(rebuild):
+                    try:
+                        rebuild()
+                    except Exception:
+                        pass
+        for name in ("_rebuild_toolboxes", "_activate_parent_phase"):
+            func = getattr(child, name, None)
+            if callable(func):
+                try:
+                    func()
+                except Exception:
+                    pass
+        switch = getattr(child, "_switch_toolbox", None)
+        if callable(switch):
+            try:
+                switch()
+            except Exception:
+                pass
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()

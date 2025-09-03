@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.233 - Cancel after-callbacks before moving tabs and reinitialize
+          toolboxes and parent-phase hooks so detached windows keep
+          functional toolboxes and avoid "invalid command name" errors.
 - 0.2.232 - Guard bug icon antenna drawing from negative coordinates to
              prevent Tk errors. Add regression test.
 - 0.2.231 - Populate toolbox groups from connection rules so Entities and Safety &
