@@ -1,5 +1,9 @@
-version: 0.2.235
+version: 0.2.246
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
+
+This release tracks expected children by widget identity and hides unexpected
+widgets during tab detachment, ensuring the functional toolbox and diagram
+remain while inert duplicates disappear.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
