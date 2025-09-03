@@ -73,8 +73,7 @@ class DetachedWindow:
         try:
             if not self.owner._move_tab(tab_id, self.nb):
                 self.owner._clone_tab_contents(tab_id, self.nb, text, self.win)
-            else:
-                self.owner._post_clone_cleanup(self.nb)
+            self.owner._post_clone_cleanup(self.nb)
         except Exception as exc:  # pragma: no cover - log and re-raise
             logger.exception("Failed to detach %s: %s", tab_id, exc)
             self.win.destroy()
