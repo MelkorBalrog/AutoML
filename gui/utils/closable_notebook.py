@@ -1544,9 +1544,9 @@ class ClosableNotebook(ttk.Notebook):
 
     def _collect_expected_children(
         self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> tuple[dict[tk.Widget, set[str]], set[tk.Widget]]:
-        """Return expected child names for each cloned parent."""
-        expected: dict[tk.Widget, set[str]] = {}
+    ) -> tuple[dict[tk.Widget, set[tk.Widget]], set[tk.Widget]]:
+        """Return expected child widgets for each cloned parent."""
+        expected: dict[tk.Widget, set[tk.Widget]] = {}
         reparented: set[tk.Widget] = set()
         for orig, clone in mapping.items():
             if isinstance(orig, tk.Canvas) and not orig.winfo_exists():
@@ -1556,7 +1556,7 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             parent_clone = mapping.get(orig.master)
             if parent_clone is not None:
-                expected.setdefault(parent_clone, set()).add(clone.winfo_name())
+                expected.setdefault(parent_clone, set()).add(clone)
             else:
                 reparented.add(clone)
         return expected, reparented
@@ -1565,17 +1565,16 @@ class ClosableNotebook(ttk.Notebook):
         self,
         parent: tk.Widget,
         keep: set[tk.Widget],
-        expected: dict[tk.Widget, set[str]],
+        expected: dict[tk.Widget, set[tk.Widget]],
         reparented: set[tk.Widget],
     ) -> None:
         """Recursively clean duplicate widgets under *parent*.
 
-        Unexpected widgets are merely removed from the geometry manager to
-        avoid destroying stateful components created by external toolkits. The
-        previous heuristic destroyed ``Frame``/``Treeview`` instances lacking
-        buttons which proved too aggressive and could discard user widgets.
-        This workaround keeps such widgets alive but hidden so maintenance can
-        revisit the strategy once upstream fixes land.
+        Unexpected widgets are safely destroyed to prevent duplicate state while
+        preserving widgets explicitly marked to keep or that were reparented.
+        `_safe_destroy` cancels callbacks before destruction to avoid
+        hard-to-debug errors. Revisiting this logic once upstream detachment
+        bugs are resolved is recommended.
         """
 
         if not parent.winfo_exists():
@@ -1586,22 +1585,11 @@ class ClosableNotebook(ttk.Notebook):
             self._prune_widget_tree(child, keep, expected, reparented)
             if child in keep or child in reparented:
                 continue
-            names = expected.get(parent, set())
-            if child.winfo_name() not in names:
-                # Workaround for orphaned widgets: rather than destroying
-                # unexpected children we simply detach them from layout. Some
-                # frameworks attach hidden state to these widgets and destroying
-                # them can lead to hard-to-debug errors. Revisiting this logic
-                # once upstream detachment bugs are resolved is recommended.
-                for forget in (
-                    child.pack_forget,
-                    child.grid_forget,
-                    child.place_forget,
-                ):
-                    try:
-                        forget()
-                    except Exception:
-                        pass
+            expected_children = expected.get(parent)
+            if expected_children and child not in expected_children:
+                # Destroy unexpected children while cancelling any pending
+                # callbacks to avoid duplicate state and resource leaks.
+                self._safe_destroy(child)
 
     def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return a list of *widget* and all its descendants."""

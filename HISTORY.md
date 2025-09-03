@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.242 - Track expected widgets via object identity and safely destroy
+          duplicates when pruning detached tab trees.
 - 0.2.241 - Fix widget pruning logic so detached tabs keep the first
           toolbox and last diagram while unmapping any stray duplicates.
 - 0.2.240 - Unmap unexpected widgets during tab detachment and drop
