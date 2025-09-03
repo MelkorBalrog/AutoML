@@ -19,9 +19,6 @@
 -->
 
 # Version History
-- 0.2.244 - Guard root-level command deletion by initialising the command
-          table and checking command existence. Cancel tab animations before
-          detachment and expand grouped detachment tests.
 - 0.2.243 - Invoke ``_post_clone_cleanup`` after cloning tabs so detached
           diagrams display a single toolbox and permit element selection.
           Expand window manager tests accordingly.
