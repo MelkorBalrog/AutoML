@@ -21,6 +21,49 @@ from typing import Optional
 import math
 
 
+def _put_safe(img: tk.PhotoImage, color: str, x: int, y: int, size: int) -> None:
+    """Draw a pixel only when coordinates fall inside the image bounds."""
+    if 0 <= x < size and 0 <= y < size:
+        img.put(color, (x, y))
+
+
+def _draw_bug(img: tk.PhotoImage, c: str, outline: str, size: int) -> None:
+    """Render a beetle-like bug icon with guarded pixel writes."""
+    mid = size // 2
+    body_top = 5
+    body_bottom = size - 3
+    rx = size // 2 - 3
+    ry = (body_bottom - body_top) // 2
+    cy = (body_top + body_bottom) // 2
+    for y in range(body_top, body_bottom):
+        for x in range(size):
+            norm = ((x - mid) ** 2) / (rx * rx) + ((y - cy) ** 2) / (ry * ry)
+            if norm <= 1:
+                img.put(c, (x, y))
+            if 1 <= norm <= 1.2:
+                img.put(outline, (x, y))
+    head_r = 3
+    head_cy = body_top - head_r + 1
+    for y in range(head_cy - head_r, head_cy + head_r + 1):
+        for x in range(mid - head_r, mid + head_r + 1):
+            dist = (x - mid) ** 2 + (y - head_cy) ** 2
+            if dist <= head_r * head_r:
+                _put_safe(img, c, x, y, size)
+            if head_r * head_r <= dist <= (head_r + 1) * (head_r + 1):
+                _put_safe(img, outline, x, y, size)
+    for i, ly in enumerate([cy - 2, cy, cy + 2]):
+        for dx in range(3):
+            _put_safe(img, outline, mid - rx - dx, ly + (dx % 2 - 1), size)
+            _put_safe(img, outline, mid + rx + dx, ly + (dx % 2 - 1), size)
+    for x, y in [
+        (mid - 1, head_cy - head_r - 1),
+        (mid - 2, head_cy - head_r - 2),
+        (mid + 1, head_cy - head_r - 1),
+        (mid + 2, head_cy - head_r - 2),
+    ]:
+        _put_safe(img, outline, x, y, size)
+
+
 def create_icon(
     shape: str,
     color: str = "black",
@@ -229,36 +272,7 @@ def create_icon(
             img.put(outline, (mid + span, 2 + y))
         img.put(outline, (mid, size - 2))
     elif shape == "bug":
-        mid = size // 2
-        body_top = 5
-        body_bottom = size - 3
-        rx = size // 2 - 3
-        ry = (body_bottom - body_top) // 2
-        cy = (body_top + body_bottom) // 2
-        for y in range(body_top, body_bottom):
-            for x in range(size):
-                norm = ((x - mid) ** 2) / (rx * rx) + ((y - cy) ** 2) / (ry * ry)
-                if norm <= 1:
-                    img.put(c, (x, y))
-                if 1 <= norm <= 1.2:
-                    img.put(outline, (x, y))
-        head_r = 3
-        head_cy = body_top - head_r + 1
-        for y in range(head_cy - head_r, head_cy + head_r + 1):
-            for x in range(mid - head_r, mid + head_r + 1):
-                dist = (x - mid) ** 2 + (y - head_cy) ** 2
-                if dist <= head_r * head_r:
-                    img.put(c, (x, y))
-                if head_r * head_r <= dist <= (head_r + 1) * (head_r + 1):
-                    img.put(outline, (x, y))
-        for i, ly in enumerate([cy - 2, cy, cy + 2]):
-            for dx in range(3):
-                img.put(outline, (mid - rx - dx, ly + (dx % 2 - 1)))
-                img.put(outline, (mid + rx + dx, ly + (dx % 2 - 1)))
-        img.put(outline, (mid - 1, head_cy - head_r - 1))
-        img.put(outline, (mid - 2, head_cy - head_r - 2))
-        img.put(outline, (mid + 1, head_cy - head_r - 1))
-        img.put(outline, (mid + 2, head_cy - head_r - 2))
+        _draw_bug(img, c, outline, size)
     elif shape == "building":
         img.put(c, to=(3,3,size-3,size-1))
         for x in range(3, size-3):
