@@ -125,7 +125,7 @@ def test_apply_model_enables_governed_work_products(monkeypatch):
     toolbox.add_work_product("Gov", "HAZOP", "Rationale")
     data = {"safety_mgmt_toolbox": toolbox.to_dict()}
     app.apply_model_data(data, ensure_root=False)
-    assert set(enabled) == {"HAZOP", "Qualitative Analysis"}
+    assert set(enabled) == {"HAZOP", "Risk Assessment"}
 
 
 def test_apply_model_enables_multiple_work_products(monkeypatch):
@@ -148,7 +148,7 @@ def test_apply_model_enables_multiple_work_products(monkeypatch):
         "HAZOP",
         "STPA",
         "Threat Analysis",
-        "Qualitative Analysis",
+        "Risk Assessment",
     } <= enabled
 
 
@@ -228,4 +228,4 @@ def test_only_active_phase_work_products_enabled_on_load(monkeypatch):
 
     new_app.safety_mgmt_toolbox.set_active_module("Phase2")
     new_app.refresh_tool_enablement()
-    assert new_app.enabled_work_products == {"HAZOP", "Qualitative Analysis"}
+    assert new_app.enabled_work_products == {"HAZOP", "Risk Assessment"}

@@ -370,9 +370,9 @@ def test_work_product_disables_when_leaving_phase(monkeypatch):
     "analysis,parent",
     [
         ("FTA", None),
-        ("Threat Analysis", "Qualitative Analysis"),
-        ("FI2TC", "Qualitative Analysis"),
-        ("TC2FI", "Qualitative Analysis"),
+        ("Threat Analysis", "Risk Assessment"),
+        ("FI2TC", "Risk Assessment"),
+        ("TC2FI", "Risk Assessment"),
         ("FMEA", "Qualitative Analysis"),
         ("FMEDA", "Quantitative Analysis"),
         ("Causal Bayesian Network Analysis", "Quantitative Analysis"),
