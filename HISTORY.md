@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.228 - Preserve toolbox frames for all open governance diagrams by
+          avoiding global memory cleanup during toolbox switches.
 - 0.2.227 - Remove relation filtering when rebuilding toolboxes so all
           defined relationships remain visible across diagram sessions.
 - 0.2.226 - Map all nodes appearing in connection rules to toolbox groups and

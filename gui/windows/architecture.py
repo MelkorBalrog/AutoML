@@ -12376,7 +12376,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         for frame in frames:
             if frame and hasattr(frame, "pack"):
                 frame.pack(fill=tk.X, padx=2, pady=2)
-        memory_manager.cleanup()
 
     class _SelectDialog(simpledialog.Dialog):  # pragma: no cover - requires tkinter
         def __init__(self, parent, title: str, options: list[str]):
