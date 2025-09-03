@@ -1369,13 +1369,6 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
-        # Remove any orphaned originals that slipped through cloning so the
-        # detached window only displays the toolbox on the left and the diagram
-        # on the right.  This restores the pruning routine that was previously
-        # lost, which caused non-functional duplicates to linger in the middle
-        # of the window.
-        self._prune_duplicates(dw.win, mapping, {child})
-        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
@@ -1563,8 +1556,6 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             parent_clone = mapping.get(orig.master)
             if parent_clone is not None:
-                # Track clone widgets directly so original widgets with the
-                # same name can still be identified and removed.
                 expected.setdefault(parent_clone, set()).add(clone)
             else:
                 reparented.add(clone)
@@ -1579,13 +1570,11 @@ class ClosableNotebook(ttk.Notebook):
     ) -> None:
         """Recursively clean duplicate widgets under *parent*.
 
-        Any child absent from the ``expected`` mapping is merely unmapped via
-        the appropriate geometry manager.  Relying on widget identity rather
-        than names keeps the intended toolbox and diagram clones visible while
-        hiding inert originals that would otherwise pile up in the detached
-        window.  Destroying these widgets outright previously broke external
-        references and could leave the window empty; this workaround can be
-        revisited once the detachment process is more robust.
+        Unexpected widgets are safely destroyed to prevent duplicate state while
+        preserving widgets explicitly marked to keep or that were reparented.
+        `_safe_destroy` cancels callbacks before destruction to avoid
+        hard-to-debug errors. Revisiting this logic once upstream detachment
+        bugs are resolved is recommended.
         """
 
         if not parent.winfo_exists():
@@ -1598,18 +1587,9 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             expected_children = expected.get(parent)
             if expected_children and child not in expected_children:
-                # Unmap unexpected widgets so only the desired toolbox and
-                # diagram remain visible.
-                for mgr in ("pack", "grid", "place"):
-                    info = getattr(child, f"{mgr}_info", None)
-                    forget = getattr(child, f"{mgr}_forget", None)
-                    if info and forget:
-                        try:
-                            if info():
-                                forget()
-                                break
-                        except Exception:
-                            pass
+                # Destroy unexpected children while cancelling any pending
+                # callbacks to avoid duplicate state and resource leaks.
+                self._safe_destroy(child)
 
     def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return a list of *widget* and all its descendants."""

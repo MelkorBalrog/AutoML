@@ -849,13 +849,14 @@ class TestAnimatedWidgetDetach:
         root.destroy()
 
 
-@pytest.mark.detached_tab
-@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
-class TestDetachedTabRegression:
+class TestDetachedTab:
     """Detached tab regression tests."""
 
     def test_detached_tab_has_single_toolbox_and_diagram(self):
-        root = tk.Tk()
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
         nb = ClosableNotebook(root)
         frame = ttk.Frame(nb)
         ttk.Frame(frame, name="toolbox").pack(side="left")
