@@ -103,11 +103,15 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
         root = None
     if root is not None:
         tcl_cmds = getattr(root, "_tclCommands", None) or []
-        for ident in list(tcl_cmds):
-            if ident in cancelled:
+        for cmd in list(tcl_cmds):
+            if cmd in cancelled:
                 continue
-            if ident.startswith(str(widget)) or ident.endswith(("_anim", "_after", "_timer", "_animate")):
-                _cancel_ident(ident)
+            if str(widget) in cmd or cmd.endswith(("_anim", "_after", "_timer", "_animate")):
+                try:
+                    root.deletecommand(cmd)
+                except Exception:
+                    pass
+                cancelled.add(cmd)
 
     try:
         for name in dir(widget):

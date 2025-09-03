@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.240 - Cancel root-level animation callbacks and drop stray Tcl
+          commands so detaching tabs no longer raises invalid-command
+          errors. Add tests ensuring clone fallback when tab moves fail.
 - 0.2.239 - Provide floating-window creation fallback and cancel stray
           animation callbacks when detaching tabs.
 - 0.2.238 - Remove duplicate toolboxes and diagram areas in detached windows
