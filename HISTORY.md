@@ -19,9 +19,6 @@
 -->
 
 # Version History
-- 0.2.243 - Invoke ``_post_clone_cleanup`` after cloning tabs so detached
-          diagrams display a single toolbox and permit element selection.
-          Expand window manager tests accordingly.
 - 0.2.242 - Import ClosableNotebook at runtime in DetachedWindow and add
           integration test ensuring detached windows host a ClosableNotebook.
 - 0.2.241 - Cancel root-level animation callbacks and drop stray Tcl
