@@ -564,6 +564,7 @@ class ClosableNotebook(ttk.Notebook):
         widget: tk.Widget,
         parent: tk.Widget,
         mapping: dict[tk.Widget, tk.Widget] | None = None,
+        *,
         layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]] | None = None,
         cancelled: set[str] | None = None,
     ) -> tuple[
@@ -630,7 +631,11 @@ class ClosableNotebook(ttk.Notebook):
                     if child in mapping:
                         continue
                     child_clone, mapping, layouts = self._clone_widget(
-                        child, clone, mapping, layouts, cancelled
+                        child,
+                        clone,
+                        mapping,
+                        layouts=layouts,
+                        cancelled=cancelled,
                     )
                     mapping[child] = child_clone
             self._copy_widget_state(widget, clone)
@@ -667,7 +672,11 @@ class ClosableNotebook(ttk.Notebook):
         for child in self._ordered_children(widget):
             try:
                 child_clone, mapping, layouts = self._clone_widget(
-                    child, clone, mapping, layouts, cancelled
+                    child,
+                    clone,
+                    mapping,
+                    layouts=layouts,
+                    cancelled=cancelled,
                 )
             except Exception as exc:
                 logger.exception("Failed to clone child %s: %s", child, exc)
@@ -789,7 +798,11 @@ class ClosableNotebook(ttk.Notebook):
                 except Exception:
                     continue
                 child_clone, mapping, layouts = self._clone_widget(
-                    child, clone, mapping, layouts, cancelled
+                    child,
+                    clone,
+                    mapping,
+                    layouts=layouts,
+                    cancelled=cancelled,
                 )
                 mapping[child] = child_clone
                 cfg = {
@@ -1349,7 +1362,12 @@ class ClosableNotebook(ttk.Notebook):
         self._cancel_after_events(orig, cancelled)
         self.forget(orig)
         mapping: dict[tk.Widget, tk.Widget] = {}
-        child, mapping, _layouts = self._clone_widget(orig, dw.nb, mapping, cancelled)
+        child, mapping, _layouts = self._clone_widget(
+            orig,
+            dw.nb,
+            mapping,
+            cancelled=cancelled,
+        )
         self._reassign_widget_references(mapping)
         dw.add(child, text)
 
