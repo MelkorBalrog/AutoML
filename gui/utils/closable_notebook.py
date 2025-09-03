@@ -1369,13 +1369,6 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
-        # Remove any orphaned originals that slipped through cloning so the
-        # detached window only displays the toolbox on the left and the diagram
-        # on the right.  This restores the pruning routine that was previously
-        # lost, which caused non-functional duplicates to linger in the middle
-        # of the window.
-        self._prune_duplicates(dw.win, mapping, {child})
-        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
