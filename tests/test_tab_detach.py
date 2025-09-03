@@ -849,7 +849,6 @@ class TestAnimatedWidgetDetach:
         root.destroy()
 
 
-@pytest.mark.detached_tab
 class TestDetachedTab:
     """Detached tab regression tests."""
 
@@ -878,16 +877,8 @@ class TestDetachedTab:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_frame = new_nb.nametowidget(new_nb.tabs()[0])
-        toolboxes = [
-            w
-            for w in new_frame.winfo_children()
-            if w.winfo_name() == "toolbox" and w.winfo_ismapped()
-        ]
-        diagrams = [
-            w
-            for w in new_frame.winfo_children()
-            if w.winfo_name() == "diagram" and w.winfo_ismapped()
-        ]
+        toolboxes = [w for w in new_frame.winfo_children() if w.winfo_name() == "toolbox"]
+        diagrams = [w for w in new_frame.winfo_children() if w.winfo_name() == "diagram"]
         assert len(toolboxes) == 1
         assert len(diagrams) == 1
         root.destroy()

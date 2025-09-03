@@ -1,9 +1,8 @@
-version: 0.2.245
+version: 0.2.241
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-This release unmaps unexpected widgets during tab detachment so only
-the functional toolbox and diagram remain visible, hiding inert
-duplicates that previously appeared in detached windows.
+This release corrects widget pruning after tab detachment to keep a
+single functional toolbox and diagram while unmapping stray duplicates.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.

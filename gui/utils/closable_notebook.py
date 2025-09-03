@@ -1369,13 +1369,6 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
-        # Remove any orphaned originals that slipped through cloning so the
-        # detached window only displays the toolbox on the left and the diagram
-        # on the right.  This restores the pruning routine that was previously
-        # lost, which caused non-functional duplicates to linger in the middle
-        # of the window.
-        self._prune_duplicates(dw.win, mapping, {child})
-        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
@@ -1577,11 +1570,11 @@ class ClosableNotebook(ttk.Notebook):
     ) -> None:
         """Recursively clean duplicate widgets under *parent*.
 
-        Unexpected children are temporarily unmapped so only the intended
-        toolbox and diagram remain visible. The widgets are left intact to
-        avoid side effects until upstream detachment handling stabilises.
-        Future maintenance should revisit whether safe destruction is
-        preferable once the root cause is fixed.
+        Unexpected widgets are safely destroyed to prevent duplicate state while
+        preserving widgets explicitly marked to keep or that were reparented.
+        `_safe_destroy` cancels callbacks before destruction to avoid
+        hard-to-debug errors. Revisiting this logic once upstream detachment
+        bugs are resolved is recommended.
         """
 
         if not parent.winfo_exists():
@@ -1592,20 +1585,11 @@ class ClosableNotebook(ttk.Notebook):
             self._prune_widget_tree(child, keep, expected, reparented)
             if child in keep or child in reparented:
                 continue
-            names = expected.get(parent)
-            if names and child.winfo_name() not in names:
-                # Hide stray widgets using all geometry managers instead of
-                # destroying them. This workaround keeps clones functional
-                # while preventing inert duplicates from appearing in detached
-                # windows. Revisit once detachment no longer produces
-                # duplicates.
-                for method in ("pack_forget", "grid_forget", "place_forget"):
-                    forget = getattr(child, method, None)
-                    if forget:
-                        try:
-                            forget()
-                        except Exception:
-                            continue
+            expected_children = expected.get(parent)
+            if expected_children and child not in expected_children:
+                # Destroy unexpected children while cancelling any pending
+                # callbacks to avoid duplicate state and resource leaks.
+                self._safe_destroy(child)
 
     def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return a list of *widget* and all its descendants."""
