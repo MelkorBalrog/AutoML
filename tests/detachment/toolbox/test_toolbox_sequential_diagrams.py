@@ -68,7 +68,6 @@ class _DummyWindow:
         for frame in frames:
             if frame and hasattr(frame, "pack"):
                 frame.pack()
-        memory_manager.cleanup()
 
     def on_close(self) -> None:
         prefix = f"{self.diagram_id}:{id(self)}:toolbox:"
@@ -105,4 +104,21 @@ class TestSequentialToolboxPersistence:
         frame2 = win2._toolbox_frames["Rel"][0]
         assert frame1.relations == ["R1"]
         assert frame2.relations == ["R2"]
+        win2.on_close()
+
+
+class TestConcurrentToolboxPersistence:
+    """Tests verifying multiple windows retain their toolboxes when open."""
+
+    def test_windows_preserve_toolboxes(self) -> None:
+        memory_manager.cleanup()
+        win1 = _open_window(["A"], ["R1"])
+        win2 = _open_window(["B"], ["R2"])
+        frame1 = win1._toolbox_frames["Rel"][0]
+        frame2 = win2._toolbox_frames["Rel"][0]
+        assert frame1.elements == ["A"]
+        assert frame1.relations == ["R1"]
+        assert frame2.elements == ["B"]
+        assert frame2.relations == ["R2"]
+        win1.on_close()
         win2.on_close()

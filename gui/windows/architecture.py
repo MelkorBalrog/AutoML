@@ -34,6 +34,7 @@ import copy
 from pathlib import Path
 from dataclasses import dataclass, field, asdict, replace
 from typing import Dict, List, Tuple, Callable
+import warnings
 
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository, SysMLDiagram, SysMLElement
 from gui.styles.style_manager import StyleManager
@@ -287,6 +288,8 @@ GOV_CORE_NODES = [n for n in ["Work Product", "Lifecycle Phase"] if n in GOVERNA
 for n in GOV_CORE_NODES:
     NODE_TO_GROUP[n] = "Governance Core"
 
+UNMAPPED_GROUP = "Unmapped"
+
 # Directed relationship rules for connections between Safety & AI elements.
 # Each entry maps a connection type to allowed source and target element
 # combinations. Rules are only enforced when both endpoints are Safety & AI
@@ -310,6 +313,35 @@ NODE_CONNECTION_LIMITS: dict[str, int] = _CONFIG.get("node_connection_limits", {
 
 # Node types that require guards on outgoing flows
 GUARD_NODES = set(_CONFIG.get("guard_nodes", []))
+
+
+def _map_rule_nodes() -> None:
+    """Ensure ``NODE_TO_GROUP`` includes nodes from all connection rules."""
+    rule_nodes: set[str] = set()
+    for conns in CONNECTION_RULES.values():
+        for srcs in conns.values():
+            for src, dests in srcs.items():
+                rule_nodes.add(src)
+                rule_nodes.update(dests)
+    for srcs in SAFETY_AI_RELATION_RULES.values():
+        for src, dests in srcs.items():
+            rule_nodes.add(src)
+            rule_nodes.update(dests)
+    for node in rule_nodes:
+        NODE_TO_GROUP.setdefault(node, UNMAPPED_GROUP)
+
+
+def _expand_group_nodes_from_rules() -> None:
+    """Ensure toolbox groups include nodes referenced in connection rules."""
+    for node, group in NODE_TO_GROUP.items():
+        if group in {UNMAPPED_GROUP, "Safety & AI Lifecycle", "Governance Core"}:
+            continue
+        nodes = GOV_ELEMENT_CLASSES.setdefault(group, [])
+        if node not in nodes:
+            nodes.append(node)
+
+_map_rule_nodes()
+_expand_group_nodes_from_rules()
 
 
 def _connection_rule_allows(
@@ -379,9 +411,15 @@ def _external_relations_for(nodes: list[str]) -> dict[str, dict[str, list[str]]]
             src_group = NODE_TO_GROUP.get(src)
             for dest in dests:
                 dest_group = NODE_TO_GROUP.get(dest)
-                if src in node_set and dest not in node_set and dest_group:
+                if src in node_set and dest not in node_set:
+                    if not dest_group:
+                        warnings.warn(f"No toolbox group for node '{dest}'")
+                        dest_group = UNMAPPED_GROUP
                     add(dest_group, dest, rel)
-                elif dest in node_set and src not in node_set and src_group:
+                elif dest in node_set and src not in node_set:
+                    if not src_group:
+                        warnings.warn(f"No toolbox group for node '{src}'")
+                        src_group = UNMAPPED_GROUP
                     add(src_group, src, rel)
 
     for rel, srcs in SAFETY_AI_RELATION_RULES.items():
@@ -389,9 +427,15 @@ def _external_relations_for(nodes: list[str]) -> dict[str, dict[str, list[str]]]
             src_group = NODE_TO_GROUP.get(src)
             for dest in dests:
                 dest_group = NODE_TO_GROUP.get(dest)
-                if src in node_set and dest not in node_set and dest_group:
+                if src in node_set and dest not in node_set:
+                    if not dest_group:
+                        warnings.warn(f"No toolbox group for node '{dest}'")
+                        dest_group = UNMAPPED_GROUP
                     add(dest_group, dest, rel)
-                elif dest in node_set and src not in node_set and src_group:
+                elif dest in node_set and src not in node_set:
+                    if not src_group:
+                        warnings.warn(f"No toolbox group for node '{src}'")
+                        src_group = UNMAPPED_GROUP
                     add(src_group, src, rel)
 
     result: dict[str, dict[str, list[str]]] = {}
@@ -403,40 +447,6 @@ def _external_relations_for(nodes: list[str]) -> dict[str, dict[str, list[str]]]
     return result
 
 
-def _dedup_category(data: dict, seen: set[str] | None = None) -> None:
-    """Remove duplicate relations within ``data`` and its externals.
-
-    When ``seen`` is provided the set is used to track relationships across
-    categories so each relationship only appears once in the toolbox overall.
-    Any relations kept in ``data`` or its externals are added to ``seen`` for
-    subsequent calls.
-    """
-
-    if seen is None:
-        seen = set()
-    rels: list[str] = []
-    for r in data.get("relations", []) or []:
-        if r not in seen:
-            seen.add(r)
-            rels.append(r)
-    data["relations"] = rels
-    for sub in data.get("externals", {}).values():
-        sub_rels: list[str] = []
-        for r in sub.get("relations", []) or []:
-            if r not in seen:
-                seen.add(r)
-                sub_rels.append(r)
-        sub["relations"] = sub_rels
-
-
-def _dedup_core_category(data: dict) -> None:
-    """Deduplicate Governance Core lists without cross-checking externals."""
-
-    data["relations"] = list(dict.fromkeys(data.get("relations", []) or []))
-    for sub in data.get("externals", {}).values():
-        sub["relations"] = list(dict.fromkeys(sub.get("relations", []) or []))
-
-
 def _core_toolbox_template() -> dict[str, list[str] | dict]:
     """Return a pristine Governance Core toolbox definition."""
 
@@ -445,7 +455,6 @@ def _core_toolbox_template() -> dict[str, list[str] | dict]:
         "relations": _relations_for(GOV_CORE_NODES),
         "externals": copy.deepcopy(_external_relations_for(GOV_CORE_NODES)),
     }
-    _dedup_core_category(core)
     return core
 
 def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
@@ -473,43 +482,6 @@ def _toolbox_defs() -> dict[str, dict[str, list[str] | dict]]:
     # simply remain blank.
     defs["Governance Core"] = _core_toolbox_template()
     return defs
-
-
-def _filter_global_relations(
-    defs: dict[str, dict], ai_data: dict | None, global_rels: set[str]
-) -> None:
-    """Remove ``global_rels`` from category definitions."""
-
-    for name, data in defs.items():
-        if name == "Governance Core":
-            continue
-        data["relations"] = [
-            r for r in data.get("relations", []) if r not in global_rels
-        ]
-        for sub in data.get("externals", {}).values():
-            sub["relations"] = [
-                r for r in sub.get("relations", []) if r not in global_rels
-            ]
-    if ai_data:
-        ai_data["relations"] = [
-            r for r in ai_data.get("relations", []) if r not in global_rels
-        ]
-        for sub in ai_data.get("externals", {}).values():
-            sub["relations"] = [
-                r for r in sub.get("relations", []) if r not in global_rels
-            ]
-
-
-def _deduplicate_relations(defs: dict[str, dict], ai_data: dict | None) -> None:
-    """Deduplicate relations within each category while preserving order."""
-
-    for name, data in defs.items():
-        if name == "Governance Core":
-            _dedup_core_category(data)
-        else:
-            _dedup_category(data)
-    if ai_data:
-        _dedup_category(ai_data)
 
 
 def _gov_connection_text(node_type: str) -> str:
@@ -880,6 +852,8 @@ def reload_config() -> None:
     }
     NODE_CONNECTION_LIMITS = _CONFIG.get("node_connection_limits", {})
     GUARD_NODES = set(_CONFIG.get("guard_nodes", []))
+    _map_rule_nodes()
+    _expand_group_nodes_from_rules()
     _enforce_connection_rules()
     for ref in list(ARCH_WINDOWS):
         win = ref()
@@ -3705,7 +3679,6 @@ class SysMLDiagramWindow(tk.Frame):
 
         relation_tools = list(relation_tools or [])
         self.relation_tools = relation_tools
-        self._has_relation_filters = bool(relation_tools)
 
         if isinstance(self.master, tk.Toplevel):
             self.master.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -3946,8 +3919,6 @@ class SysMLDiagramWindow(tk.Frame):
 
     def _on_focus_out(self, event=None):
         self._sync_to_repository()
-        self.relation_tools = []
-        self._has_relation_filters = False
 
     def _fit_toolbox(self) -> None:
         """Resize the toolbox to the smallest width that shows all button text."""
@@ -9693,6 +9664,7 @@ class SysMLDiagramWindow(tk.Frame):
                     parent_name = self._task_parent_name(self.selected_obj)
                 self.app.diagram_clipboard.diagram_clipboard_parent_name = parent_name
             self.app.diagram_clipboard.diagram_clipboard_type = diag.diag_type if diag else None
+            self._switch_toolbox()
 
     def cut_selected(self, _event=None):
         if self.repo.diagram_read_only(self.diagram_id):
@@ -9728,6 +9700,7 @@ class SysMLDiagramWindow(tk.Frame):
             self._sync_to_repository()
             self.redraw()
             self.update_property_view()
+            self._switch_toolbox()
 
     def paste_selected(self, _event=None):
         if self.repo.diagram_read_only(self.diagram_id):
@@ -9828,6 +9801,7 @@ class SysMLDiagramWindow(tk.Frame):
             self.update_property_view()
             self.app.diagram_clipboard.diagram_clipboard = None
             self.app.diagram_clipboard.cut_mode = False
+            self._switch_toolbox()
 
     def _remove_wp_and_disable(self, name: str, wp) -> None:
         toolbox = getattr(self.app, "safety_mgmt_toolbox", None) or ACTIVE_TOOLBOX
@@ -10184,6 +10158,7 @@ class SysMLDiagramWindow(tk.Frame):
                                 o.obj_id == data["obj_id"] for o in self.objects
                             ):
                                 self.objects.append(SysMLObject(**data))
+        self._switch_toolbox()
 
     def refresh_from_repository(self, _event=None) -> None:
         """Reload diagram objects from the repository and redraw."""
@@ -10224,6 +10199,7 @@ class SysMLDiagramWindow(tk.Frame):
             _next_obj_id = max(o.obj_id for o in self.objects) + 1
         self.redraw()
         self.update_property_view()
+        self._switch_toolbox()
 
     def on_close(self):
         diag_id = getattr(self, "diagram_id", "0")
@@ -10232,7 +10208,6 @@ class SysMLDiagramWindow(tk.Frame):
         ARCH_WINDOWS.discard(getattr(self, "_arch_ref", None))
         self._sync_to_repository()
         self.relation_tools = []
-        self._has_relation_filters = False
         self.destroy()
 
 
@@ -12202,10 +12177,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         defs = copy.deepcopy(_toolbox_defs())
         ai_data = defs.pop("Safety & AI Lifecycle", None)
         defs["Governance Core"] = _core_toolbox_template()
-        global_rels = set(getattr(self, "relation_tools", []))
-        if getattr(self, "_has_relation_filters", False) and global_rels:
-            _filter_global_relations(defs, ai_data, global_rels)
-        _deduplicate_relations(defs, ai_data)
         if hasattr(self.tools_frame, "pack_forget"):
             self.tools_frame.pack_forget()
         if getattr(self, "rel_frame", None) and hasattr(self.rel_frame, "pack_forget"):
@@ -12372,7 +12343,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         for frame in frames:
             if frame and hasattr(frame, "pack"):
                 frame.pack(fill=tk.X, padx=2, pady=2)
-        memory_manager.cleanup()
 
     class _SelectDialog(simpledialog.Dialog):  # pragma: no cover - requires tkinter
         def __init__(self, parent, title: str, options: list[str]):
