@@ -50,19 +50,29 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
     if cancelled is None:
         cancelled = set()
 
+    try:
+        root = widget._root()
+    except Exception:
+        root = None
+    if root is not None and getattr(root, "_tclCommands", None) is None:
+        try:
+            root._tclCommands = []  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+    def _delete_command(cmd: str) -> None:
+        if root is None:
+            return
+        try:
+            if root.tk.call("info", "commands", cmd):
+                root.deletecommand(cmd)
+        except Exception:
+            pass
+
     def _cancel_ident(ident: str) -> None:
         tkapp_local = getattr(widget, "tk", None)
         if tkapp_local is None:
             return
-        try:
-            root = widget._root()
-        except Exception:
-            root = None
-        if root is not None and getattr(root, "_tclCommands", None) is None:
-            try:
-                root._tclCommands = []  # type: ignore[attr-defined]
-            except Exception:
-                pass
         try:
             tkapp_local.call("after", "cancel", ident)
         except Exception:
@@ -70,10 +80,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
         if root is not None:
             tcl_cmds = getattr(root, "_tclCommands", None)
             if tcl_cmds is not None and ident in tcl_cmds:
-                try:
-                    root.deletecommand(ident)
-                except Exception:
-                    pass
+                _delete_command(ident)
         cancelled.add(ident)
 
     tkapp = getattr(widget, "tk", None)
@@ -117,10 +124,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             if cmd in cancelled:
                 continue
             if str(widget) in cmd or cmd.endswith(("_anim", "_after", "_timer", "_animate")):
-                try:
-                    root.deletecommand(cmd)
-                except Exception:
-                    pass
+                _delete_command(cmd)
                 cancelled.add(cmd)
 
     try:
@@ -1495,6 +1499,15 @@ class ClosableNotebook(ttk.Notebook):
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
+        try:
+            tab_widget = self.nametowidget(tab_id)
+        except Exception:
+            tab_widget = None
+        if tab_widget is not None:
+            try:
+                cancel_after_events(tab_widget)
+            except Exception:
+                pass
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
         dw = DetachedWindow(self, width, height, x, y)
