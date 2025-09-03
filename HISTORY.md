@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.244 - Provide ``remove_ad_widgets`` helper to unmap first and fourth tab
+          widgets while keeping remaining children attached.
 - 0.2.243 - Introduce ``_remove_widget_pairs`` utility to unmap specified
           widget pairs while leaving remaining tab children intact.
 - 0.2.242 - Track expected widgets via object identity and safely destroy
