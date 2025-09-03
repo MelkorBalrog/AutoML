@@ -1369,6 +1369,13 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
+        # Remove any orphaned originals that slipped through cloning so the
+        # detached window only displays the toolbox on the left and the diagram
+        # on the right.  This restores the pruning routine that was previously
+        # lost, which caused non-functional duplicates to linger in the middle
+        # of the window.
+        self._prune_duplicates(dw.win, mapping, {child})
+        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
@@ -1544,9 +1551,9 @@ class ClosableNotebook(ttk.Notebook):
 
     def _collect_expected_children(
         self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> tuple[dict[tk.Widget, set[str]], set[tk.Widget]]:
-        """Return expected child names for each cloned parent."""
-        expected: dict[tk.Widget, set[str]] = {}
+    ) -> tuple[dict[tk.Widget, set[tk.Widget]], set[tk.Widget]]:
+        """Return expected cloned children for each cloned parent."""
+        expected: dict[tk.Widget, set[tk.Widget]] = {}
         reparented: set[tk.Widget] = set()
         for orig, clone in mapping.items():
             if isinstance(orig, tk.Canvas) and not orig.winfo_exists():
@@ -1556,7 +1563,7 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             parent_clone = mapping.get(orig.master)
             if parent_clone is not None:
-                expected.setdefault(parent_clone, set()).add(clone.winfo_name())
+                expected.setdefault(parent_clone, set()).add(clone)
             else:
                 reparented.add(clone)
         return expected, reparented
@@ -1565,10 +1572,18 @@ class ClosableNotebook(ttk.Notebook):
         self,
         parent: tk.Widget,
         keep: set[tk.Widget],
-        expected: dict[tk.Widget, set[str]],
+        expected: dict[tk.Widget, set[tk.Widget]],
         reparented: set[tk.Widget],
     ) -> None:
-        """Recursively destroy duplicate widgets under *parent*."""
+        """Recursively clean duplicate widgets under *parent*.
+
+        Unexpected widgets are merely removed from the geometry manager to
+        avoid destroying stateful components created by external toolkits. The
+        previous heuristic destroyed ``Frame``/``Treeview`` instances lacking
+        buttons which proved too aggressive and could discard user widgets.
+        This workaround keeps such widgets alive but hidden so maintenance can
+        revisit the strategy once upstream fixes land.
+        """
 
         if not parent.winfo_exists():
             return
@@ -1578,22 +1593,24 @@ class ClosableNotebook(ttk.Notebook):
             self._prune_widget_tree(child, keep, expected, reparented)
             if child in keep or child in reparented:
                 continue
-            names = expected.get(parent, set())
-            if child.winfo_name() in names or (
-                isinstance(child, (tk.Frame, ttk.Frame, ttk.Treeview))
-                and not any(
-                    isinstance(gc, (tk.Button, ttk.Button))
-                    for gc in child.winfo_children()
-                )
-            ):
-                try:
-                    self._cancel_after_events(child)
-                except Exception:
-                    pass
-                try:
-                    child.destroy()
-                except Exception:
-                    pass
+            children = expected.get(parent)
+            if children and child not in children:
+                # Workaround for orphaned widgets: rather than destroying
+                # unexpected children we simply detach them from layout. Some
+                # frameworks attach hidden state to these widgets and destroying
+                # them can lead to hard-to-debug errors. When ``expected`` is
+                # missing we conservatively skip pruning to avoid clearing the
+                # entire interface. Revisiting this logic once upstream
+                # detachment bugs are resolved is recommended.
+                for forget in (
+                    child.pack_forget,
+                    child.grid_forget,
+                    child.place_forget,
+                ):
+                    try:
+                        forget()
+                    except Exception:
+                        pass
 
     def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return a list of *widget* and all its descendants."""
