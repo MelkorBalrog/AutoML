@@ -19,8 +19,6 @@
 -->
 
 # Version History
-- 0.2.238 - Prune duplicate widgets when detaching tabs and destroy
-          original frames to ensure a single set of controls.
 - 0.2.237 - Enforce keyword-only layouts and cancelled parameters in
           ``_clone_widget`` and add regression test confirming detached
           tabs render with and without a layouts mapping.
