@@ -1369,6 +1369,8 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
+        self._prune_duplicates(dw.win, mapping, {child})
+        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
