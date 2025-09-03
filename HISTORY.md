@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.232 - Guard bug icon antenna drawing from negative coordinates to
+             prevent Tk errors. Add regression test.
 - 0.2.231 - Populate toolbox groups from connection rules so Entities and Safety &
           Security Mgmt categories expose all rule-defined elements and
           relations. Add grouped tests for toolbox externals.
