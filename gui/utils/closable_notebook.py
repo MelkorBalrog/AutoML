@@ -537,6 +537,10 @@ class ClosableNotebook(ttk.Notebook):
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
+        try:
+            self._cancel_after_events(child)
+        except Exception:
+            pass
         self.forget(tab_id)
         ClosableNotebook._tab_hosts.pop(child, None)
         try:
@@ -1384,48 +1388,11 @@ class ClosableNotebook(ttk.Notebook):
 
         toolbox_canvas_orig = getattr(orig, "toolbox_canvas", None)
         toolbox_canvas_clone = mapping.get(toolbox_canvas_orig) if mapping else None
-        toolbox_orig = getattr(orig, "toolbox", None)
-        toolbox_clone = mapping.get(toolbox_orig) if mapping else None
         roots: dict[tk.Widget, tk.Widget] = {}
         if isinstance(toolbox_canvas_orig, tk.Widget) and isinstance(
             toolbox_canvas_clone, tk.Widget
         ):
             roots[toolbox_canvas_orig] = toolbox_canvas_clone
-
-        try:  # Lazy import to avoid heavy dependency during module load
-            from gui.windows.architecture import GovernanceDiagramWindow
-        except Exception:  # pragma: no cover - import errors are non-fatal
-            GovernanceDiagramWindow = None  # type: ignore
-
-        if GovernanceDiagramWindow and isinstance(new_widget, GovernanceDiagramWindow):
-            for name in ("_rebuild_toolboxes", "_switch_toolbox"):
-                func = getattr(new_widget, name, None)
-                if callable(func):
-                    try:
-                        func()
-                    except Exception:
-                        pass
-            frame = getattr(
-                new_widget, "toolbox", getattr(new_widget, "tools_frame", None)
-            )
-            if isinstance(frame, tk.Widget) and not frame.winfo_manager():
-                try:
-                    frame.pack(side="left")
-                except Exception:
-                    pass
-            selector = getattr(new_widget, "toolbox_selector", None)
-            if isinstance(selector, ttk.Combobox):
-                try:
-                    selector.bind(
-                        "<<ComboboxSelected>>", lambda e: new_widget._switch_toolbox()
-                    )
-                except Exception:
-                    pass
-        elif isinstance(toolbox_clone, tk.Widget) and not toolbox_clone.winfo_manager():
-            try:
-                toolbox_clone.pack(side="left")
-            except Exception:
-                pass
 
         self._raise_widgets(orig, new_widget, mapping, roots)
         self._cancel_after_events(orig, cancelled)
@@ -1470,6 +1437,7 @@ class ClosableNotebook(ttk.Notebook):
                 switch()
             except Exception:
                 pass
+        self._remove_duplicate_widgets(win, nb, mapping)
 
     def _create_floating_window(
         self, width: int, height: int, x: int, y: int
@@ -1494,6 +1462,32 @@ class ClosableNotebook(ttk.Notebook):
         self._ensure_fills(child)
         self._raise_widgets(child, child)
         nb.select(tab)
+        toolbar = self._find_toolbar_frame(child)
+        if toolbar is not None:
+            try:
+                toolbar.pack(side="left")
+            except Exception:
+                pass
+            if not toolbar.winfo_children():
+                rebuild = getattr(child, "_rebuild_toolbar", None)
+                if callable(rebuild):
+                    try:
+                        rebuild()
+                    except Exception:
+                        pass
+        for name in ("_rebuild_toolboxes", "_activate_parent_phase"):
+            func = getattr(child, name, None)
+            if callable(func):
+                try:
+                    func()
+                except Exception:
+                    pass
+        switch = getattr(child, "_switch_toolbox", None)
+        if callable(switch):
+            try:
+                switch()
+            except Exception:
+                pass
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         self.update_idletasks()
