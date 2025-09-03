@@ -1568,7 +1568,17 @@ class ClosableNotebook(ttk.Notebook):
         expected: dict[tk.Widget, set[str]],
         reparented: set[tk.Widget],
     ) -> None:
-        """Recursively destroy duplicate widgets under *parent*."""
+        """Recursively destroy widgets not expected under *parent*.
+
+        Detached tabs sometimes end up with "middle" clones that neither
+        respond to user input nor render correctly. To keep the functional
+        widgets on the outer edges, unexpected children are deleted outright
+        rather than merely unmapped. The earlier approach of calling
+        ``pack_forget``/``grid_forget``/``place_forget`` left the unusable
+        widgets visible in some scenarios, so this routine now removes them
+        entirely. Future maintenance may revisit this strategy if upstream
+        detachment behaviour changes.
+        """
 
         if not parent.winfo_exists():
             return
@@ -1579,21 +1589,8 @@ class ClosableNotebook(ttk.Notebook):
             if child in keep or child in reparented:
                 continue
             names = expected.get(parent, set())
-            if child.winfo_name() in names or (
-                isinstance(child, (tk.Frame, ttk.Frame, ttk.Treeview))
-                and not any(
-                    isinstance(gc, (tk.Button, ttk.Button))
-                    for gc in child.winfo_children()
-                )
-            ):
-                try:
-                    self._cancel_after_events(child)
-                except Exception:
-                    pass
-                try:
-                    child.destroy()
-                except Exception:
-                    pass
+            if child.winfo_name() not in names:
+                self._safe_destroy(child)
 
     def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return a list of *widget* and all its descendants."""
