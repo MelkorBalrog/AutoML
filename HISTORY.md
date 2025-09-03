@@ -19,6 +19,13 @@
 -->
 
 # Version History
+- 0.2.242 - Restore duplicate pruning during tab detachment so only the
+          edge toolbox and diagram remain visible in detached windows.
+- 0.2.241 - Fix widget pruning logic so detached tabs keep the first
+          toolbox and last diagram while unmapping any stray duplicates.
+- 0.2.240 - Unmap unexpected widgets during tab detachment and drop
+          destructive heuristics so detached tabs retain a single toolbox
+          and diagram. Add regression tests for detached tab content.
 - 0.2.237 - Enforce keyword-only layouts and cancelled parameters in
           ``_clone_widget`` and add regression test confirming detached
           tabs render with and without a layouts mapping.
