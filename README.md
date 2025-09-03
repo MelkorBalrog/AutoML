@@ -1,9 +1,8 @@
-version: 0.2.243
+version: 0.2.244
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-This release guards widget pruning against missing expected mappings so
-detached windows retain their toolbox and diagram instead of appearing
-blank when no expected children are detected.
+This release prunes duplicates by widget identity so detached windows keep
+only the functional toolbox and diagram while hiding stray originals.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.

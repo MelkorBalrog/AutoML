@@ -1551,9 +1551,9 @@ class ClosableNotebook(ttk.Notebook):
 
     def _collect_expected_children(
         self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> tuple[dict[tk.Widget, set[str]], set[tk.Widget]]:
-        """Return expected child names for each cloned parent."""
-        expected: dict[tk.Widget, set[str]] = {}
+    ) -> tuple[dict[tk.Widget, set[tk.Widget]], set[tk.Widget]]:
+        """Return expected cloned children for each cloned parent."""
+        expected: dict[tk.Widget, set[tk.Widget]] = {}
         reparented: set[tk.Widget] = set()
         for orig, clone in mapping.items():
             if isinstance(orig, tk.Canvas) and not orig.winfo_exists():
@@ -1563,7 +1563,7 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             parent_clone = mapping.get(orig.master)
             if parent_clone is not None:
-                expected.setdefault(parent_clone, set()).add(clone.winfo_name())
+                expected.setdefault(parent_clone, set()).add(clone)
             else:
                 reparented.add(clone)
         return expected, reparented
@@ -1572,7 +1572,7 @@ class ClosableNotebook(ttk.Notebook):
         self,
         parent: tk.Widget,
         keep: set[tk.Widget],
-        expected: dict[tk.Widget, set[str]],
+        expected: dict[tk.Widget, set[tk.Widget]],
         reparented: set[tk.Widget],
     ) -> None:
         """Recursively clean duplicate widgets under *parent*.
@@ -1593,8 +1593,8 @@ class ClosableNotebook(ttk.Notebook):
             self._prune_widget_tree(child, keep, expected, reparented)
             if child in keep or child in reparented:
                 continue
-            names = expected.get(parent)
-            if names and child.winfo_name() not in names:
+            children = expected.get(parent)
+            if children and child not in children:
                 # Workaround for orphaned widgets: rather than destroying
                 # unexpected children we simply detach them from layout. Some
                 # frameworks attach hidden state to these widgets and destroying

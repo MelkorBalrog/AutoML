@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.244 - Identify expected children by widget object so duplicate
+         originals are removed and only the functional toolbox and
+         diagram remain in detached windows.
 - 0.2.243 - Guard widget pruning against missing expected children so
           detached windows never drop toolbox and diagram widgets.
 - 0.2.242 - Restore duplicate pruning during tab detachment so only the
