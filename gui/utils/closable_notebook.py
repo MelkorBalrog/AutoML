@@ -1369,13 +1369,6 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
-        # Remove any orphaned originals that slipped through cloning so the
-        # detached window only displays the toolbox on the left and the diagram
-        # on the right.  This restores the pruning routine that was previously
-        # lost, which caused non-functional duplicates to linger in the middle
-        # of the window.
-        self._prune_duplicates(dw.win, mapping, {child})
-        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
@@ -1593,15 +1586,13 @@ class ClosableNotebook(ttk.Notebook):
             self._prune_widget_tree(child, keep, expected, reparented)
             if child in keep or child in reparented:
                 continue
-            names = expected.get(parent)
-            if names and child.winfo_name() not in names:
+            names = expected.get(parent, set())
+            if child.winfo_name() not in names:
                 # Workaround for orphaned widgets: rather than destroying
                 # unexpected children we simply detach them from layout. Some
                 # frameworks attach hidden state to these widgets and destroying
-                # them can lead to hard-to-debug errors. When ``expected`` is
-                # missing we conservatively skip pruning to avoid clearing the
-                # entire interface. Revisiting this logic once upstream
-                # detachment bugs are resolved is recommended.
+                # them can lead to hard-to-debug errors. Revisiting this logic
+                # once upstream detachment bugs are resolved is recommended.
                 for forget in (
                     child.pack_forget,
                     child.grid_forget,
