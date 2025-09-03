@@ -659,17 +659,6 @@ class ClosableNotebook(ttk.Notebook):
             logger.error("Failed to instantiate %s under %s: %s", widget, parent, exc)
             raise
         mapping[widget] = clone
-        # Remove any children the clone created during its own initialization so
-        # we do not stack cloned widgets on top of these placeholders.
-        for pre_child in list(clone.winfo_children()):
-            try:
-                self._cancel_after_events(pre_child)
-            except Exception:
-                pass
-            try:
-                pre_child.destroy()
-            except Exception:
-                pass
         try:
             self._copy_widget_config(widget, clone)
         except Exception as exc:  # pragma: no cover - log and continue
@@ -1380,7 +1369,6 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
-        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
