@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.245 - Verify tab parentage after moves so detached tabs skip
+          cloning when already re-parented.
 - 0.2.244 - Treat tab moves as successful only when the child widget's master
           matches the target notebook, rolling back any partial reparenting.
 - 0.2.243 - Roll back partially reparented tabs when Tk raises errors so the
