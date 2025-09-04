@@ -1,10 +1,8 @@
-version: 0.2.249
+version: 0.2.250
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-This release extracts a dedicated ``WidgetTransferManager`` to handle tab
-movement and reattachment. The manager cancels pending callbacks, rebinds event
-handlers and restores widget geometry while dropping direct dependence on
-``_clone_widget``.
+This release extends ``DetachedWindow`` with ``add_moved_widget`` allowing
+already-moved tabs to reinitialise toolboxes and lifecycle hooks.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.

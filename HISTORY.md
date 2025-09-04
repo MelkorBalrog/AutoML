@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.250 - Extend ``DetachedWindow`` with ``add_moved_widget`` so already
+          moved widgets trigger toolbox activation and lifecycle hooks.
 - 0.2.249 - Delegate tab detachment to ``WidgetTransferManager.detach_tab`` so
           widgets move without cloning or pruning and remain direct children of
           detached notebooks.
