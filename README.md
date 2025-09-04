@@ -1,8 +1,8 @@
-version: 0.2.245
+version: 0.2.246
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-This release verifies tab parentage after move operations so detached tabs
-skip cloning when they have already been re-parented to the target notebook.
+This release safeguards tab rollback by verifying target ownership before
+forgetting a tab and swallowing race-condition Tcl errors.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
