@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.246 - Guard tab rollback by checking target ownership and swallowing
+          race-condition errors when forgetting tabs.
 - 0.2.245 - Verify tab parentage after moves so detached tabs skip
           cloning when already re-parented.
 - 0.2.244 - Treat tab moves as successful only when the child widget's master

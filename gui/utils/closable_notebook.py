@@ -537,6 +537,19 @@ class ClosableNotebook(ttk.Notebook):
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
+
+        def _safe_forget(nb: "ClosableNotebook", widget: tk.Widget) -> None:
+            if widget.master is nb or str(widget) in nb.tabs():
+                try:
+                    nb.forget(widget)
+                except tk.TclError:
+                    # Tcl may destroy the notebook between the failed add and
+                    # the cleanup. This previously surfaced as:
+                    #   TclError: can't invoke "ttk::notebook" command:
+                    #             application has been destroyed
+                    # Guard the call so race conditions do not bubble up.
+                    pass
+
         try:
             self._cancel_after_events(child)
         except Exception:
@@ -551,10 +564,7 @@ class ClosableNotebook(ttk.Notebook):
             target.add(child, text=text)
             target.select(child)
         except tk.TclError:
-            try:
-                target.forget(child)
-            except tk.TclError:
-                pass
+            _safe_forget(target, child)
             self.add(child, text=text)
             self.select(child)
         # A tab is considered moved only if its master ends up being *target*.
@@ -563,7 +573,7 @@ class ClosableNotebook(ttk.Notebook):
         # deterministic state.
         moved = child.master is target
         if not moved:
-            target.forget(child)
+            _safe_forget(target, child)
             self.add(child, text=text)
             self.select(child)
         if isinstance(self.master, tk.Toplevel) and not self.tabs():
