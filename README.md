@@ -1,5 +1,8 @@
-version: 0.2.235
+version: 0.2.248
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
+
+Restore clone-based tab detachment and prune inanimate duplicates so
+detached windows display a single functional toolbox and diagram.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.

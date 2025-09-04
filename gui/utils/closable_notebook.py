@@ -1369,6 +1369,8 @@ class ClosableNotebook(ttk.Notebook):
             cancelled=cancelled,
         )
         self._reassign_widget_references(mapping)
+        self._prune_duplicates(dw.win, mapping, {child})
+        self._safe_destroy(orig)
         dw.add(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
@@ -1544,9 +1546,9 @@ class ClosableNotebook(ttk.Notebook):
 
     def _collect_expected_children(
         self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> tuple[dict[tk.Widget, set[str]], set[tk.Widget]]:
-        """Return expected child names for each cloned parent."""
-        expected: dict[tk.Widget, set[str]] = {}
+    ) -> tuple[dict[tk.Widget, set[tk.Widget]], set[tk.Widget]]:
+        """Return expected child widgets for each cloned parent."""
+        expected: dict[tk.Widget, set[tk.Widget]] = {}
         reparented: set[tk.Widget] = set()
         for orig, clone in mapping.items():
             if isinstance(orig, tk.Canvas) and not orig.winfo_exists():
@@ -1556,7 +1558,9 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             parent_clone = mapping.get(orig.master)
             if parent_clone is not None:
-                expected.setdefault(parent_clone, set()).add(clone.winfo_name())
+                # Track clone widgets directly so original widgets with the
+                # same name can still be identified and removed.
+                expected.setdefault(parent_clone, set()).add(clone)
             else:
                 reparented.add(clone)
         return expected, reparented
@@ -1565,10 +1569,19 @@ class ClosableNotebook(ttk.Notebook):
         self,
         parent: tk.Widget,
         keep: set[tk.Widget],
-        expected: dict[tk.Widget, set[str]],
+        expected: dict[tk.Widget, set[tk.Widget]],
         reparented: set[tk.Widget],
     ) -> None:
-        """Recursively destroy duplicate widgets under *parent*."""
+        """Recursively clean duplicate widgets under *parent*.
+
+        Any child absent from the ``expected`` mapping is merely unmapped via
+        the appropriate geometry manager.  Relying on widget identity rather
+        than names keeps the intended toolbox and diagram clones visible while
+        hiding inert originals that would otherwise pile up in the detached
+        window.  Destroying these widgets outright previously broke external
+        references and could leave the window empty; this workaround can be
+        revisited once the detachment process is more robust.
+        """
 
         if not parent.winfo_exists():
             return
@@ -1578,22 +1591,20 @@ class ClosableNotebook(ttk.Notebook):
             self._prune_widget_tree(child, keep, expected, reparented)
             if child in keep or child in reparented:
                 continue
-            names = expected.get(parent, set())
-            if child.winfo_name() in names or (
-                isinstance(child, (tk.Frame, ttk.Frame, ttk.Treeview))
-                and not any(
-                    isinstance(gc, (tk.Button, ttk.Button))
-                    for gc in child.winfo_children()
-                )
-            ):
-                try:
-                    self._cancel_after_events(child)
-                except Exception:
-                    pass
-                try:
-                    child.destroy()
-                except Exception:
-                    pass
+            expected_children = expected.get(parent)
+            if expected_children and child not in expected_children:
+                # Unmap unexpected widgets so only the desired toolbox and
+                # diagram remain visible.
+                for mgr in ("pack", "grid", "place"):
+                    info = getattr(child, f"{mgr}_info", None)
+                    forget = getattr(child, f"{mgr}_forget", None)
+                    if info and forget:
+                        try:
+                            if info():
+                                forget()
+                                break
+                        except Exception:
+                            pass
 
     def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
         """Return a list of *widget* and all its descendants."""
