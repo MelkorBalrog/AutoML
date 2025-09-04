@@ -123,14 +123,15 @@ _SELF_DRAWING_CANVASES = {"CapsuleButton"}
 def _remove_widget_pairs(
     parent: tk.Widget, pairs: t.Iterable[tuple[tk.Widget, tk.Widget]]
 ) -> None:
-    """Detach and destroy specific widget pairs from ``parent``.
+    """Detach specific widget pairs from ``parent`` while preserving others.
 
     Notebook detachment and other tab operations can leave behind stray
     widget duplicates.  Removing them by iterating over all children risks
     unmapping widgets that should remain visible.  This helper targets only
     the provided pairs, unmapping each widget via the geometry manager it
-    currently uses and then destroying it.  Widgets not referenced in
-    ``pairs`` remain attached to ``parent`` and continue to display normally.
+    currently uses and falling back to :meth:`destroy` when the manager is
+    unknown.  Widgets not referenced in ``pairs`` remain attached to
+    ``parent`` and continue to display normally.
     """
 
     for first, second in pairs:
@@ -156,36 +157,11 @@ def _remove_widget_pairs(
                     child.place_forget()
                 except Exception:
                     pass
-            try:
-                child.destroy()
-            except Exception:
-                pass
-
-
-def remove_ad_widgets(tab: tk.Widget) -> None:
-    """Remove first and fourth child widgets from *tab*.
-
-    Widgets at index 0 and 3 are detached using :func:`_remove_widget_pairs`
-    which also destroys them so snapped-out windows do not display
-    duplicates.  Any remaining children are re-packed into ``tab`` so they
-    continue to be managed by the container.
-    """
-
-    try:
-        children = tab.winfo_children()
-    except Exception:
-        return
-    if len(children) < 4:
-        return
-    first, fourth = children[0], children[3]
-    survivors = children[1:3]
-    _remove_widget_pairs(tab, [(first, fourth)])
-    for child in survivors:
-        if child not in tab.winfo_children():
-            try:
-                child.pack(in_=tab)
-            except Exception:
-                pass
+            else:
+                try:
+                    child.destroy()
+                except Exception:
+                    pass
 
 
 def remove_ad_widgets(tab: tk.Widget) -> None:
