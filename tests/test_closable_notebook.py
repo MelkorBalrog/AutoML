@@ -39,6 +39,7 @@ def test_cancel_after_events_cancels_widget_after():
     root.destroy()
 
 
+@pytest.mark.detached_tab
 @pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
 def test_update_canvas_windows():
     root = tk.Tk()

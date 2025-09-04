@@ -27,12 +27,10 @@ notebook re-attaches it to that notebook.
 """
 
 
-import inspect
 import logging
 import typing as t
 import tkinter as tk
 import weakref
-import functools
 import re
 from tkinter import ttk
 try:  # pragma: no cover - support direct module execution
@@ -112,16 +110,6 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
 
     for child in widget.winfo_children():
         cancel_after_events(child, cancelled)
-
-
-# Widget types whose text is only available through ``cget`` even when the
-# constructor signature cannot be introspected (e.g. CapsuleButton subclasses)
-_KNOWN_TEXT_WIDGETS = {"CapsuleButton"}
-
-# Canvas subclasses that redraw themselves during ``__init__``.
-# Copying their canvas items would duplicate content, so cloning should rely on
-# their own drawing logic instead of ``_copy_canvas_items``.
-_SELF_DRAWING_CANVASES = {"CapsuleButton"}
 
 
 class ClosableNotebook(ttk.Notebook):
@@ -470,15 +458,15 @@ class ClosableNotebook(ttk.Notebook):
             child = self.nametowidget(tab_id)
             self._closing_tab = tab_id
             self.event_generate("<<NotebookTabClosed>>")
+            try:
+                self._cancel_after_events(child)
+            except Exception:
+                pass
             if tab_id in self.tabs():
                 try:
                     self.forget(tab_id)
                 except tk.TclError:
                     pass
-            try:
-                self._cancel_after_events(child)
-            except Exception:
-                pass
             try:
                 child.destroy()
             except Exception:
@@ -534,13 +522,38 @@ class ClosableNotebook(ttk.Notebook):
     def _move_tab(self, tab_id: str, target: "ClosableNotebook") -> bool:
         """Move *tab_id* to *target* notebook using Tk's native commands.
 
-        The method first tries Tk's ``winfo`` reparenting to avoid cloning.  If
-        the operation fails, the widget is restored to its original notebook and
-        the caller may fall back to cloning.
+        ``after`` callbacks tied to the tab are cancelled before any widgets
+        are forgotten to avoid orphaned Tcl commands such as ``*_animate``.
+        On failure, the tab is fully restored to its source notebook and a
+        :class:`RuntimeError` is raised instead of falling back to cloning.
         """
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
+        index = self.index(tab_id)
+
+        def _safe_forget(nb: "ClosableNotebook", widget: tk.Widget) -> None:
+            if widget.master is nb or str(widget) in nb.tabs():
+                try:
+                    self._cancel_after_events(widget)
+                except Exception:
+                    pass
+                try:
+                    nb.forget(widget)
+                except tk.TclError:
+                    # Tcl may destroy the notebook between the failed add and
+                    # the cleanup. This previously surfaced as:
+                    #   TclError: can't invoke "ttk::notebook" command:
+                    #             application has been destroyed
+                    # Guard the call so race conditions do not bubble up.
+                    pass
+
+        def _restore() -> None:
+            self.add(child, text=text)
+            if self.index(child) != index:
+                self.insert(index, child)
+            self.select(child)
+
         try:
             self._cancel_after_events(child)
         except Exception:
@@ -554,442 +567,61 @@ class ClosableNotebook(ttk.Notebook):
                 pass
             target.add(child, text=text)
             target.select(child)
-            moved = True
-        except tk.TclError:
-            self.add(child, text=text)
-            self.select(child)
-            moved = False
+        except tk.TclError as exc:
+            _safe_forget(target, child)
+            _restore()
+            logger.error("Failed to move tab %s: %s", child, exc)
+            raise RuntimeError(f"Failed to move tab {child}") from exc
+        moved = child.master is target
+        if not moved:
+            _safe_forget(target, child)
+            _restore()
+            logger.error("Tab %s was not reparented to %s", child, target)
+            raise RuntimeError(f"Failed to move tab {child}")
         if isinstance(self.master, tk.Toplevel) and not self.tabs():
+            try:
+                self._cancel_after_events(self.master)
+            except Exception:
+                pass
             self.master.destroy()
-        return moved
+        return True
 
-    def _clone_widget(
-        self,
-        widget: tk.Widget,
-        parent: tk.Widget,
-        mapping: dict[tk.Widget, tk.Widget] | None = None,
-        *,
-        layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]] | None = None,
-        cancelled: set[str] | None = None,
-    ) -> tuple[
-        tk.Widget,
-        dict[tk.Widget, tk.Widget],
-        dict[tk.Widget, tuple[str, dict[str, t.Any]]],
-    ]:
-        """Return a clone of *widget* re-parented into *parent*.
+    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
+        """Detach *tab_id* into a new floating window at *(x, y)*.
 
-        ``mapping`` stores a relation of original widgets to their clones so
-        options referencing sibling widgets can later be rewired. ``layouts``
-        captures the geometry manager and options of each widget prior to
-        cloning so they can be restored on the clone and all descendants.
+        Tk ``after`` callbacks tied to the original tab are cancelled before it
+        is forgotten to prevent orphaned Tcl commands such as ``*_animate``.
         """
 
-        if mapping is None:
-            mapping = {}
-        if layouts is None:
-            layouts = {}
-        self._cancel_after_events(widget, cancelled)
+        from .detached_window import DetachedWindow
 
-        try:
-            manager = widget.winfo_manager()
-        except Exception:  # pragma: no cover - best effort
-            manager = ""
-        info: dict[str, t.Any] = {}
-        try:
-            if manager == "pack":
-                info = widget.pack_info()
-            elif manager == "grid":
-                info = widget.grid_info()
-            elif manager == "place":
-                info = widget.place_info()
-        except Exception:
-            info = {}
-        layouts[widget] = (manager, info)
+        text = self.tab(tab_id, "text")
+        self.update_idletasks()
+        width = self.winfo_width() or 200
+        height = self.winfo_height() or 200
+        dw = DetachedWindow(self._app_root, width, height, x, y)
+        self._floating_windows.append(dw.win)
 
-        cls = widget.__class__
-        kwargs = self._collect_required_kwargs(widget, cls)
-        # ``widgetName`` is an internal Tk option that propagates to the underlying
-        # widget constructor as ``-widgetName``.  Most ttk widgets do not support
-        # this option which results in a ``TclError`` when cloning detached tabs.
-        # Drop it from the keyword arguments so cloning remains robust.
-        kwargs.pop("widgetName", None)
-
-        if isinstance(widget, tk.Canvas):
-            clone_cls: type[tk.Canvas] = widget.__class__
-            clone = clone_cls(parent, **kwargs)
-            mapping[widget] = clone
+        def _on_destroy(_e, w=dw.win) -> None:
             try:
-                self._copy_widget_config(widget, clone)
-            except Exception as exc:  # pragma: no cover - log and continue
-                logger.exception("Failed to copy config for %s: %s", widget, exc)
-            if clone_cls.__name__ not in _SELF_DRAWING_CANVASES:
-                mapping, layouts = self._copy_canvas_items(
-                    widget,
-                    clone,
-                    widget.find_all(),
-                    mapping,
-                    layouts,
-                    cancelled,
-                )
-                for child in self._ordered_children(widget):
-                    if child in mapping:
-                        continue
-                    child_clone, mapping, layouts = self._clone_widget(
-                        child,
-                        clone,
-                        mapping,
-                        layouts=layouts,
-                        cancelled=cancelled,
-                    )
-                    mapping[child] = child_clone
-            self._copy_widget_state(widget, clone)
-            self._copy_widget_bindings(widget, clone, mapping)
-            self._reschedule_after_callbacks(widget, clone, mapping)
-            self._copy_widget_layout(widget, clone, mapping, layouts)
-            try:
-                self._cancel_after_events(widget)
+                self._cancel_after_events(w)
             except Exception:
                 pass
-            try:
-                widget.destroy()
-            except Exception:
-                pass
-            self._raise_widgets(widget, clone, mapping)
-            return clone, mapping, layouts
+            if w in self._floating_windows:
+                self._floating_windows.remove(w)
 
-        try:
-            clone = cls(parent, **kwargs)
-        except Exception as exc:  # pragma: no cover - extremely rare
-            logger.error("Failed to instantiate %s under %s: %s", widget, parent, exc)
-            raise
-        mapping[widget] = clone
-        try:
-            self._copy_widget_config(widget, clone)
-        except Exception as exc:  # pragma: no cover - log and continue
-            logger.exception("Failed to copy config for %s: %s", widget, exc)
-        self._copy_widget_state(widget, clone)
-        self._copy_widget_bindings(widget, clone, mapping)
-        self._reschedule_after_callbacks(widget, clone, mapping)
-        if isinstance(widget, (tk.Button, ttk.Button)):
-            self._rebind_button_command(widget, clone, mapping)
-            self.rewrite_option_references(mapping)
-        for child in self._ordered_children(widget):
-            try:
-                child_clone, mapping, layouts = self._clone_widget(
-                    child,
-                    clone,
-                    mapping,
-                    layouts=layouts,
-                    cancelled=cancelled,
-                )
-            except Exception as exc:
-                logger.exception("Failed to clone child %s: %s", child, exc)
-                continue
-            if child_clone is None:
-                logger.error("Failed to clone descendant %s", child)
-                continue
-            mapping[child] = child_clone
-        self._copy_widget_layout(widget, clone, mapping, layouts)
-        return clone, mapping, layouts
+        dw.win.bind("<Destroy>", _on_destroy, add="+")
 
-    def _rebind_button_command(
-        self,
-        widget: tk.Widget,
-        clone: tk.Widget,
-        mapping: dict[tk.Widget, tk.Widget],
-    ) -> None:
-        """Rebind button commands to cloned widgets or containers."""
+        manager = WidgetTransferManager(self)
+        child = manager.detach_tab(tab_id, dw.nb)
+        dw._ensure_toolbox(child)
+        dw._activate_hooks(child)
 
-        try:
-            cmd = clone.cget("command")
-        except Exception:
-            return
-        if not cmd:
-            return
-        target = getattr(cmd, "__self__", None)
-        if target is widget:
-            try:
-                clone.configure(command=getattr(clone, cmd.__name__))
-            except Exception:
-                return
-            return
-        if target in mapping:
-            try:
-                clone.configure(command=getattr(mapping[target], cmd.__name__))
-            except Exception:
-                return
-            return
-        if isinstance(cmd, functools.partial):
-            args = list(cmd.args)
-            kwargs = dict(cmd.keywords or {})
-            replaced = False
-            for i, arg in enumerate(args):
-                if arg is widget:
-                    args[i] = clone
-                    replaced = True
-                elif arg in mapping:
-                    args[i] = mapping[arg]
-                    replaced = True
-            for key, val in list(kwargs.items()):
-                if val is widget:
-                    kwargs[key] = clone
-                    replaced = True
-                elif val in mapping:
-                    kwargs[key] = mapping[val]
-                    replaced = True
-            if replaced:
-                clone.configure(command=functools.partial(cmd.func, *args, **kwargs))
-
-    def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
-        """Return children of *widget* in geometry-manager order.
-
-        Tk allows mixing geometry managers within a single container even though
-        it is discouraged.  The previous implementation returned the first
-        non-empty geometry list which silently dropped widgets managed by other
-        strategies, leading to partially cloned tabs where only a subset of
-        controls (typically those packed) appeared in the detached window.  To
-        ensure every child is cloned we accumulate children from ``pack``,
-        ``grid`` and ``place`` while preserving their relative order and falling
-        back to ``winfo_children`` for any remaining widgets.
-        """
-
-        # Collect children from all geometry managers
-        ordered: list[tk.Widget] = []
-        for method in ("pack_slaves", "grid_slaves", "place_slaves"):
-            try:
-                ordered.extend(getattr(widget, method)())
-            except Exception:
-                continue
-
-        # Include any remaining widgets that might not be managed yet
-        for child in widget.winfo_children():
-            if child not in ordered:
-                ordered.append(child)
-
-        # Preserve the original creation order so relative stacking remains
-        creation_order = {w: i for i, w in enumerate(widget.winfo_children())}
-        ordered.sort(key=lambda w: creation_order.get(w, len(creation_order)))
-
-        return ordered
-
-    def _copy_canvas_items(
-        self,
-        widget: tk.Canvas,
-        clone: tk.Canvas,
-        items: t.Iterable[int],
-        mapping: dict[tk.Widget, tk.Widget],
-        layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]],
-        cancelled: set[str] | None,
-    ) -> tuple[
-        dict[tk.Widget, tk.Widget], dict[tk.Widget, tuple[str, dict[str, t.Any]]]
-    ]:
-        """Clone canvas *items* from *widget* into *clone*.
-
-        ``window`` items are cloned recursively and inserted using
-        :meth:`~tkinter.Canvas.create_window` while other item types are
-        recreated with the corresponding ``create_*`` method.
-        """
-
-        for item in items:
-            coords = widget.coords(item)
-            item_type = widget.type(item)
-            opts = widget.itemconfig(item)
-            tags = widget.gettags(item)
-            if item_type == "window":
-                path = widget.itemcget(item, "window")
-                try:
-                    child = widget.nametowidget(path)
-                except Exception:
-                    continue
-                child_clone, mapping, layouts = self._clone_widget(
-                    child,
-                    clone,
-                    mapping,
-                    layouts=layouts,
-                    cancelled=cancelled,
-                )
-                mapping[child] = child_clone
-                cfg = {
-                    k: v[4]
-                    for k, v in opts.items()
-                    if isinstance(v, tuple) and len(v) >= 5
-                }
-                cfg.pop("window", None)
-                new_item = clone.create_window(*coords, window=child_clone, **cfg)
-            else:
-                creator = getattr(clone, f"create_{item_type}")
-                if item_type == "image":
-                    img_name = widget.itemcget(item, "image")
-                    new_img = None
-                    if img_name:
-                        try:
-                            new_img = tk.PhotoImage(master=clone)
-                            new_img.tk.call(new_img, "copy", img_name)
-                        except Exception:
-                            new_img = img_name
-                        else:
-                            refs = getattr(clone, "_img_refs", None)
-                            if refs is None:
-                                refs = []
-                                setattr(clone, "_img_refs", refs)
-                            refs.append(new_img)
-                    new_item = creator(*coords, image=new_img or img_name)
-                else:
-                    new_item = creator(*coords)
-                for key, val in opts.items():
-                    if key == "image" and item_type == "image":
-                        continue
-                    if isinstance(val, tuple) and len(val) >= 5:
-                        clone.itemconfig(new_item, {key: val[4]})
-                    elif isinstance(val, str):
-                        clone.itemconfig(new_item, {key: val})
-            for tag in tags:
-                sequences = widget.tag_bind(tag)
-                if not sequences:
-                    continue
-                for seq in widget.tk.splitlist(sequences):
-                    cmd = widget.tag_bind(tag, seq)
-                    if cmd:
-                        clone.tag_bind(tag, seq, cmd)
-        return mapping, layouts
-
-    def _collect_required_kwargs(
-        self, widget: tk.Widget, cls: type
-    ) -> dict[str, t.Any]:
-        """Return constructor kwargs required to recreate *widget* of type *cls*.
-
-        Some subclasses only expose ``*args``/``**kwargs`` in ``__init__``.  Walk
-        the method resolution order to inspect base-class signatures for required
-        parameters and fall back to widget introspection for known families like
-        ``CapsuleButton`` when no signature information is available.  Optional
-        parameters are copied when the widget defines a non-``None`` attribute
-        with the same name so detached explorers retain external data sources
-        such as ``app`` or ``toolbox``.
-        """
-
-        kwargs: dict[str, t.Any] = {}
-        for base in inspect.getmro(cls):
-            try:
-                sig = inspect.signature(base.__init__)
-            except Exception:
-                continue
-            params = list(sig.parameters.items())[1:]
-            # Skip bases that only accept *args/**kwargs and provide no
-            # information about available parameters.
-            if all(
-                p.kind
-                in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
-                or name == "master"
-                for name, p in params
-            ):
-                continue
-            for name, param in params:
-                if name == "master":
-                    continue
-                value = self._get_widget_value(widget, name)
-                if param.default is inspect._empty:
-                    if value is None and param.annotation in (str, "str"):
-                        value = ""
-                    if value is not None:
-                        kwargs[name] = value
-                elif value is not None:
-                    kwargs[name] = value
-            if kwargs:
-                break
-
-        if not kwargs:
-            names = {c.__name__ for c in inspect.getmro(cls)}
-            if names & _KNOWN_TEXT_WIDGETS:
-                try:
-                    kwargs["text"] = widget.cget("text")
-                except Exception:
-                    pass
-        return kwargs
-
-    def _get_widget_value(self, widget: tk.Widget, name: str) -> t.Any | None:
-        if name in widget.keys():
-            try:
-                return widget.cget(name)
-            except tk.TclError:
-                return None
-        if hasattr(widget, name):
-            return getattr(widget, name)
-        if hasattr(widget, f"_{name}"):
-            return getattr(widget, f"_{name}")
-        return None
-
-    def _copy_widget_config(self, widget: tk.Widget, clone: tk.Widget) -> None:
-        try:
-            config = widget.configure()
-            if config is None:
-                try:
-                    config = tk.Widget.configure(widget)
-                except Exception:
-                    config = {}
-        except Exception:
-            config = {}
-
-        if config:
-            # Preserve standard options while handling image attributes separately
-            for opt in config:
-                if opt == "image":
-                    continue
-                try:
-                    clone.configure(**{opt: widget.cget(opt)})
-                except Exception:
-                    continue
-
-        # Widgets using images should receive a unique copy of the PhotoImage
-        if config and ("image" in config or "compound" in config):
-            try:
-                img_name = widget.cget("image")
-            except Exception:
-                img_name = ""
-            if img_name:
-                try:
-                    tkapp = getattr(widget, "tk", None)
-                    width = int(tkapp.call("image", "width", img_name)) if tkapp else 0
-                    height = (
-                        int(tkapp.call("image", "height", img_name)) if tkapp else 0
-                    )
-                    new_img = tk.PhotoImage(master=clone, width=width, height=height)
-                    new_img.tk.call(new_img, "copy", img_name)
-                    clone.configure(image=new_img)
-                    clone.image = new_img  # keep reference
-                except Exception:
-                    pass
-
-    def _copy_widget_state(self, widget: tk.Widget, clone: tk.Widget) -> None:
-        """Copy widget-specific state such as text contents."""
-        try:
-            if isinstance(widget, (tk.Entry, ttk.Entry)):
-                clone.insert(0, widget.get())
-            elif isinstance(widget, tk.Text):
-                clone.insert("1.0", widget.get("1.0", "end"))
-            elif isinstance(widget, tk.Listbox):
-                for item in widget.get(0, "end"):
-                    clone.insert("end", item)
-                for idx in widget.curselection():
-                    clone.selection_set(idx)
-            elif isinstance(widget, ttk.Treeview):
-                for iid in widget.get_children(""):
-                    self._copy_tree_item(widget, clone, iid, "")
-            elif isinstance(widget, tk.Canvas):
-                try:
-                    clone.configure(scrollregion=widget.cget("scrollregion"))
-                except Exception:
-                    pass
-        except Exception:
-            pass
 
     def _replace_widget_paths(
         self, script: str, mapping: dict[tk.Widget, tk.Widget]
     ) -> str:
-        """Return *script* with widget paths replaced per *mapping*.
-
-        The command string is tokenised so multiple path references are
-        consistently rewritten without partial replacements.
-        """
+        """Return *script* with widget paths replaced per *mapping*."""
 
         name_pairs = sorted(
             ((str(o), str(c)) for o, c in mapping.items()),
@@ -1414,7 +1046,6 @@ class ClosableNotebook(ttk.Notebook):
                             clone.entryconfigure(i, command=new_cmd)
                         except Exception:
                             pass
-
     def rebind_scrollbars(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rebind cloned scrollbars to their cloned targets."""
 

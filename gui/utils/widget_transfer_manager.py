@@ -87,4 +87,5 @@ class WidgetTransferManager:
             source.add(orig, text=text)
             source.select(orig)
             raise exc
+
         return orig

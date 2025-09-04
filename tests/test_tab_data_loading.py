@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from gui.closable_notebook import ClosableNotebook
+from gui.utils.closable_notebook import ClosableNotebook
 
 
 class DummyTab:
