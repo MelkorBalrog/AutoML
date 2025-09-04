@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.243 - Roll back partially reparented tabs when Tk raises errors so the
+          move-and-clone sequence remains deterministic and avoids stray tabs.
 - 0.2.242 - Track expected widgets via object identity and safely destroy
           duplicates when pruning detached tab trees.
 - 0.2.241 - Fix widget pruning logic so detached tabs keep the first
