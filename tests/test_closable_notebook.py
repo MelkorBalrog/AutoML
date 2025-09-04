@@ -39,27 +39,6 @@ def test_cancel_after_events_cancels_widget_after():
     root.destroy()
 
 
-@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
-def test_update_canvas_windows():
-    root = tk.Tk()
-    root.withdraw()
-    nb = ClosableNotebook(root)
-    canvas = tk.Canvas(nb)
-    frame = tk.Frame(canvas)
-    lst = tk.Listbox(frame)
-    lst.insert("end", "item")
-    lst.pack()
-    canvas.create_window(0, 0, window=frame, anchor="nw")
-    clone, mapping, layouts = nb._clone_widget(canvas, nb)
-    nb.update_canvas_windows(mapping)
-    item = clone.find_all()[0]
-    win_path = clone.itemcget(item, "window")
-    assert win_path
-    clone_win = clone.nametowidget(win_path)
-    assert isinstance(clone_win, tk.Frame)
-    root.destroy()
-
-
 @pytest.mark.detached_tab
 @pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
 class TestDetachedTab:

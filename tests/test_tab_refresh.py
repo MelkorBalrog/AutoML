@@ -23,7 +23,7 @@ import tkinter as tk
 from tkinter import ttk
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from gui.closable_notebook import ClosableNotebook
+from gui.utils.closable_notebook import ClosableNotebook
 
 
 def test_tab_refresh_on_focus():
