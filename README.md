@@ -1,8 +1,8 @@
-version: 0.2.250
+version: 0.2.247
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-This release extends ``DetachedWindow`` with ``add_moved_widget`` allowing
-already-moved tabs to reinitialise toolboxes and lifecycle hooks.
+Fix widget transfer so tabs are added with keyword arguments, preventing
+errors when moving tabs between notebooks.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.

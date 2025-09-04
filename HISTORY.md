@@ -19,28 +19,20 @@
 -->
 
 # Version History
-- 0.2.250 - Extend ``DetachedWindow`` with ``add_moved_widget`` so already
-          moved widgets trigger toolbox activation and lifecycle hooks.
-- 0.2.249 - Delegate tab detachment to ``WidgetTransferManager.detach_tab`` so
-          widgets move without cloning or pruning and remain direct children of
-          detached notebooks.
-- 0.2.248 - Introduce ``WidgetTransferManager`` for tab moves and reattachment,
-          cancelling ``after`` callbacks, rebinding events and restoring
-          geometry. Update ``ClosableNotebook`` to use the manager instead of
-          invoking ``_clone_widget`` directly.
-- 0.2.247 - Cancel tab callbacks before forgetting or destroying widgets during
-          moves and detachment to prevent orphaned Tcl commands such as
-          ``*_animate``.
-- 0.2.246 - Guard tab rollback by checking target ownership and swallowing
-          race-condition errors when forgetting tabs.
-- 0.2.245 - Verify tab parentage after moves so detached tabs skip
-          cloning when already re-parented.
-- 0.2.244 - Treat tab moves as successful only when the child widget's master
-          matches the target notebook, rolling back any partial reparenting.
-- 0.2.243 - Roll back partially reparented tabs when Tk raises errors so the
-          move-and-clone sequence remains deterministic and avoids stray tabs.
-- 0.2.242 - Track expected widgets via object identity and safely destroy
-          duplicates when pruning detached tab trees.
+- 0.2.247 - Fix widget transfer to use keyword arguments when adding tabs,
+          preventing detachment errors.
+- 0.2.246 - Track expected children by widget identity when hiding unexpected
+          widgets during tab detachment so tabs keep their toolbox and diagram
+          while only inert duplicates are hidden.
+- 0.2.245 - Hide unexpected widgets during tab detachment so only the edge
+          toolbox and diagram remain visible. Replace destructive pruning with
+          geometry unmapping and expand detached-tab regression tests.
+- 0.2.244 - Destroy unexpected widgets during tab detachment so only the
+          edge toolbox and diagram persist while stray duplicates are removed.
+- 0.2.243 - Guard widget pruning against missing expected children so
+          detached windows never drop toolbox and diagram widgets.
+- 0.2.242 - Restore duplicate pruning during tab detachment so only the
+          edge toolbox and diagram remain visible in detached windows.
 - 0.2.241 - Fix widget pruning logic so detached tabs keep the first
           toolbox and last diagram while unmapping any stray duplicates.
 - 0.2.240 - Unmap unexpected widgets during tab detachment and drop
