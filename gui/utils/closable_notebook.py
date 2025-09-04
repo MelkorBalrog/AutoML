@@ -188,31 +188,6 @@ def remove_ad_widgets(tab: tk.Widget) -> None:
                 pass
 
 
-def remove_ad_widgets(tab: tk.Widget) -> None:
-    """Remove first and fourth child widgets from *tab*.
-
-    Widgets at index 0 and 3 are detached using :func:`_remove_widget_pairs`.
-    Any remaining children are re-packed into ``tab`` so they continue to be
-    managed by the container.
-    """
-
-    try:
-        children = tab.winfo_children()
-    except Exception:
-        return
-    if len(children) < 4:
-        return
-    first, fourth = children[0], children[3]
-    survivors = children[1:3]
-    _remove_widget_pairs(tab, [(first, fourth)])
-    for child in survivors:
-        if child not in tab.winfo_children():
-            try:
-                child.pack(in_=tab)
-            except Exception:
-                pass
-
-
 class ClosableNotebook(ttk.Notebook):
     """Notebook widget with an 'x' button on the left side of each tab."""
 
@@ -1448,6 +1423,7 @@ class ClosableNotebook(ttk.Notebook):
         moved = self._move_tab(tab_id, dw.nb)
         if moved:
             child = dw.nb.nametowidget(dw.nb.tabs()[-1])
+            remove_ad_widgets(child)
             dw._ensure_toolbox(child)
             dw._activate_hooks(child)
             return
@@ -1461,6 +1437,7 @@ class ClosableNotebook(ttk.Notebook):
             mapping,
             cancelled=cancelled,
         )
+        remove_ad_widgets(child)
         self._reassign_widget_references(mapping)
         dw.add(child, text)
 
