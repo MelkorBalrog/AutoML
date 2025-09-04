@@ -552,9 +552,20 @@ class ClosableNotebook(ttk.Notebook):
             target.select(child)
             moved = True
         except tk.TclError:
+            try:
+                target.forget(child)
+            except tk.TclError:
+                pass
             self.add(child, text=text)
             self.select(child)
             moved = False
+        # Tk may leave the child reparented under *target* even when an error
+        # is raised.  Ensure the widget is restored so cloning operates on a
+        # deterministic state.
+        if moved is False and child.master is target:
+            target.forget(child)
+            self.add(child, text=text)
+            self.select(child)
         if isinstance(self.master, tk.Toplevel) and not self.tabs():
             self.master.destroy()
         return moved

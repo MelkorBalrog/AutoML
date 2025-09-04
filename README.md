@@ -1,8 +1,9 @@
-version: 0.2.241
+version: 0.2.243
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-This release corrects widget pruning after tab detachment to keep a
-single functional toolbox and diagram while unmapping stray duplicates.
+This release documents rollback for failed tab moves to ensure the
+subsequent clone step begins from a clean state and prevents duplicate
+widgets.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
