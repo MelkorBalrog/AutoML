@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.247 - Cancel tab callbacks before forgetting or destroying widgets during
+          moves and detachment to prevent orphaned Tcl commands such as
+          ``*_animate``.
 - 0.2.246 - Guard tab rollback by checking target ownership and swallowing
           race-condition errors when forgetting tabs.
 - 0.2.245 - Verify tab parentage after moves so detached tabs skip
