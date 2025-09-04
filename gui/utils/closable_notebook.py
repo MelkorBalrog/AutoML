@@ -1380,6 +1380,7 @@ class ClosableNotebook(ttk.Notebook):
 
         from .detached_window import DetachedWindow
 
+        text = self.tab(tab_id, "text")
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
@@ -1399,6 +1400,9 @@ class ClosableNotebook(ttk.Notebook):
         child = manager.detach_tab(tab_id, dw.nb)
         if child is None:
             return
+        if child.master is not dw.nb:
+            dw.nb.add(child, text=text)
+        dw.nb.select(child)
         dw._ensure_toolbox(child)
         dw._activate_hooks(child)
 
@@ -1573,91 +1577,6 @@ class ClosableNotebook(ttk.Notebook):
                     continue
         return None
 
-    def _collect_expected_children(
-        self, mapping: dict[tk.Widget, tk.Widget]
-    ) -> tuple[dict[tk.Widget, set[tk.Widget]], set[tk.Widget]]:
-        """Return expected child widgets for each cloned parent."""
-        expected: dict[tk.Widget, set[tk.Widget]] = {}
-        reparented: set[tk.Widget] = set()
-        for orig, clone in mapping.items():
-            if isinstance(orig, tk.Canvas) and not orig.winfo_exists():
-                reparented.add(clone)
-                continue
-            if not orig.winfo_exists():
-                continue
-            parent_clone = mapping.get(orig.master)
-            if parent_clone is not None:
-                expected.setdefault(parent_clone, set()).add(clone)
-            else:
-                reparented.add(clone)
-        return expected, reparented
-
-    def _prune_widget_tree(
-        self,
-        parent: tk.Widget,
-        keep: set[tk.Widget],
-        expected: dict[tk.Widget, set[tk.Widget]],
-        reparented: set[tk.Widget],
-    ) -> None:
-        """Recursively clean duplicate widgets under *parent*.
-
-        Unexpected widgets are safely destroyed to prevent duplicate state while
-        preserving widgets explicitly marked to keep or that were reparented.
-        `_safe_destroy` cancels callbacks before destruction to avoid
-        hard-to-debug errors. Revisiting this logic once upstream detachment
-        bugs are resolved is recommended.
-        """
-
-        if not parent.winfo_exists():
-            return
-        for child in list(parent.winfo_children()):
-            if not child.winfo_exists():
-                continue
-            self._prune_widget_tree(child, keep, expected, reparented)
-            if child in keep or child in reparented:
-                continue
-            expected_children = expected.get(parent)
-            if expected_children and child not in expected_children:
-                # Destroy unexpected children while cancelling any pending
-                # callbacks to avoid duplicate state and resource leaks.
-                self._safe_destroy(child)
-
-    def _traverse_widgets(self, widget: tk.Widget) -> list[tk.Widget]:
-        """Return a list of *widget* and all its descendants."""
-
-        stack = [widget]
-        result: list[tk.Widget] = []
-        while stack:
-            w = stack.pop()
-            result.append(w)
-            try:
-                stack.extend(w.winfo_children())
-            except Exception:
-                continue
-        return result
-
-    def _prune_duplicates(
-        self,
-        win: tk.Toplevel,
-        mapping: dict[tk.Widget, tk.Widget],
-        keep: set[tk.Widget],
-    ) -> None:
-        """Prune duplicate widgets under *win* using *mapping* and *keep* set."""
-
-        expected, reparented = self._collect_expected_children(mapping)
-        self._prune_widget_tree(win, keep, expected, reparented)
-
-    def _safe_destroy(self, widget: tk.Widget) -> None:
-        """Safely cancel callbacks and destroy *widget*."""
-
-        try:
-            self._cancel_after_events(widget)
-        except Exception:
-            pass
-        try:
-            widget.destroy()
-        except Exception:
-            pass
 
 
     def _reset_drag(self) -> None:
