@@ -19,6 +19,10 @@
 -->
 
 # Version History
+- 0.2.248 - Introduce ``WidgetTransferManager`` for tab moves and reattachment,
+          cancelling ``after`` callbacks, rebinding events and restoring
+          geometry. Update ``ClosableNotebook`` to use the manager instead of
+          invoking ``_clone_widget`` directly.
 - 0.2.247 - Cancel tab callbacks before forgetting or destroying widgets during
           moves and detachment to prevent orphaned Tcl commands such as
           ``*_animate``.

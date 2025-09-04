@@ -35,6 +35,10 @@ import weakref
 import functools
 import re
 from tkinter import ttk
+try:  # pragma: no cover - allow local imports in tests
+    from .widget_transfer_manager import WidgetTransferManager
+except Exception:  # pragma: no cover - fallback when run as script
+    from widget_transfer_manager import WidgetTransferManager
 
 logger = logging.getLogger(__name__)
 
@@ -1391,26 +1395,12 @@ class ClosableNotebook(ttk.Notebook):
                 self._floating_windows.remove(w)
 
         dw.win.bind("<Destroy>", _on_destroy, add="+")
-        text = self.tab(tab_id, "text")
-        moved = self._move_tab(tab_id, dw.nb)
-        orig = self.nametowidget(tab_id)
-        if moved or orig.master is dw.nb:
-            child = orig  # already moved
-            dw._ensure_toolbox(child)
-            dw._activate_hooks(child)
+        manager = WidgetTransferManager(self)
+        child = manager.detach_tab(tab_id, dw.nb)
+        if child is None:
             return
-        cancelled: set[str] = set()
-        self._cancel_after_events(orig, cancelled)
-        self.forget(orig)
-        mapping: dict[tk.Widget, tk.Widget] = {}
-        child, mapping, _layouts = self._clone_widget(
-            orig,
-            dw.nb,
-            mapping,
-            cancelled=cancelled,
-        )
-        self._reassign_widget_references(mapping)
-        dw.add(child, text)
+        dw._ensure_toolbox(child)
+        dw._activate_hooks(child)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
