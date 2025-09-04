@@ -18,16 +18,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.249 - 2025-09-04
+
+- Move tabs between notebooks without cloning via `WidgetTransferManager`
+- Cancel pending `after` callbacks and forget source tab before re-parenting
+
+## 0.2.248 - 2025-09-04
+
+- Restore clone-based tab detachment to avoid Tk reparenting errors
+- Prune inanimate duplicates so detached windows keep one toolbox and diagram
+
 # Version History
-- 0.2.251 - Add regression tests ensuring detached tabs retain a single
-          functional toolbox and diagram.
-- 0.2.250 - Drop obsolete widget cloning and pruning helpers in
-          ``ClosableNotebook`` and rely solely on widget transfer for
-          detaching tabs.
-- 0.2.249 - Preserve layout of widgets when moving tabs by storing geometry
-          manager options before reparenting and restoring them afterward.
-- 0.2.248 - Raise an error when tab reparenting fails and restore the original
-          notebook instead of cloning.
 - 0.2.247 - Fix widget transfer to use keyword arguments when adding tabs,
           preventing detachment errors.
 - 0.2.246 - Track expected children by widget identity when hiding unexpected

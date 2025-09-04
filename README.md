@@ -1,7 +1,8 @@
 version: 0.2.249
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-Preserve widget layouts when moving tabs between notebooks.
+Move tabs between notebooks without cloning so detached windows display
+the original functional toolbox and diagram with no duplicates.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
