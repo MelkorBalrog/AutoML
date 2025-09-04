@@ -1361,11 +1361,11 @@ class ClosableNotebook(ttk.Notebook):
                 self._floating_windows.remove(w)
 
         dw.win.bind("<Destroy>", _on_destroy, add="+")
-        orig = self.nametowidget(tab_id)
         text = self.tab(tab_id, "text")
         moved = self._move_tab(tab_id, dw.nb)
-        if moved:
-            child = dw.nb.nametowidget(dw.nb.tabs()[-1])
+        orig = self.nametowidget(tab_id)
+        if moved or orig.master is dw.nb:
+            child = orig  # already moved
             dw._ensure_toolbox(child)
             dw._activate_hooks(child)
             return
