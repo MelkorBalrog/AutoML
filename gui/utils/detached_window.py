@@ -50,6 +50,14 @@ class DetachedWindow:
     def add(self, widget: tk.Widget, text: str) -> None:
         """Add *widget* to the notebook and run activation hooks."""
         self.nb.add(widget, text=text)
+        self.add_moved_widget(widget, text)
+
+    def add_moved_widget(self, widget: tk.Widget, text: str) -> None:
+        """Accept an already-moved *widget* and trigger hooks."""
+        try:
+            self.nb.tab(widget, text=text)
+        except Exception:
+            pass
         self.nb.select(widget)
         self._ensure_toolbox(widget)
         self._activate_hooks(widget)

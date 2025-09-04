@@ -35,6 +35,10 @@ import weakref
 import functools
 import re
 from tkinter import ttk
+try:  # pragma: no cover - allow local imports in tests
+    from .widget_transfer_manager import WidgetTransferManager
+except Exception:  # pragma: no cover - fallback when run as script
+    from widget_transfer_manager import WidgetTransferManager
 
 logger = logging.getLogger(__name__)
 
@@ -466,15 +470,15 @@ class ClosableNotebook(ttk.Notebook):
             child = self.nametowidget(tab_id)
             self._closing_tab = tab_id
             self.event_generate("<<NotebookTabClosed>>")
+            try:
+                self._cancel_after_events(child)
+            except Exception:
+                pass
             if tab_id in self.tabs():
                 try:
                     self.forget(tab_id)
                 except tk.TclError:
                     pass
-            try:
-                self._cancel_after_events(child)
-            except Exception:
-                pass
             try:
                 child.destroy()
             except Exception:
@@ -532,11 +536,30 @@ class ClosableNotebook(ttk.Notebook):
 
         The method first tries Tk's ``winfo`` reparenting to avoid cloning.  If
         the operation fails, the widget is restored to its original notebook and
-        the caller may fall back to cloning.
+        the caller may fall back to cloning. Tk ``after`` callbacks are
+        cancelled before widgets are forgotten to avoid orphaned Tcl commands
+        such as ``*_animate``.
         """
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
+
+        def _safe_forget(nb: "ClosableNotebook", widget: tk.Widget) -> None:
+            if widget.master is nb or str(widget) in nb.tabs():
+                try:
+                    self._cancel_after_events(widget)
+                except Exception:
+                    pass
+                try:
+                    nb.forget(widget)
+                except tk.TclError:
+                    # Tcl may destroy the notebook between the failed add and
+                    # the cleanup. This previously surfaced as:
+                    #   TclError: can't invoke "ttk::notebook" command:
+                    #             application has been destroyed
+                    # Guard the call so race conditions do not bubble up.
+                    pass
+
         try:
             self._cancel_after_events(child)
         except Exception:
@@ -550,12 +573,24 @@ class ClosableNotebook(ttk.Notebook):
                 pass
             target.add(child, text=text)
             target.select(child)
-            moved = True
         except tk.TclError:
+            _safe_forget(target, child)
             self.add(child, text=text)
             self.select(child)
-            moved = False
+        # A tab is considered moved only if its master ends up being *target*.
+        # Tk may leave the child reparented under *target* even when an error
+        # is raised.  Ensure the widget is restored so cloning operates on a
+        # deterministic state.
+        moved = child.master is target
+        if not moved:
+            _safe_forget(target, child)
+            self.add(child, text=text)
+            self.select(child)
         if isinstance(self.master, tk.Toplevel) and not self.tabs():
+            try:
+                self._cancel_after_events(self.master)
+            except Exception:
+                pass
             self.master.destroy()
         return moved
 
@@ -1263,7 +1298,11 @@ class ClosableNotebook(ttk.Notebook):
     def _cancel_after_events(
         self, widget: tk.Widget, cancelled: set[str] | None = None
     ) -> None:
-        """Wrapper for :func:`cancel_after_events` for backward compatibility."""
+        """Wrapper for :func:`cancel_after_events`.
+
+        Cancels Tk ``after`` callbacks tied to *widget* to avoid orphaned Tcl
+        commands such as ``*_animate``.
+        """
 
         cancel_after_events(widget, cancelled)
 
@@ -1333,8 +1372,15 @@ class ClosableNotebook(ttk.Notebook):
 
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
+        """Detach *tab_id* into a new floating window at *(x, y)*.
+
+        Tk ``after`` callbacks tied to the original tab are cancelled before it
+        is forgotten to prevent orphaned Tcl commands such as ``*_animate``.
+        """
+
         from .detached_window import DetachedWindow
 
+        text = self.tab(tab_id, "text")
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
