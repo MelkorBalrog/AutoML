@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.251 - Add regression tests ensuring detached tabs retain a single
+          functional toolbox and diagram.
 - 0.2.250 - Drop obsolete widget cloning and pruning helpers in
           ``ClosableNotebook`` and rely solely on widget transfer for
           detaching tabs.

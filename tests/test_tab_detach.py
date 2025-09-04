@@ -32,6 +32,54 @@ except Exception:  # pragma: no cover - optional GUI dependency
 from closable_notebook import ClosableNotebook
 
 
+@pytest.mark.detached_tab
+@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+class TestDetachedTabToolboxDiagram:
+    """Detached-tab regression tests for toolbox and diagram functionality."""
+
+    def _detach(self):
+        root = tk.Tk()
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        ttk.Frame(frame, name="toolbox").pack(side="left")
+        canvas = tk.Canvas(frame, name="diagram")
+        canvas.pack(side="right")
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        return root, new_nb, new_frame
+
+    def test_only_outer_toolbox_and_diagram_remain(self):
+        root, _new_nb, new_frame = self._detach()
+        toolboxes = [w for w in new_frame.winfo_children() if w.winfo_name() == "toolbox"]
+        diagrams = [w for w in new_frame.winfo_children() if w.winfo_name() == "diagram"]
+        assert len(toolboxes) == 1
+        assert len(diagrams) == 1
+        root.destroy()
+
+    def test_toolbox_and_diagram_functional(self):
+        root, _new_nb, new_frame = self._detach()
+        toolbox = new_frame.nametowidget("toolbox")
+        diagram = new_frame.nametowidget("diagram")
+        ttk.Button(toolbox, text="ok").pack()
+        item = diagram.create_rectangle(0, 0, 10, 10)
+        assert item in diagram.find_all()
+        root.destroy()
+
+
 class TestTabDetachBasics:
     def test_tab_detach_and_reattach(self):
         try:
