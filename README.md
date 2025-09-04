@@ -1,8 +1,8 @@
-version: 0.2.246
+version: 0.2.247
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-This release safeguards tab rollback by verifying target ownership before
-forgetting a tab and swallowing race-condition Tcl errors.
+This release cancels tab callbacks before widgets are forgotten or destroyed,
+preventing orphaned Tcl commands during tab moves and detachment.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
