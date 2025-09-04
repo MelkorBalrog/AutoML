@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.248 - Raise an error when tab reparenting fails and restore the original
+          notebook instead of cloning.
 - 0.2.247 - Fix widget transfer to use keyword arguments when adding tabs,
           preventing detachment errors.
 - 0.2.246 - Track expected children by widget identity when hiding unexpected

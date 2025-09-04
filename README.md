@@ -1,8 +1,7 @@
-version: 0.2.247
+version: 0.2.248
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-Fix widget transfer so tabs are added with keyword arguments, preventing
-errors when moving tabs between notebooks.
+Raise an error when tab moves fail and restore the source notebook state.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.

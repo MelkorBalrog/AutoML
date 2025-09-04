@@ -534,15 +534,15 @@ class ClosableNotebook(ttk.Notebook):
     def _move_tab(self, tab_id: str, target: "ClosableNotebook") -> bool:
         """Move *tab_id* to *target* notebook using Tk's native commands.
 
-        The method first tries Tk's ``winfo`` reparenting to avoid cloning.  If
-        the operation fails, the widget is restored to its original notebook and
-        the caller may fall back to cloning. Tk ``after`` callbacks are
-        cancelled before widgets are forgotten to avoid orphaned Tcl commands
-        such as ``*_animate``.
+        ``after`` callbacks tied to the tab are cancelled before any widgets
+        are forgotten to avoid orphaned Tcl commands such as ``*_animate``.
+        On failure, the tab is fully restored to its source notebook and a
+        :class:`RuntimeError` is raised instead of falling back to cloning.
         """
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
+        index = self.index(tab_id)
 
         def _safe_forget(nb: "ClosableNotebook", widget: tk.Widget) -> None:
             if widget.master is nb or str(widget) in nb.tabs():
@@ -560,6 +560,12 @@ class ClosableNotebook(ttk.Notebook):
                     # Guard the call so race conditions do not bubble up.
                     pass
 
+        def _restore() -> None:
+            self.add(child, text=text)
+            if self.index(child) != index:
+                self.insert(index, child)
+            self.select(child)
+
         try:
             self._cancel_after_events(child)
         except Exception:
@@ -573,26 +579,24 @@ class ClosableNotebook(ttk.Notebook):
                 pass
             target.add(child, text=text)
             target.select(child)
-        except tk.TclError:
+        except tk.TclError as exc:
             _safe_forget(target, child)
-            self.add(child, text=text)
-            self.select(child)
-        # A tab is considered moved only if its master ends up being *target*.
-        # Tk may leave the child reparented under *target* even when an error
-        # is raised.  Ensure the widget is restored so cloning operates on a
-        # deterministic state.
+            _restore()
+            logger.error("Failed to move tab %s: %s", child, exc)
+            raise RuntimeError(f"Failed to move tab {child}") from exc
         moved = child.master is target
         if not moved:
             _safe_forget(target, child)
-            self.add(child, text=text)
-            self.select(child)
+            _restore()
+            logger.error("Tab %s was not reparented to %s", child, target)
+            raise RuntimeError(f"Failed to move tab {child}")
         if isinstance(self.master, tk.Toplevel) and not self.tabs():
             try:
                 self._cancel_after_events(self.master)
             except Exception:
                 pass
             self.master.destroy()
-        return moved
+        return True
 
     def _clone_widget(
         self,
