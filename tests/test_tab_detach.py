@@ -513,7 +513,7 @@ class TestDetachedWindowLayout:
         root.destroy()
 
 class TestCloning:
-    def test_clone_handles_required_args(self, monkeypatch):
+    def test_detach_handles_required_args(self, monkeypatch):
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -543,10 +543,11 @@ class TestCloning:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_btn = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_btn is btn
         assert new_btn.cget("text") == "ok"
         root.destroy()
 
-    def test_clone_handles_attribute_args(self, monkeypatch):
+    def test_detach_handles_attribute_args(self, monkeypatch):
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -577,10 +578,11 @@ class TestCloning:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_widget = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_widget is widget
         assert getattr(new_widget, "_text", None) == "hello"
         root.destroy()
 
-    def test_clone_copies_entry_content(self, monkeypatch):
+    def test_detach_keeps_entry_content(self, monkeypatch):
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -606,10 +608,11 @@ class TestCloning:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_entry = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_entry is entry
         assert new_entry.get() == "data"
         root.destroy()
 
-    def test_clone_preserves_layout(self, monkeypatch):
+    def test_detach_preserves_layout(self, monkeypatch):
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -636,6 +639,7 @@ class TestCloning:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_frame is frame
         children = new_frame.winfo_children()
         assert len(children) == 1
         new_label = children[0]
@@ -644,8 +648,8 @@ class TestCloning:
         assert new_label.winfo_manager()
         root.destroy()
 
-    def test_clone_resets_pack_parent(self, monkeypatch):
-        """Cloned widgets should pack into the new notebook, not the original."""
+    def test_detach_resets_pack_parent(self, monkeypatch):
+        """Detached widgets should pack into the new notebook, not the original."""
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -671,12 +675,13 @@ class TestCloning:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_frame is frame
         assert new_frame.pack_info().get("in") == str(new_nb)
         root.destroy()
 
     @pytest.mark.skipif(_StyledButton is None, reason="Styled button unavailable")
-    def test_clone_styled_button(self, monkeypatch):
-        """Styled button detachment should clone required text argument."""
+    def test_detach_styled_button(self, monkeypatch):
+        """Styled button detachment should preserve the original widget."""
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -701,6 +706,7 @@ class TestCloning:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_btn = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_btn is btn
         assert isinstance(new_btn, _StyledButton)
         assert new_btn.cget("text") == "ok"
         root.destroy()
@@ -708,7 +714,7 @@ class TestCloning:
 
 @pytest.mark.skipif(CapsuleButton is None, reason="CapsuleButton unavailable")
 class TestCapsuleButtonDetach:
-    def test_clone_capsule_with_none_text(self, monkeypatch):
+    def test_detach_capsule_preserves_type(self, monkeypatch):
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -734,6 +740,7 @@ class TestCapsuleButtonDetach:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_btn = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_btn is btn
         assert isinstance(new_btn, CapsuleButton)
         root.destroy()
 
@@ -763,6 +770,7 @@ class TestCapsuleButtonDetach:
         win = nb._floating_windows[0]
         new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
         new_btn = new_nb.nametowidget(new_nb.tabs()[0])
+        assert new_btn is btn
         assert isinstance(new_btn, CapsuleButton)
         assert new_btn.cget("text") == ""
         root.destroy()
