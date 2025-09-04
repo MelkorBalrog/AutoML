@@ -1,4 +1,4 @@
-version: 0.2.248
+version: 0.2.249
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
 This release extracts a dedicated ``WidgetTransferManager`` to handle tab

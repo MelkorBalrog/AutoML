@@ -19,6 +19,9 @@
 -->
 
 # Version History
+- 0.2.249 - Delegate tab detachment to ``WidgetTransferManager.detach_tab`` so
+          widgets move without cloning or pruning and remain direct children of
+          detached notebooks.
 - 0.2.248 - Introduce ``WidgetTransferManager`` for tab moves and reattachment,
           cancelling ``after`` callbacks, rebinding events and restoring
           geometry. Update ``ClosableNotebook`` to use the manager instead of
