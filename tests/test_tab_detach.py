@@ -849,6 +849,40 @@ class TestAnimatedWidgetDetach:
         root.destroy()
 
 
+@pytest.mark.detached_tab
+@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+class TestDetachedTabRegression:
+    """Detached tab regression tests."""
+
+    def test_detached_tab_has_single_toolbox_and_diagram(self):
+        root = tk.Tk()
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+        ttk.Frame(frame, name="toolbox").pack(side="left")
+        tk.Canvas(frame, name="diagram").pack(side="right")
+        nb.add(frame, text="Tab1")
+        nb.update_idletasks()
+
+        class Event: ...
+
+        press = Event(); press.x = 5; press.y = 5
+        nb._on_tab_press(press)
+        nb._dragging = True
+        release = Event()
+        release.x_root = nb.winfo_rootx() + nb.winfo_width() + 40
+        release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
+        nb._on_tab_release(release)
+
+        win = nb._floating_windows[0]
+        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
+        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
+        toolboxes = [w for w in new_frame.winfo_children() if w.winfo_name() == "toolbox"]
+        diagrams = [w for w in new_frame.winfo_children() if w.winfo_name() == "diagram"]
+        assert len(toolboxes) == 1
+        assert len(diagrams) == 1
+        root.destroy()
+
+
 class TestTabDetachCallbacks:
     def test_detach_tab_with_after_callback(self):
         try:
