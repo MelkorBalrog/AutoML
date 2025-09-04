@@ -19,8 +19,6 @@
 -->
 
 # Version History
-- 0.2.243 - Introduce ``_remove_widget_pairs`` utility to unmap specified
-          widget pairs while leaving remaining tab children intact.
 - 0.2.242 - Track expected widgets via object identity and safely destroy
           duplicates when pruning detached tab trees.
 - 0.2.241 - Fix widget pruning logic so detached tabs keep the first

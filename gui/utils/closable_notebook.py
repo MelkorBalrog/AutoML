@@ -120,50 +120,6 @@ _KNOWN_TEXT_WIDGETS = {"CapsuleButton"}
 _SELF_DRAWING_CANVASES = {"CapsuleButton"}
 
 
-def _remove_widget_pairs(
-    parent: tk.Widget, pairs: t.Iterable[tuple[tk.Widget, tk.Widget]]
-) -> None:
-    """Detach specific widget pairs from ``parent`` while preserving others.
-
-    Notebook detachment and other tab operations can leave behind stray
-    widget duplicates.  Removing them by iterating over all children risks
-    unmapping widgets that should remain visible.  This helper targets only
-    the provided pairs, unmapping each widget via the geometry manager it
-    currently uses and falling back to :meth:`destroy` when the manager is
-    unknown.  Widgets not referenced in ``pairs`` remain attached to
-    ``parent`` and continue to display normally.
-    """
-
-    for first, second in pairs:
-        for child in (first, second):
-            if child is None:
-                continue
-            try:
-                manager = child.winfo_manager()
-            except Exception:
-                manager = ""
-            if manager == "pack":
-                try:
-                    child.pack_forget()
-                except Exception:
-                    pass
-            elif manager == "grid":
-                try:
-                    child.grid_forget()
-                except Exception:
-                    pass
-            elif manager == "place":
-                try:
-                    child.place_forget()
-                except Exception:
-                    pass
-            else:
-                try:
-                    child.destroy()
-                except Exception:
-                    pass
-
-
 class ClosableNotebook(ttk.Notebook):
     """Notebook widget with an 'x' button on the left side of each tab."""
 
