@@ -45,3 +45,29 @@ class TestDetachmentReparenting:
         assert nb1._move_tab(tab_id, nb2)
         assert nb2.nametowidget(nb2.tabs()[0]) is label
         root.destroy()
+
+    def test_layout_preserved_during_move(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb1 = ClosableNotebook(root)
+        nb1.pack()
+        nb2 = ClosableNotebook(root)
+        nb2.pack()
+        tab = ttk.Frame(nb1)
+        lbl_pack = ttk.Label(tab, text="pack")
+        lbl_pack.pack(side="left")
+        grid_container = ttk.Frame(tab)
+        grid_container.pack(side="left")
+        lbl_grid = ttk.Label(grid_container, text="grid")
+        lbl_grid.grid(row=0, column=0, padx=5)
+        nb1.add(tab, text="T")
+        pack_before = lbl_pack.pack_info()
+        grid_before = lbl_grid.grid_info()
+        tab_id = nb1.tabs()[0]
+        assert nb1._move_tab(tab_id, nb2)
+        assert lbl_pack.pack_info()["side"] == pack_before["side"]
+        assert lbl_grid.grid_info()["row"] == grid_before["row"]
+        assert lbl_grid.grid_info()["column"] == grid_before["column"]
+        root.destroy()

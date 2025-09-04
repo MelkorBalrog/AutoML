@@ -570,6 +570,7 @@ class ClosableNotebook(ttk.Notebook):
             self._cancel_after_events(child)
         except Exception:
             pass
+        layouts = self._capture_layouts(child)
         self.forget(tab_id)
         ClosableNotebook._tab_hosts.pop(child, None)
         try:
@@ -579,6 +580,7 @@ class ClosableNotebook(ttk.Notebook):
                 pass
             target.add(child, text=text)
             target.select(child)
+            target._restore_layouts(child, layouts)
         except tk.TclError as exc:
             _safe_forget(target, child)
             _restore()
@@ -597,6 +599,44 @@ class ClosableNotebook(ttk.Notebook):
                 pass
             self.master.destroy()
         return True
+
+    def _capture_layouts(
+        self,
+        widget: tk.Widget,
+        layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]] | None = None,
+    ) -> dict[tk.Widget, tuple[str, dict[str, t.Any]]]:
+        """Return geometry manager and options for *widget* and descendants."""
+
+        if layouts is None:
+            layouts = {}
+        try:
+            manager = widget.winfo_manager()
+        except Exception:  # pragma: no cover - best effort
+            manager = ""
+        info: dict[str, t.Any] = {}
+        try:
+            if manager == "pack":
+                info = widget.pack_info()
+            elif manager == "grid":
+                info = widget.grid_info()
+            elif manager == "place":
+                info = widget.place_info()
+        except Exception:
+            info = {}
+        layouts[widget] = (manager, info)
+        for child in widget.winfo_children():
+            self._capture_layouts(child, layouts)
+        return layouts
+
+    def _restore_layouts(
+        self,
+        widget: tk.Widget,
+        layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]],
+    ) -> None:
+        """Reapply stored geometry for *widget* and descendants."""
+
+        mapping = {w: w for w in layouts}
+        self._copy_widget_layout(widget, widget, mapping, layouts)
 
     def _clone_widget(
         self,

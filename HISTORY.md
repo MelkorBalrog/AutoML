@@ -19,6 +19,8 @@
 -->
 
 # Version History
+- 0.2.249 - Preserve layout of widgets when moving tabs by storing geometry
+          manager options before reparenting and restoring them afterward.
 - 0.2.248 - Raise an error when tab reparenting fails and restore the original
           notebook instead of cloning.
 - 0.2.247 - Fix widget transfer to use keyword arguments when adding tabs,

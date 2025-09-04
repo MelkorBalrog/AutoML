@@ -1,7 +1,7 @@
-version: 0.2.248
+version: 0.2.249
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-Raise an error when tab moves fail and restore the source notebook state.
+Preserve widget layouts when moving tabs between notebooks.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
