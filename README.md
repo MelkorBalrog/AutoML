@@ -1,8 +1,28 @@
-version: 0.2.249
+<!--
+# Author: Miguel Marina <karel.capek.robotics@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Copyright (C) 2025 Capek System Safety & Robotic Solutions
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+version: 0.2.254
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-Move tabs between notebooks without cloning so detached windows display
-the original functional toolbox and diagram with no duplicates.
+Reparent detached tabs across windows using native OS APIs so notebooks move
+widgets without cloning, with tabs removed from their source notebooks.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
