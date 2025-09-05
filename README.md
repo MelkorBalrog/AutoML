@@ -18,12 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-version: 0.2.255
+version: 0.2.254
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-Call Tcl's unsupported `ReparentWindow` before Windows `SetParent` to move
-detached tabs safely across windows and raise clear errors when both
-reparenting steps fail.
+Reparent detached tabs across windows using native OS APIs so notebooks move
+widgets without cloning, with tabs removed from their source notebooks.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
