@@ -23,26 +23,10 @@ from __future__ import annotations
 import tkinter as tk
 import typing as t
 
-
-def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) -> None:
-    """Cancel Tk ``after`` callbacks associated with *widget* and its children.
-
-    This lightweight variant mirrors :func:`gui.utils.closable_notebook.cancel_after_events`
-    but lives here to avoid circular imports. It recursively cancels callbacks to
-    prevent ``invalid command name`` errors when widgets are moved or destroyed.
-    """
-
-    if cancelled is None:
-        cancelled = set()
-    try:
-        for ident in widget.tk.call("after", "info", str(widget)):
-            if ident not in cancelled:
-                widget.after_cancel(ident)
-                cancelled.add(ident)
-    except Exception:
-        pass
-    for child in widget.winfo_children():
-        cancel_after_events(child, cancelled)
+try:  # pragma: no cover - support direct module execution
+    from .tk_utils import cancel_after_events, reparent_widget
+except Exception:  # pragma: no cover - legacy path
+    from tk_utils import cancel_after_events, reparent_widget
 
 
 class WidgetTransferManager:
@@ -76,6 +60,7 @@ class WidgetTransferManager:
         cancel_after_events(orig)
         source.forget(orig)
         try:
+            reparent_widget(orig, target)
             target.add(orig, text=text)
             target.select(orig)
         except tk.TclError as exc:
