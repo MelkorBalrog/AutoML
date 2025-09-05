@@ -546,7 +546,15 @@ class ClosableNotebook(ttk.Notebook):
         dw.win.bind("<Destroy>", _on_destroy, add="+")
 
         manager = WidgetTransferManager()
-        child = manager.detach_tab(self, tab_id, dw.nb)
+        try:
+            child = manager.detach_tab(self, tab_id, dw.nb)
+        except tk.TclError:
+            logger.exception("Failed to detach tab %s", tab_id)
+            try:
+                dw.win.destroy()
+            except Exception:
+                pass
+            return
         dw._ensure_toolbox(child)
         dw._activate_hooks(child)
 
