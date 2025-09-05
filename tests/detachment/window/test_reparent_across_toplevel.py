@@ -26,7 +26,6 @@ from tkinter import ttk
 import pytest
 
 import os
-
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.widget_transfer_manager import WidgetTransferManager
 
