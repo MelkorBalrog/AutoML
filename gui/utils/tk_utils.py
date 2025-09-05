@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+import sys
+import ctypes
 import tkinter as tk
 import typing as t
 
@@ -93,3 +95,15 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
 
     for child in widget.winfo_children():
         cancel_after_events(child, cancelled)
+
+
+def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
+    """Reparent *widget* into *new_parent* using OS-level APIs."""
+
+    wid = int(widget.winfo_id())
+    pid = int(new_parent.winfo_id())
+    if sys.platform.startswith("win"):
+        if ctypes.windll.user32.SetParent(wid, pid) == 0:
+            raise tk.TclError("SetParent failed")
+    else:  # pragma: no cover - non-Windows platforms not implemented
+        raise tk.TclError("OS-level reparenting not implemented")

@@ -18,10 +18,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.250 - 2025-09-04
+## 0.2.251 - 2025-09-04
 
-- Reparent detached tabs across toplevel windows using Tk's unsupported
-  reparent command so widgets move without cloning
+- Reparent detached tabs across toplevel windows using native OS APIs so
+  widgets move without cloning
 - Share robust `cancel_after_events` helper to avoid stray callback errors
 
 ## 0.2.249 - 2025-09-04

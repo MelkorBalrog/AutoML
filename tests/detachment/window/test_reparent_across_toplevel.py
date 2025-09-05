@@ -25,6 +25,7 @@ from tkinter import ttk
 
 import pytest
 
+import os
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.widget_transfer_manager import WidgetTransferManager
 
@@ -33,6 +34,8 @@ from gui.utils.widget_transfer_manager import WidgetTransferManager
 @pytest.mark.reparenting
 class TestReparentAcrossToplevel:
     def test_widget_reparented_between_toplevels(self) -> None:
+        if os.name != "nt":
+            pytest.skip("OS-level reparenting implemented only on Windows")
         try:
             root = tk.Tk()
         except tk.TclError:

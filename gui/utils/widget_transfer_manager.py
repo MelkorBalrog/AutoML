@@ -24,9 +24,9 @@ import tkinter as tk
 import typing as t
 
 try:  # pragma: no cover - support direct module execution
-    from .tk_utils import cancel_after_events
+    from .tk_utils import cancel_after_events, reparent_widget
 except Exception:  # pragma: no cover - legacy path
-    from tk_utils import cancel_after_events
+    from tk_utils import cancel_after_events, reparent_widget
 
 
 class WidgetTransferManager:
@@ -60,9 +60,7 @@ class WidgetTransferManager:
         cancel_after_events(orig)
         source.forget(orig)
         try:
-            # Reparent the widget at the Tk level so it can be added to a
-            # notebook in a different toplevel window.
-            orig.tk.call("tk", "unsupported", "reparent", orig._w, target._w)
+            reparent_widget(orig, target)
             target.add(orig, text=text)
             target.select(orig)
         except tk.TclError as exc:
