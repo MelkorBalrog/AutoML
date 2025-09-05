@@ -60,24 +60,15 @@ class WidgetTransferManager:
         cancel_after_events(orig)
         source.forget(orig)
         try:
-            try:
-                orig.tk.call("winfo", "reparent", orig._w, target._w)
-            except tk.TclError:
-                reparent_widget(orig, target)
+            reparent_widget(orig, target)
             target.add(orig, text=text)
             target.select(orig)
         except tk.TclError as exc:
+            # Roll back to the source notebook if re-parenting fails
             try:
                 target.forget(orig)
             except tk.TclError:
                 pass
-            try:
-                orig.tk.call("winfo", "reparent", orig._w, source._w)
-            except tk.TclError:
-                try:
-                    reparent_widget(orig, source)
-                except tk.TclError:
-                    pass
             source.add(orig, text=text)
             source.select(orig)
             raise exc
