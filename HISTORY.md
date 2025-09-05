@@ -18,10 +18,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.253 - 2025-09-05
+## 0.2.253 - 2025-09-06
 
-- Reparent widgets directly into the target notebook so tabs are removed from
-  the source before insertion
+- Remove duplicate tab-detachment routine and instantiate `WidgetTransferManager`
+  without arguments to keep widget moves stable.
 
 ## 0.2.252 - 2025-09-05
 
