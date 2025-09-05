@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.255 - 2025-09-05
+
+- Expose Tk's hidden ``ReparentWindow`` command before reparenting so detached
+  tabs move across windows without "unsupported" errors
+
 ## 0.2.254 - 2025-09-05
 
 - Reparent widgets using ``::tk::unsupported::ReparentWindow`` so Tk updates

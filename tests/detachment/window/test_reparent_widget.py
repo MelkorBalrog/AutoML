@@ -53,6 +53,40 @@ class TestReparentWidget:
         reparent_widget(w, p)
         assert ("::tk::unsupported::ReparentWindow", w._w, p._w) in calls
 
+    def test_exposes_private_command(self, monkeypatch) -> None:
+        calls: list[tuple[str, ...]] = []
+
+        class DummyTk:
+            def call(self, *args):
+                calls.append(args)
+                if args[0] in (
+                    "::tk::unsupported::ReparentWindow",
+                    "tk::unsupported::ReparentWindow",
+                    "::tk::ReparentWindow",
+                ):
+                    raise tk.TclError("missing")
+                if args[0] in (
+                    "::tk::unsupported::ExposePrivateCommand",
+                    "tk::unsupported::ExposePrivateCommand",
+                ) or (args[0] == "tk" and args[1:3] == ("unsupported", "ExposePrivateCommand")):
+                    return None
+                if args[0] == "ReparentWindow":
+                    return None
+                raise tk.TclError("unexpected")
+
+        class DummyWidget:
+            def __init__(self, name: str) -> None:
+                self.tk = DummyTk()
+                self._w = name
+
+            def winfo_id(self) -> int:
+                return 1
+
+        w = DummyWidget(".w")
+        p = DummyWidget(".p")
+        reparent_widget(w, p)
+        assert ("ReparentWindow", w._w, p._w) in calls
+
     def test_falls_back_to_setparent(self, monkeypatch) -> None:
         called = {"SetParent": False}
 
