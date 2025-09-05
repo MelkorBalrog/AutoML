@@ -18,6 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.251 - 2025-09-04
+
+- Reparent detached tabs across toplevel windows using native OS APIs so
+  widgets move without cloning
+- Share robust `cancel_after_events` helper to avoid stray callback errors
+
 ## 0.2.249 - 2025-09-04
 
 - Move tabs between notebooks without cloning via `WidgetTransferManager`
