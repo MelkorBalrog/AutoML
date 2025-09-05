@@ -128,18 +128,6 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
         except tk.TclError:
             continue
 
-    for expose in (
-        ("::tk::unsupported::ExposePrivateCommand", "ReparentWindow"),
-        ("tk::unsupported::ExposePrivateCommand", "ReparentWindow"),
-        ("tk", "unsupported", "ExposePrivateCommand", "ReparentWindow"),
-    ):
-        try:
-            tkapp.call(*expose)
-            tkapp.call("ReparentWindow", widget._w, new_parent._w)
-            return
-        except tk.TclError:
-            continue
-
     wid = int(widget.winfo_id())
     pid = int(new_parent.winfo_id())
     if sys.platform.startswith("win"):
