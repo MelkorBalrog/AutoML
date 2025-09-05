@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.253 - 2025-09-06
+
+- Cancel numeric `_animate` callbacks so tab detachment removes pending
+  animations cleanly
+
 ## 0.2.252 - 2025-09-05
 
 - Reparent widgets to target toplevel before notebook insertion to avoid

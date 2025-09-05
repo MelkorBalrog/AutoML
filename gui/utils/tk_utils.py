@@ -24,6 +24,7 @@ import sys
 import ctypes
 import tkinter as tk
 import typing as t
+import re
 
 
 def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) -> None:
@@ -76,6 +77,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             all_ids = ()
         if isinstance(all_ids, str):
             all_ids = (all_ids,)
+        pattern = re.compile(r"^\d+_(?:anim|after|timer|animate)$")
         for ident in all_ids:
             if not isinstance(ident, str) or ident in cancelled:
                 continue
@@ -90,7 +92,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
                 script = tkapp.call("after", "info", ident)
             except Exception:
                 continue
-            if str(widget) in script:
+            if str(widget) in script or pattern.match(script):
                 _cancel_ident(ident, script if isinstance(script, str) else None)
 
     try:
