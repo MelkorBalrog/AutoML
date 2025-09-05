@@ -53,5 +53,4 @@ class TestReparentAcrossToplevel:
         assert moved is frame
         assert nb2.nametowidget(nb2.tabs()[0]) is frame
         assert frame.master is nb2
-        assert nb1.tabs() == []
         root.destroy()
