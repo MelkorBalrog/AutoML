@@ -18,12 +18,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.255 - 2025-09-06
+
+- Scan `_tclCommands` for scripts referencing widgets and purge them when
+  cancelling `after` callbacks, logging any unhandled cancellations for easier
+  debugging.
+
 ## 0.2.254 - 2025-09-06
 
-- Call Tk's unsupported `ReparentWindow` before falling back to Windows `SetParent`
-  and raise descriptive `TclError` if both reparenting steps fail.
-- Shift `WidgetTransferManager.detach_tab` to the revised helper and expand window
-  detachment tests ensuring source notebooks drop moved tabs.
+- Call Tk's unsupported `ReparentWindow` before falling back to Windows
+  `SetParent` and raise descriptive `TclError` if both reparenting steps fail.
+- Shift `WidgetTransferManager.detach_tab` to the revised helper and expand
+  window detachment tests ensuring source notebooks drop moved tabs.
 
 ## 0.2.253 - 2025-09-06
 
