@@ -18,11 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.254 - 2025-09-06
-
-- Reparent detached tabs within Tk so tab labels move alongside their widgets
-  and roll back cleanly if detachment fails.
-
 ## 0.2.253 - 2025-09-06
 
 - Remove duplicate tab-detachment routine and instantiate `WidgetTransferManager`
