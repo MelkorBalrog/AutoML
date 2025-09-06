@@ -129,7 +129,6 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
 
 def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
     """Reparent *widget* into *new_parent*'s toplevel window."""
-
     tkapp = getattr(widget, "tk", None)
     if tkapp is None:
         raise tk.TclError("widget has no tk application")
