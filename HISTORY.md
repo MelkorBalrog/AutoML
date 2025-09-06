@@ -18,12 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.252 - 2025-09-05
-
-- Reparent widgets to target toplevel before notebook insertion to avoid
-  "can't add ... as slave" errors
-- Purge residual Tcl command callbacks when cancelling `after` events
-
 ## 0.2.251 - 2025-09-04
 
 - Reparent detached tabs across toplevel windows using native OS APIs so
