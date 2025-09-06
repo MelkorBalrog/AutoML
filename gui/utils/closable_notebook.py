@@ -519,6 +519,38 @@ class ClosableNotebook(ttk.Notebook):
             self.master.destroy()
         return True
 
+    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
+        """Detach *tab_id* into a new floating window at *(x, y)*.
+
+        Tk ``after`` callbacks tied to the original tab are cancelled before it
+        is forgotten to prevent orphaned Tcl commands such as ``*_animate``.
+        """
+
+        from .detached_window import DetachedWindow
+
+        text = self.tab(tab_id, "text")
+        self.update_idletasks()
+        width = self.winfo_width() or 200
+        height = self.winfo_height() or 200
+        dw = DetachedWindow(self._app_root, width, height, x, y)
+        self._floating_windows.append(dw.win)
+
+        def _on_destroy(_e, w=dw.win) -> None:
+            try:
+                self._cancel_after_events(w)
+            except Exception:
+                pass
+            if w in self._floating_windows:
+                self._floating_windows.remove(w)
+
+        dw.win.bind("<Destroy>", _on_destroy, add="+")
+
+        manager = WidgetTransferManager(self)
+        child = manager.detach_tab(tab_id, dw.nb)
+        dw._ensure_toolbox(child)
+        dw._activate_hooks(child)
+
+
     def _replace_widget_paths(
         self, script: str, mapping: dict[tk.Widget, tk.Widget]
     ) -> str:
@@ -535,73 +567,6 @@ class ClosableNotebook(ttk.Notebook):
                 script,
             )
         return script
-
-    def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
-        """Return children of *widget* in creation order."""
-        try:
-            return list(widget.winfo_children())
-        except Exception:
-            return []
-
-    def _clone_widget(
-        self, widget: tk.Widget, parent: tk.Widget
-    ) -> tuple[tk.Widget, dict[tk.Widget, tk.Widget], dict[tk.Widget, tuple[str, dict[str, t.Any]]]]:
-        """Deep-clone *widget* under *parent*.
-
-        Returns the root clone, a mapping of original widgets to their clones
-        and a mapping of layout managers.
-        """
-
-        mapping: dict[tk.Widget, tk.Widget] = {}
-        layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]] = {}
-
-        def recurse(src: tk.Widget, master: tk.Widget) -> tk.Widget:
-            cls = src.__class__
-            try:
-                clone = cls(master)
-            except Exception:
-                clone = tk.Frame(master)
-            mapping[src] = clone
-            try:
-                for opt, info in src.configure().items():
-                    try:
-                        val = info[-1]
-                    except Exception:
-                        val = info
-                    if opt in {"class"}:
-                        continue
-                    try:
-                        clone.configure({opt: val})
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-            try:
-                manager = src.winfo_manager()
-                if manager == "pack":
-                    layouts[src] = (manager, src.pack_info())
-                elif manager == "grid":
-                    layouts[src] = (manager, src.grid_info())
-                elif manager == "place":
-                    layouts[src] = (manager, src.place_info())
-                else:
-                    layouts[src] = ("", {})
-            except Exception:
-                layouts[src] = ("", {})
-            for child in self._ordered_children(src):
-                recurse(child, clone)
-            return clone
-
-        clone_root = recurse(widget, parent)
-        self._copy_widget_layout(widget, clone_root, mapping, layouts)
-        for orig, clone in mapping.items():
-            self._reschedule_after_callbacks(orig, clone, mapping)
-            self._copy_widget_bindings(orig, clone, mapping)
-        self.rewrite_option_references(mapping)
-        self.rebind_cloned_scrollbars(mapping)
-        self.update_canvas_windows(mapping)
-        self._raise_widgets(widget, clone_root, mapping)
-        return clone_root, mapping, layouts
 
     def _reschedule_after_callbacks(
         self, widget: tk.Widget, clone: tk.Widget, mapping: dict[tk.Widget, tk.Widget]
