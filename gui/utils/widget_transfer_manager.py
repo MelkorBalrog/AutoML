@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Utilities for moving widgets between notebooks without cloning."""
+"""Utilities for moving widgets between notebooks by cloning."""
 
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ import tkinter as tk
 import typing as t
 
 try:  # pragma: no cover - support direct module execution
-    from .tk_utils import cancel_after_events, reparent_widget
+    from .tk_utils import cancel_after_events
 except Exception:  # pragma: no cover - legacy path
-    from tk_utils import cancel_after_events, reparent_widget
+    from tk_utils import cancel_after_events
 
 
 class WidgetTransferManager:
@@ -58,19 +58,78 @@ class WidgetTransferManager:
         orig = source.nametowidget(tab_id)
         text = source.tab(tab_id, "text")
         cancel_after_events(orig)
+        clone = self._clone_widget(orig, target)
         source.forget(orig)
         try:
-            reparent_widget(orig, target)
-            target.add(orig, text=text)
-            target.select(orig)
-        except tk.TclError as exc:
-            # Roll back to the source notebook if re-parenting fails
-            try:
-                target.forget(orig)
-            except tk.TclError:
-                pass
-            source.add(orig, text=text)
-            source.select(orig)
-            raise exc
+            orig.destroy()
+        except Exception:
+            pass
+        target.add(clone, text=text)
+        target.select(clone)
+        return clone
 
-        return orig
+    # ------------------------------------------------------------------
+    # Cloning helpers
+    # ------------------------------------------------------------------
+
+    def _clone_widget(self, widget: tk.Widget, parent: tk.Widget) -> tk.Widget:
+        """Recursively clone *widget* under *parent*."""
+
+        cls: t.Type[tk.Widget] = widget.__class__
+        clone = cls(parent)
+
+        # Copy configuration options
+        try:
+            config = widget.configure()
+        except tk.TclError:
+            config = {}
+        for opt, opts in config.items():
+            if isinstance(opts, (tuple, list)) and len(opts) >= 2:
+                value = opts[-1]
+                try:
+                    clone.configure({opt: value})
+                except tk.TclError:
+                    pass
+
+        # Copy event bindings
+        try:
+            sequences = widget.tk.call("bind", widget._w).split()
+        except Exception:
+            sequences = []
+        for seq in sequences:
+            try:
+                cmd = widget.bind(seq)
+                if cmd:
+                    clone.bind(seq, cmd)
+            except Exception:
+                continue
+
+        # Recreate children
+        for child in widget.winfo_children():
+            child_clone = self._clone_widget(child, clone)
+            self._apply_layout(child, child_clone)
+
+        return clone
+
+    def _apply_layout(self, orig: tk.Widget, clone: tk.Widget) -> None:
+        """Apply geometry management of *orig* to *clone*."""
+
+        manager = orig.winfo_manager()
+        try:
+            if manager == "pack":
+                info = orig.pack_info()
+                for key in ("in", "in_"):
+                    info.pop(key, None)
+                clone.pack(**info)
+            elif manager == "grid":
+                info = orig.grid_info()
+                for key in ("in", "in_"):
+                    info.pop(key, None)
+                clone.grid(**info)
+            elif manager == "place":
+                info = orig.place_info()
+                for key in ("in", "in_"):
+                    info.pop(key, None)
+                clone.place(**info)
+        except Exception:
+            pass

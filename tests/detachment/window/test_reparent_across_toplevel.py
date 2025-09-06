@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Regression test for reparenting tabs across toplevel windows."""
+"""Regression test for cloning tabs across toplevel windows."""
 
 from __future__ import annotations
 
@@ -25,7 +25,6 @@ from tkinter import ttk
 
 import pytest
 
-import os
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.widget_transfer_manager import WidgetTransferManager
 
@@ -33,9 +32,7 @@ from gui.utils.widget_transfer_manager import WidgetTransferManager
 @pytest.mark.detachment
 @pytest.mark.reparenting
 class TestReparentAcrossToplevel:
-    def test_widget_reparented_between_toplevels(self) -> None:
-        if os.name != "nt":
-            pytest.skip("OS-level reparenting implemented only on Windows")
+    def test_widget_cloned_between_toplevels(self) -> None:
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -49,8 +46,9 @@ class TestReparentAcrossToplevel:
         nb2.pack()
         tab_id = nb1.tabs()[0]
         manager = WidgetTransferManager()
-        moved = manager.detach_tab(nb1, tab_id, nb2)
-        assert moved is frame
-        assert nb2.nametowidget(nb2.tabs()[0]) is frame
-        assert frame.master is nb2
+        clone = manager.detach_tab(nb1, tab_id, nb2)
+        assert clone is not frame
+        assert isinstance(clone, ttk.Frame)
+        assert not frame.winfo_exists()
+        assert nb2.nametowidget(nb2.tabs()[0]) is clone
         root.destroy()
