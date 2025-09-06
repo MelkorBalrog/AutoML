@@ -32,6 +32,51 @@ except Exception:  # pragma: no cover - legacy path
 class WidgetTransferManager:
     """Move widgets between notebooks while preserving their state."""
 
+    def _transfer_children(
+        self, orig: tk.Widget, new_container: tk.Widget
+    ) -> None:
+        for child in orig.winfo_children():
+            geom_manager = child.winfo_manager()
+            layout: dict[str, t.Any] | None = None
+            if geom_manager == "pack":
+                layout = child.pack_info()
+            elif geom_manager == "grid":
+                layout = child.grid_info()
+            elif geom_manager == "place":
+                layout = child.place_info()
+            reparent_widget(child, new_container)
+            try:
+                if geom_manager == "pack" and layout is not None:
+                    child.pack(**layout)
+                elif geom_manager == "grid" and layout is not None:
+                    child.grid(**layout)
+                elif geom_manager == "place" and layout is not None:
+                    child.place(**layout)
+            except Exception:
+                pass
+
+    def _restore_failure(
+        self,
+        source: tk.Widget,
+        orig: tk.Widget,
+        target: tk.Widget,
+        new_container: tk.Widget | None,
+        text: str,
+    ) -> None:
+        if new_container is not None:
+            for child in new_container.winfo_children():
+                try:
+                    reparent_widget(child, orig)
+                except tk.TclError:
+                    pass
+            try:
+                target.forget(new_container)
+            except tk.TclError:
+                pass
+            new_container.destroy()
+        source.add(orig, text=text)
+        source.select(orig)
+
     def detach_tab(
         self,
         source: "tk.Widget",
@@ -58,19 +103,16 @@ class WidgetTransferManager:
         orig = source.nametowidget(tab_id)
         text = source.tab(tab_id, "text")
         cancel_after_events(orig)
-        source.forget(orig)
-        try:
-            reparent_widget(orig, target)
-            target.add(orig, text=text)
-            target.select(orig)
-        except tk.TclError as exc:
-            # Roll back to the source notebook if re-parenting fails
-            try:
-                target.forget(orig)
-            except tk.TclError:
-                pass
-            source.add(orig, text=text)
-            source.select(orig)
-            raise exc
 
-        return orig
+        source.forget(orig)
+        new_container: tk.Widget | None = None
+        try:
+            new_container = orig.__class__(target)
+            self._transfer_children(orig, new_container)
+            target.add(new_container, text=text)
+            target.select(new_container)
+            orig.destroy()
+            return new_container
+        except tk.TclError as exc:
+            self._restore_failure(source, orig, target, new_container, text)
+            raise exc
