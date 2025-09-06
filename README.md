@@ -18,11 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-version: 0.2.251
+version: 0.2.252
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-Reparent detached tabs across windows using native OS APIs so notebooks move
-widgets without cloning and avoid pending callback errors.
+Transfer detached tabs across windows by rebuilding containers so notebooks
+avoid cross-window reparenting issues while preserving widget state.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
