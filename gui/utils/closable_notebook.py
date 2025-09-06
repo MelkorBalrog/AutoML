@@ -545,8 +545,8 @@ class ClosableNotebook(ttk.Notebook):
 
         dw.win.bind("<Destroy>", _on_destroy, add="+")
 
-        manager = WidgetTransferManager()
-        child = manager.detach_tab(self, tab_id, dw.nb)
+        manager = WidgetTransferManager(self)
+        child = manager.detach_tab(tab_id, dw.nb)
         dw._ensure_toolbox(child)
         dw._activate_hooks(child)
 
@@ -899,6 +899,34 @@ class ClosableNotebook(ttk.Notebook):
 
         for child in target.winfo_children():
             self._raise_widgets(child, child)
+
+
+    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
+        from .detached_window import DetachedWindow
+
+        self.update_idletasks()
+        width = self.winfo_width() or 200
+        height = self.winfo_height() or 200
+        dw = DetachedWindow(self._app_root, width, height, x, y)
+        self._floating_windows.append(dw.win)
+
+        def _on_destroy(_e, w=dw.win) -> None:
+            try:
+                self._cancel_after_events(w)
+            except Exception:
+                pass
+            if w in self._floating_windows:
+                self._floating_windows.remove(w)
+
+        dw.win.bind("<Destroy>", _on_destroy, add="+")
+        manager = WidgetTransferManager()
+        try:
+            child = manager.detach_tab(self, tab_id, dw.nb)
+        except tk.TclError:
+            logger.exception("Failed to detach tab %s", tab_id)
+            return
+        dw._ensure_toolbox(child)
+        dw._activate_hooks(child)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
