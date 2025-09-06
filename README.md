@@ -18,7 +18,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-version: 0.2.255
+version: 0.2.254
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
 Call Tcl's unsupported `ReparentWindow` before Windows `SetParent` to move
