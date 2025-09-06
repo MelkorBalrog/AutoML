@@ -18,12 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.252 - 2025-09-04
-
-- Rebuild detached tab containers in the target notebook to move widgets
-  across windows without direct reparenting
-- Add tests for detaching and reattaching tabs across toplevel windows
-
 ## 0.2.251 - 2025-09-04
 
 - Reparent detached tabs across toplevel windows using native OS APIs so

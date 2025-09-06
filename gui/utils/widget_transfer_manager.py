@@ -59,23 +59,18 @@ class WidgetTransferManager:
         text = source.tab(tab_id, "text")
         cancel_after_events(orig)
         source.forget(orig)
-        new_container = orig.__class__(target)
         try:
-            for child in orig.winfo_children():
-                reparent_widget(child, new_container)
-            target.add(new_container, text=text)
-            target.select(new_container)
+            reparent_widget(orig, target)
+            target.add(orig, text=text)
+            target.select(orig)
         except tk.TclError as exc:
-            for child in new_container.winfo_children():
-                reparent_widget(child, orig)
+            # Roll back to the source notebook if re-parenting fails
             try:
-                target.forget(new_container)
+                target.forget(orig)
             except tk.TclError:
                 pass
             source.add(orig, text=text)
             source.select(orig)
-            new_container.destroy()
             raise exc
-        else:
-            orig.destroy()
-            return new_container
+
+        return orig
