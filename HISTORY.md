@@ -18,6 +18,23 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.254 - 2025-09-04
+
+- Restore native OS-level reparenting for tab moves so notebooks transfer tabs
+  across windows without cloning frames.
+- Update cross-window detachment tests to verify original widgets persist when
+  moved between notebooks.
+
+## 0.2.253 - 2025-09-04
+
+- Realize new tab container before moving children so widgets transfer correctly
+  without reparenting the original tab.
+
+## 0.2.252 - 2025-09-04
+
+- Rebuild tab containers during detachment to avoid OS-level reparenting and
+  preserve widget state across windows
+
 ## 0.2.251 - 2025-09-04
 
 - Reparent detached tabs across toplevel windows using native OS APIs so

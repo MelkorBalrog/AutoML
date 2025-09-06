@@ -16,14 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Regression test for reparenting tabs across toplevel windows."""
+"""Tests for detaching and reattaching tabs across windows."""
 
 from __future__ import annotations
 
+import pytest
 import tkinter as tk
 from tkinter import ttk
-
-import pytest
 
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.widget_transfer_manager import WidgetTransferManager
@@ -31,8 +30,8 @@ from gui.utils.widget_transfer_manager import WidgetTransferManager
 
 @pytest.mark.detachment
 @pytest.mark.reparenting
-class TestReparentAcrossToplevel:
-    def test_widget_reparented_between_toplevels(self) -> None:
+class TestDetachReattachAcrossWindows:
+    def test_detach_and_reattach_between_windows(self) -> None:
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -40,14 +39,25 @@ class TestReparentAcrossToplevel:
         nb1 = ClosableNotebook(root)
         nb1.pack()
         frame = ttk.Frame(nb1)
+        lbl = ttk.Label(frame, text="hi")
+        lbl.pack()
         nb1.add(frame, text="Tab1")
+
         top = tk.Toplevel(root)
         nb2 = ClosableNotebook(top)
         nb2.pack()
-        tab_id = nb1.tabs()[0]
         manager = WidgetTransferManager()
+
+        tab_id = nb1.tabs()[0]
         moved = manager.detach_tab(nb1, tab_id, nb2)
+        assert lbl.winfo_exists()
+        assert lbl.master is moved
         assert moved is frame
         assert nb2.nametowidget(nb2.tabs()[0]) is frame
-        assert frame.master is nb2
+
+        tab_id2 = nb2.tabs()[0]
+        moved_back = manager.detach_tab(nb2, tab_id2, nb1)
+        assert lbl.master is moved_back
+        assert moved_back is frame
+        assert nb1.nametowidget(nb1.tabs()[0]) is frame
         root.destroy()

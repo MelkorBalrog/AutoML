@@ -100,10 +100,28 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
 def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
     """Reparent *widget* into *new_parent* using OS-level APIs."""
 
+    widget.update_idletasks()
+    new_parent.update_idletasks()
     wid = int(widget.winfo_id())
     pid = int(new_parent.winfo_id())
+
+    # First try Tk's cross-platform reparent command if available
+    try:
+        widget.tk.call("tk::unsupported::reparent", str(widget), str(new_parent))
+        return
+    except tk.TclError:
+        pass
+
     if sys.platform.startswith("win"):
         if ctypes.windll.user32.SetParent(wid, pid) == 0:
             raise tk.TclError("SetParent failed")
-    else:  # pragma: no cover - non-Windows platforms not implemented
+    elif sys.platform.startswith("linux"):
+        x11 = ctypes.cdll.LoadLibrary("libX11.so.6")
+        display = x11.XOpenDisplay(None)
+        if not display:
+            raise tk.TclError("XOpenDisplay failed")
+        x11.XReparentWindow(display, wid, pid, 0, 0)
+        x11.XFlush(display)
+        x11.XCloseDisplay(display)
+    else:  # pragma: no cover - other platforms not implemented
         raise tk.TclError("OS-level reparenting not implemented")

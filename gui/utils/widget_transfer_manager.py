@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 import tkinter as tk
-import typing as t
 
 try:  # pragma: no cover - support direct module execution
     from .tk_utils import cancel_after_events, reparent_widget
@@ -58,13 +57,15 @@ class WidgetTransferManager:
         orig = source.nametowidget(tab_id)
         text = source.tab(tab_id, "text")
         cancel_after_events(orig)
+
         source.forget(orig)
         try:
+            orig.update_idletasks()
+            target.update_idletasks()
             reparent_widget(orig, target)
             target.add(orig, text=text)
             target.select(orig)
         except tk.TclError as exc:
-            # Roll back to the source notebook if re-parenting fails
             try:
                 target.forget(orig)
             except tk.TclError:
