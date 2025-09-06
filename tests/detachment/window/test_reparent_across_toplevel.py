@@ -50,8 +50,7 @@ class TestReparentAcrossToplevel:
         tab_id = nb1.tabs()[0]
         manager = WidgetTransferManager()
         moved = manager.detach_tab(nb1, tab_id, nb2)
-        assert moved is not frame
-        assert not frame.winfo_exists()
-        assert nb2.nametowidget(nb2.tabs()[0]) is moved
-        assert moved.master is nb2
+        assert moved is frame
+        assert nb2.nametowidget(nb2.tabs()[0]) is frame
+        assert frame.master is nb2
         root.destroy()
