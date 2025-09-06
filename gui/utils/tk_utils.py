@@ -115,33 +115,8 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
 
     wid = int(widget.winfo_id())
     pid = int(new_parent.winfo_toplevel().winfo_id())
-    tkapp = widget.tk
-    success = False
-    errors: list[str] = []
-
-    try:
-        if tkapp.call(
-            "info", "commands", "::tk::unsupported::ReparentWindow"
-        ):
-            try:
-                tkapp.call(
-                    "::tk::unsupported::ReparentWindow",
-                    widget._w,
-                    new_parent.winfo_toplevel()._w,
-                )
-                success = True
-            except tk.TclError as exc:
-                errors.append(f"ReparentWindow failed: {exc}")
-    except tk.TclError as exc:  # pragma: no cover - command lookup failure
-        errors.append(f"ReparentWindow lookup failed: {exc}")
-
     if sys.platform.startswith("win"):
-        if ctypes.windll.user32.SetParent(wid, pid) != 0:
-            success = True
-        else:
-            errors.append("SetParent failed")
-    elif not success:  # pragma: no cover - non-Windows platforms
-        errors.append("OS-level reparenting not implemented")
-
-    if not success:
-        raise tk.TclError("; ".join(errors) if errors else "reparenting failed")
+        if ctypes.windll.user32.SetParent(wid, pid) == 0:
+            raise tk.TclError("SetParent failed")
+    else:  # pragma: no cover - non-Windows platforms not implemented
+        raise tk.TclError("OS-level reparenting not implemented")
