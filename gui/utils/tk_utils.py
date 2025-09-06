@@ -22,12 +22,8 @@ from __future__ import annotations
 
 import sys
 import ctypes
-import logging
 import tkinter as tk
 import typing as t
-
-
-logger = logging.getLogger(__name__)
 
 
 def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) -> None:
@@ -36,133 +32,82 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
     if cancelled is None:
         cancelled = set()
 
-    tkapp = getattr(widget, "tk", None)
-    if tkapp is None or getattr(tkapp, "call", None) is None:
-        return
-
-    root = _safe_root(widget)
-    tcl_cmds = getattr(root, "_tclCommands", None) if root else None
-
-    def _delete_command(cmd: str | None) -> None:
-        if not cmd or not tcl_cmds or cmd not in tcl_cmds:
-            return
-        try:
-            root.deletecommand(cmd)  # type: ignore[union-attr]
-        except Exception:
-            logger.debug("Failed to delete Tcl command %s", cmd, exc_info=True)
-
     def _cancel_ident(ident: str, script: str | None = None) -> None:
-        try:
-            tkapp.call("after", "cancel", ident)
-        except Exception:
-            logger.debug("Failed to cancel 'after' id %s", ident, exc_info=True)
+        tkapp_local = getattr(widget, "tk", None)
+        if tkapp_local is None:
             return
-        cancelled.add(ident)
-        for cmd in (ident, script):
-            _delete_command(cmd)
         try:
-            tkapp.call("after", "info", ident)
-            logger.debug("Unhandled after id still scheduled: %s", ident)
+            tkapp_local.call("after", "cancel", ident)
         except Exception:
-            pass
+            return
+        try:
+            root = widget._root()
+        except Exception:
+            root = None
+        if root is not None:
+            tcl_cmds = getattr(root, "_tclCommands", None)
+            for cmd in filter(None, (ident, script)):
+                if tcl_cmds is not None and cmd in tcl_cmds:
+                    try:
+                        root.deletecommand(cmd)
+                    except Exception:
+                        pass
+        cancelled.add(ident)
 
-    _cancel_widget_ids(widget, tkapp, _cancel_ident, cancelled)
-    _cancel_global_ids(widget, tkapp, _cancel_ident, cancelled)
-    _cancel_widget_attrs(widget, _cancel_ident, cancelled)
-    _purge_widget_scripts(widget, root, tcl_cmds)
+    tkapp = getattr(widget, "tk", None)
+    if tkapp is not None and getattr(tkapp, "call", None) is not None:
+        try:
+            widget_ids = tkapp.call("after", "info", str(widget))
+        except Exception:
+            widget_ids = ()
+        if isinstance(widget_ids, str):
+            widget_ids = (widget_ids,)
+        for ident in widget_ids:
+            if ident and ident not in cancelled:
+                try:
+                    script = tkapp.call("after", "info", ident)
+                except Exception:
+                    script = None
+                _cancel_ident(ident, script if isinstance(script, str) else None)
 
-    for child in widget.winfo_children():
-        cancel_after_events(child, cancelled)
+        try:
+            all_ids = tkapp.call("after", "info")
+        except Exception:
+            all_ids = ()
+        if isinstance(all_ids, str):
+            all_ids = (all_ids,)
+        for ident in all_ids:
+            if not isinstance(ident, str) or ident in cancelled:
+                continue
+            if ident.startswith(str(widget)):
+                try:
+                    script = tkapp.call("after", "info", ident)
+                except Exception:
+                    script = None
+                _cancel_ident(ident, script if isinstance(script, str) else None)
+                continue
+            try:
+                script = tkapp.call("after", "info", ident)
+            except Exception:
+                continue
+            if str(widget) in script:
+                _cancel_ident(ident, script if isinstance(script, str) else None)
 
-
-def _safe_root(widget: tk.Widget) -> tk.Tk | None:
-    try:
-        return widget._root()  # type: ignore[attr-defined]
-    except Exception:
-        return None
-
-
-def _info_script(tkapp: tk.Misc, ident: str) -> str | None:
-    try:
-        return tkapp.call("after", "info", ident)
-    except Exception:
-        return None
-
-
-def _cancel_widget_ids(
-    widget: tk.Widget,
-    tkapp: tk.Misc,
-    cancel: t.Callable[[str, str | None], None],
-    cancelled: set[str],
-) -> None:
-    try:
-        widget_ids = tkapp.call("after", "info", str(widget))
-    except Exception:
-        return
-    if isinstance(widget_ids, str):
-        widget_ids = (widget_ids,)
-    for ident in widget_ids:
-        if ident and ident not in cancelled:
-            script = _info_script(tkapp, ident)
-            cancel(ident, script if isinstance(script, str) else None)
-
-
-def _cancel_global_ids(
-    widget: tk.Widget,
-    tkapp: tk.Misc,
-    cancel: t.Callable[[str, str | None], None],
-    cancelled: set[str],
-) -> None:
-    try:
-        all_ids = tkapp.call("after", "info")
-    except Exception:
-        return
-    if isinstance(all_ids, str):
-        all_ids = (all_ids,)
-    wid = str(widget)
-    for ident in all_ids:
-        if not isinstance(ident, str) or ident in cancelled:
-            continue
-        if ident.startswith(wid):
-            script = _info_script(tkapp, ident)
-            cancel(ident, script if isinstance(script, str) else None)
-            continue
-        script = _info_script(tkapp, ident)
-        if isinstance(script, str) and wid in script:
-            cancel(ident, script)
-
-
-def _cancel_widget_attrs(
-    widget: tk.Widget,
-    cancel: t.Callable[[str, str | None], None],
-    cancelled: set[str],
-) -> None:
     try:
         for name in dir(widget):
             if name.endswith(("_anim", "_after", "_timer", "_animate")):
                 ident = getattr(widget, name, None)
                 if isinstance(ident, str) and ident not in cancelled:
-                    script = _info_script(widget.tk, ident)
-                    cancel(ident, script if isinstance(script, str) else None)
+                    try:
+                        script = widget.tk.call("after", "info", ident)
+                    except Exception:
+                        script = None
+                    _cancel_ident(ident, script if isinstance(script, str) else None)
     except Exception:
-        logger.debug("Failed scanning widget attributes for after ids", exc_info=True)
+        pass
 
-
-def _purge_widget_scripts(
-    widget: tk.Widget,
-    root: tk.Tk | None,
-    tcl_cmds: dict[str, t.Any] | None,
-) -> None:
-    if not root or not tcl_cmds:
-        return
-    wid = str(widget)
-    for name in list(tcl_cmds):
-        try:
-            func = tcl_cmds[name]
-            if wid in name or wid in repr(func):
-                root.deletecommand(name)
-        except Exception:
-            logger.debug("Failed to purge Tcl command %s", name, exc_info=True)
+    for child in widget.winfo_children():
+        cancel_after_events(child, cancelled)
 
 
 def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
