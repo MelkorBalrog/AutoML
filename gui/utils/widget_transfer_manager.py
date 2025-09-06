@@ -71,6 +71,6 @@ class WidgetTransferManager:
                 pass
             source.add(orig, text=text)
             source.select(orig)
-            raise tk.TclError(f"detach_tab failed: {exc}") from exc
+            raise exc
 
         return orig
