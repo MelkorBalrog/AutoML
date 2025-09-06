@@ -32,7 +32,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
     if cancelled is None:
         cancelled = set()
 
-    def _cancel_ident(ident: str, script: str | None = None) -> None:
+    def _cancel_ident(ident: str) -> None:
         tkapp_local = getattr(widget, "tk", None)
         if tkapp_local is None:
             return
@@ -46,12 +46,11 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             root = None
         if root is not None:
             tcl_cmds = getattr(root, "_tclCommands", None)
-            for cmd in filter(None, (ident, script)):
-                if tcl_cmds is not None and cmd in tcl_cmds:
-                    try:
-                        root.deletecommand(cmd)
-                    except Exception:
-                        pass
+            if tcl_cmds is not None and ident in tcl_cmds:
+                try:
+                    root.deletecommand(ident)
+                except Exception:
+                    pass
         cancelled.add(ident)
 
     tkapp = getattr(widget, "tk", None)
@@ -64,11 +63,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             widget_ids = (widget_ids,)
         for ident in widget_ids:
             if ident and ident not in cancelled:
-                try:
-                    script = tkapp.call("after", "info", ident)
-                except Exception:
-                    script = None
-                _cancel_ident(ident, script if isinstance(script, str) else None)
+                _cancel_ident(ident)
 
         try:
             all_ids = tkapp.call("after", "info")
@@ -80,29 +75,21 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             if not isinstance(ident, str) or ident in cancelled:
                 continue
             if ident.startswith(str(widget)):
-                try:
-                    script = tkapp.call("after", "info", ident)
-                except Exception:
-                    script = None
-                _cancel_ident(ident, script if isinstance(script, str) else None)
+                _cancel_ident(ident)
                 continue
             try:
                 script = tkapp.call("after", "info", ident)
             except Exception:
                 continue
             if str(widget) in script:
-                _cancel_ident(ident, script if isinstance(script, str) else None)
+                _cancel_ident(ident)
 
     try:
         for name in dir(widget):
             if name.endswith(("_anim", "_after", "_timer", "_animate")):
                 ident = getattr(widget, name, None)
                 if isinstance(ident, str) and ident not in cancelled:
-                    try:
-                        script = widget.tk.call("after", "info", ident)
-                    except Exception:
-                        script = None
-                    _cancel_ident(ident, script if isinstance(script, str) else None)
+                    _cancel_ident(ident)
     except Exception:
         pass
 
@@ -111,10 +98,10 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
 
 
 def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
-    """Reparent *widget* into *new_parent*'s toplevel window."""
+    """Reparent *widget* into *new_parent* using OS-level APIs."""
 
     wid = int(widget.winfo_id())
-    pid = int(new_parent.winfo_toplevel().winfo_id())
+    pid = int(new_parent.winfo_id())
     if sys.platform.startswith("win"):
         if ctypes.windll.user32.SetParent(wid, pid) == 0:
             raise tk.TclError("SetParent failed")
