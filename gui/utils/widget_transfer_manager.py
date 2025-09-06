@@ -69,10 +69,6 @@ class WidgetTransferManager:
                 target.forget(orig)
             except tk.TclError:
                 pass
-            try:
-                reparent_widget(orig, source)
-            except tk.TclError:
-                pass
             source.add(orig, text=text)
             source.select(orig)
             raise tk.TclError(f"detach_tab failed: {exc}") from exc

@@ -18,20 +18,23 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.255 - 2025-09-05
+## 0.2.255 - 2025-09-06
 
-- Rename widget paths after reparenting so Tk recognises new parents
-- Purge stray ``*_animate`` Tcl commands when cancelling ``after`` callbacks
+- Scan `_tclCommands` for scripts referencing widgets and purge them when
+  cancelling `after` callbacks, logging any unhandled cancellations for easier
+  debugging.
 
-## 0.2.254 - 2025-09-05
+## 0.2.254 - 2025-09-06
 
-- Reparent widgets using ``::tk::unsupported::ReparentWindow`` so Tk updates
-  internal paths and tabs move across notebooks without errors
+- Call Tk's unsupported `ReparentWindow` before falling back to Windows
+  `SetParent` and raise descriptive `TclError` if both reparenting steps fail.
+- Shift `WidgetTransferManager.detach_tab` to the revised helper and expand
+  window detachment tests ensuring source notebooks drop moved tabs.
 
-## 0.2.253 - 2025-09-05
+## 0.2.253 - 2025-09-06
 
-- Reparent widgets directly into the target notebook so tabs are removed from
-  the source before insertion
+- Remove duplicate tab-detachment routine and instantiate `WidgetTransferManager`
+  without arguments to keep widget moves stable.
 
 ## 0.2.252 - 2025-09-05
 

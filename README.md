@@ -21,8 +21,9 @@
 version: 0.2.255
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-Reparent detached tabs across windows using native APIs, renaming widget paths
-so notebooks move widgets without cloning or residual animation callbacks.
+Call Tcl's unsupported `ReparentWindow` before Windows `SetParent` to move
+detached tabs safely across windows and raise clear errors when both
+reparenting steps fail.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
