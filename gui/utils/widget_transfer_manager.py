@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Utilities for moving widgets between notebooks without cloning."""
+"""Utilities for moving widgets between notebooks via cloning."""
 
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ import tkinter as tk
 import typing as t
 
 try:  # pragma: no cover - support direct module execution
-    from .tk_utils import cancel_after_events, reparent_widget
+    from .tk_utils import cancel_after_events
 except Exception:  # pragma: no cover - legacy path
-    from tk_utils import cancel_after_events, reparent_widget
+    from tk_utils import cancel_after_events
 
 
 class WidgetTransferManager:
@@ -58,19 +58,16 @@ class WidgetTransferManager:
         orig = source.nametowidget(tab_id)
         text = source.tab(tab_id, "text")
         cancel_after_events(orig)
-        source.forget(orig)
         try:
-            reparent_widget(orig, target)
-            target.add(orig, text=text)
-            target.select(orig)
-        except tk.TclError as exc:
-            # Roll back to the source notebook if re-parenting fails
-            try:
-                target.forget(orig)
-            except tk.TclError:
-                pass
-            source.add(orig, text=text)
-            source.select(orig)
-            raise exc
+            source.hide(orig)
+        except Exception:
+            pass
 
-        return orig
+        clone, _mapping, _layouts = source._clone_widget(orig, target)
+        target.add(clone, text=text)
+        target.select(clone)
+        try:
+            source._safe_destroy(orig)
+        except Exception:
+            pass
+        return clone

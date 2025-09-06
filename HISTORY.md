@@ -18,6 +18,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.253 - 2025-09-04
+
+- Hide source notebook tab after detaching so only the moved copy remains
+
+## 0.2.252 - 2025-09-04
+
+- Rebuild detached tabs instead of reparenting to prevent Tk errors
+
 ## 0.2.251 - 2025-09-04
 
 - Reparent detached tabs across toplevel windows using native OS APIs so
