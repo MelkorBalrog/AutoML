@@ -34,82 +34,15 @@ import weakref
 import re
 from tkinter import ttk
 try:  # pragma: no cover - support direct module execution
+    from .tk_utils import cancel_after_events
+except Exception:  # pragma: no cover - legacy path
+    from tk_utils import cancel_after_events
+try:  # pragma: no cover - support direct module execution
     from .widget_transfer_manager import WidgetTransferManager
 except Exception:  # pragma: no cover - legacy path
     from widget_transfer_manager import WidgetTransferManager
 
 logger = logging.getLogger(__name__)
-
-
-def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) -> None:
-    """Cancel Tk ``after`` callbacks tied to *widget* and its children."""
-
-    if cancelled is None:
-        cancelled = set()
-
-    def _cancel_ident(ident: str) -> None:
-        tkapp_local = getattr(widget, "tk", None)
-        if tkapp_local is None:
-            return
-        try:
-            tkapp_local.call("after", "cancel", ident)
-        except Exception:
-            return
-        try:
-            root = widget._root()
-        except Exception:
-            root = None
-        if root is not None:
-            tcl_cmds = getattr(root, "_tclCommands", None)
-            if tcl_cmds is not None and ident in tcl_cmds:
-                try:
-                    root.deletecommand(ident)
-                except Exception:
-                    pass
-        cancelled.add(ident)
-
-    tkapp = getattr(widget, "tk", None)
-    if tkapp is not None and getattr(tkapp, "call", None) is not None:
-        try:
-            widget_ids = tkapp.call("after", "info", str(widget))
-        except Exception:
-            widget_ids = ()
-        if isinstance(widget_ids, str):
-            widget_ids = (widget_ids,)
-        for ident in widget_ids:
-            if ident and ident not in cancelled:
-                _cancel_ident(ident)
-
-        try:
-            all_ids = tkapp.call("after", "info")
-        except Exception:
-            all_ids = ()
-        if isinstance(all_ids, str):
-            all_ids = (all_ids,)
-        for ident in all_ids:
-            if not isinstance(ident, str) or ident in cancelled:
-                continue
-            if ident.startswith(str(widget)):
-                _cancel_ident(ident)
-                continue
-            try:
-                script = tkapp.call("after", "info", ident)
-            except Exception:
-                continue
-            if str(widget) in script:
-                _cancel_ident(ident)
-
-    try:
-        for name in dir(widget):
-            if name.endswith(("_anim", "_after", "_timer", "_animate")):
-                ident = getattr(widget, name, None)
-                if isinstance(ident, str) and ident not in cancelled:
-                    _cancel_ident(ident)
-    except Exception:
-        pass
-
-    for child in widget.winfo_children():
-        cancel_after_events(child, cancelled)
 
 
 class ClosableNotebook(ttk.Notebook):
@@ -585,39 +518,6 @@ class ClosableNotebook(ttk.Notebook):
                 pass
             self.master.destroy()
         return True
-
-    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
-        """Detach *tab_id* into a new floating window at *(x, y)*.
-
-        Tk ``after`` callbacks tied to the original tab are cancelled before it
-        is forgotten to prevent orphaned Tcl commands such as ``*_animate``.
-        """
-
-        from .detached_window import DetachedWindow
-
-        text = self.tab(tab_id, "text")
-        self.update_idletasks()
-        width = self.winfo_width() or 200
-        height = self.winfo_height() or 200
-        dw = DetachedWindow(self._app_root, width, height, x, y)
-        self._floating_windows.append(dw.win)
-
-        def _on_destroy(_e, w=dw.win) -> None:
-            try:
-                self._cancel_after_events(w)
-            except Exception:
-                pass
-            if w in self._floating_windows:
-                self._floating_windows.remove(w)
-
-        dw.win.bind("<Destroy>", _on_destroy, add="+")
-
-        manager = WidgetTransferManager(self)
-        child = manager.detach_tab(tab_id, dw.nb)
-        dw._ensure_toolbox(child)
-        dw._activate_hooks(child)
-
-
     def _replace_widget_paths(
         self, script: str, mapping: dict[tk.Widget, tk.Widget]
     ) -> str:
