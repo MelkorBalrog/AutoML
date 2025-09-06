@@ -518,39 +518,6 @@ class ClosableNotebook(ttk.Notebook):
                 pass
             self.master.destroy()
         return True
-
-    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
-        """Detach *tab_id* into a new floating window at *(x, y)*.
-
-        Tk ``after`` callbacks tied to the original tab are cancelled before it
-        is forgotten to prevent orphaned Tcl commands such as ``*_animate``.
-        """
-
-        from .detached_window import DetachedWindow
-
-        text = self.tab(tab_id, "text")
-        self.update_idletasks()
-        width = self.winfo_width() or 200
-        height = self.winfo_height() or 200
-        dw = DetachedWindow(self._app_root, width, height, x, y)
-        self._floating_windows.append(dw.win)
-
-        def _on_destroy(_e, w=dw.win) -> None:
-            try:
-                self._cancel_after_events(w)
-            except Exception:
-                pass
-            if w in self._floating_windows:
-                self._floating_windows.remove(w)
-
-        dw.win.bind("<Destroy>", _on_destroy, add="+")
-
-        manager = WidgetTransferManager()
-        child = manager.detach_tab(self, tab_id, dw.nb)
-        dw._ensure_toolbox(child)
-        dw._activate_hooks(child)
-
-
     def _replace_widget_paths(
         self, script: str, mapping: dict[tk.Widget, tk.Widget]
     ) -> str:
