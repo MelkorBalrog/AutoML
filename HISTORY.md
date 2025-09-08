@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.257 - 2025-09-04
+
+- Route diagram tabs through DockableDiagramWindow and switch detachment to
+  float/dock operations instead of WidgetTransferManager.
+
 ## 0.2.256 - 2025-09-04
 
 - Introduce DockableDiagramWindow for docking diagrams into notebooks or floating windows.
