@@ -63,4 +63,3 @@ class DockableDiagramWindow:
         nb.add(self.content_frame, text=title)
         self.toplevel.geometry(f"{width}x{height}+{x}+{y}")
         self.toplevel.deiconify()
-

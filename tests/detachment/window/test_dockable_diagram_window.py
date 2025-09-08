@@ -27,7 +27,6 @@ from tkinter import ttk
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.dockable_diagram_window import DockableDiagramWindow
 
-
 @pytest.mark.detachment
 @pytest.mark.dockable
 class TestDockableDiagramWindow:
@@ -44,4 +43,3 @@ class TestDockableDiagramWindow:
         assert nb.tabs()
         assert nb.nametowidget(nb.tabs()[0]) is frame
         root.destroy()
-

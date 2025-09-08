@@ -463,6 +463,24 @@ class ClosableNotebook(ttk.Notebook):
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
+        from gui.utils.dockable_diagram_window import (
+            DockableDiagramWindow as DDW,
+        )
+        dock = getattr(child, "_dock_window", None)
+        if isinstance(dock, DDW):
+            try:
+                self._cancel_after_events(child)
+            except Exception:
+                pass
+            self.forget(tab_id)
+            dock.dock(target, len(target.tabs()), text)
+            if isinstance(self.master, tk.Toplevel) and not self.tabs():
+                try:
+                    self._cancel_after_events(self.master)
+                except Exception:
+                    pass
+                self.master.destroy()
+            return True
         index = self.index(tab_id)
 
         def _safe_forget(nb: "ClosableNotebook", widget: tk.Widget) -> None:
@@ -518,37 +536,6 @@ class ClosableNotebook(ttk.Notebook):
                 pass
             self.master.destroy()
         return True
-
-    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
-        """Detach *tab_id* into a new floating window at *(x, y)*.
-
-        Tk ``after`` callbacks tied to the original tab are cancelled before it
-        is forgotten to prevent orphaned Tcl commands such as ``*_animate``.
-        """
-
-        from .detached_window import DetachedWindow
-
-        text = self.tab(tab_id, "text")
-        self.update_idletasks()
-        width = self.winfo_width() or 200
-        height = self.winfo_height() or 200
-        dw = DetachedWindow(self._app_root, width, height, x, y)
-        self._floating_windows.append(dw.win)
-
-        def _on_destroy(_e, w=dw.win) -> None:
-            try:
-                self._cancel_after_events(w)
-            except Exception:
-                pass
-            if w in self._floating_windows:
-                self._floating_windows.remove(w)
-
-        dw.win.bind("<Destroy>", _on_destroy, add="+")
-
-        manager = WidgetTransferManager(self)
-        child = manager.detach_tab(tab_id, dw.nb)
-        dw._ensure_toolbox(child)
-        dw._activate_hooks(child)
 
 
     def _replace_widget_paths(
@@ -902,11 +889,31 @@ class ClosableNotebook(ttk.Notebook):
 
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
-        from .detached_window import DetachedWindow
-
+        child = self.nametowidget(tab_id)
+        from gui.utils.dockable_diagram_window import (
+            DockableDiagramWindow as DDW,
+        )
+        dock = getattr(child, "_dock_window", None)
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
+        if isinstance(dock, DDW):
+            self._floating_windows.append(dock.win)
+
+            def _on_destroy(_e, w=dock.win) -> None:
+                try:
+                    self._cancel_after_events(w)
+                except Exception:
+                    pass
+                if w in self._floating_windows:
+                    self._floating_windows.remove(w)
+
+            dock.win.bind("<Destroy>", _on_destroy, add="+")
+            dock.float(x, y, width, height)
+            ClosableNotebook._tab_hosts.pop(child, None)
+            return
+        from .detached_window import DetachedWindow
+
         dw = DetachedWindow(self._app_root, width, height, x, y)
         self._floating_windows.append(dw.win)
 
