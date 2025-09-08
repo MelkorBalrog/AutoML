@@ -33,6 +33,7 @@ from tkinter import ttk
 
 from gui.utils import logger
 from gui.controls import messagebox
+from gui.utils.dockable_diagram_window import DockableDiagramWindow
 from gui.windows.architecture import (
     ActivityDiagramWindow,
     BlockDiagramWindow,
@@ -675,9 +676,11 @@ class AppLifecycleUI:
                 self.doc_nb.select(tab_id)
                 return self.doc_nb.nametowidget(tab_id)
 
-        tab = ttk.Frame(self.doc_nb)
+        dock_window = DockableDiagramWindow(self.doc_nb)
+        tab = dock_window.content_frame
+        tab._dock_window = dock_window
         display = self._truncate_tab_title(title)
-        self.doc_nb.add(tab, text=display)
+        dock_window.dock(self.doc_nb, len(self.doc_nb.tabs()), display)
         tab_id = self.doc_nb.tabs()[-1]
         self._tab_titles[tab_id] = title
         if not hasattr(self, "_doc_all_tabs"):
