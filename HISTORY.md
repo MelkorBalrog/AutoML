@@ -18,11 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.256 - 2025-09-04
-
-- Add tabs to the target notebook before reparenting and roll back on
-  reparent failures while selecting the tab only after a successful move.
-
 ## 0.2.255 - 2025-09-04
 
 - Register target tab before reparenting widgets to ensure rollback of
