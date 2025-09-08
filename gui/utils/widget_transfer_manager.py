@@ -63,13 +63,8 @@ class WidgetTransferManager:
             orig.update_idletasks()
             target.update_idletasks()
             target.add(orig, text=text)
-        except tk.TclError as exc:
-            source.add(orig, text=text)
-            source.select(orig)
-            raise exc
-
-        try:
             reparent_widget(orig, target)
+            target.select(orig)
         except tk.TclError as exc:
             try:
                 target.forget(orig)
@@ -78,7 +73,5 @@ class WidgetTransferManager:
             source.add(orig, text=text)
             source.select(orig)
             raise exc
-
-        target.select(orig)
 
         return orig
