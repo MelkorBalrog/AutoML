@@ -18,6 +18,50 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.261 - 2025-09-04
+
+- Register target notebook tab before reparenting widgets to catch
+  add failures early and strengthen rollback to restore the original
+  notebook when registration fails.
+
+## 0.2.260 - 2025-09-04
+
+- Cancel pending Tk ``after`` callbacks before reparenting docked or
+  floated diagram frames so OS-level reparenting succeeds on Windows.
+- Update `DockableDiagramWindow` to invoke the cancellation prior to
+  both dock and float operations.
+
+## 0.2.259 - 2025-09-04
+
+- Reparent widgets before registering tabs and provide dockable window
+  helper that adds tabs safely when notebooks are empty.
+
+## 0.2.258 - 2025-09-04
+
+- Register target tab before widget reparenting so notebooks track tabs
+  prior to moving their children. Add regression test ensuring registration
+  precedes widget transfer.
+
+## 0.2.257 - 2025-09-04
+
+- Restore reparent-first tab transfer after placeholder registration proved
+  unreliable, ensuring tabs move with their children across windows.
+- Simplify detachment tests to match the reverted logic.
+
+## 0.2.256 - 2025-09-04
+
+- Use placeholder tabs to register targets prior to widget reparenting and
+  fall back to reparent-first logic when placeholder registration fails.
+- Add regression tests covering both placeholder registration and fallback
+  behavior.
+
+## 0.2.255 - 2025-09-04
+
+- Register target tab before reparenting widgets to ensure rollback of
+  failed moves and to detect tabs across windows.
+- Expand cross-window detachment tests to confirm tab registration precedes
+  widget reparenting.
+
 ## 0.2.254 - 2025-09-04
 
 - Restore native OS-level reparenting for tab moves so notebooks transfer tabs
