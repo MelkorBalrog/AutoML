@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.260 - 2025-09-04
+
+- Cancel pending Tk ``after`` callbacks before reparenting docked or
+  floated diagram frames so OS-level reparenting succeeds on Windows.
+- Update `DockableDiagramWindow` to invoke the cancellation prior to
+  both dock and float operations.
+
 ## 0.2.259 - 2025-09-04
 
 - Reparent widgets before registering tabs and provide dockable window

@@ -23,7 +23,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-from .tk_utils import reparent_widget
+from .tk_utils import cancel_after_events, reparent_widget
 
 
 class DockableDiagramWindow:
@@ -39,6 +39,7 @@ class DockableDiagramWindow:
     def dock(self, notebook: ttk.Notebook, index: int, title: str) -> None:
         """Insert the diagram into *notebook* at *index*."""
 
+        cancel_after_events(self.content_frame)
         reparent_widget(self.content_frame, notebook)
         tabs = notebook.tabs()
         if index >= len(tabs):
@@ -59,6 +60,7 @@ class DockableDiagramWindow:
         else:
             nb = self.toplevel.notebook  # type: ignore[attr-defined]
 
+        cancel_after_events(self.content_frame)
         reparent_widget(self.content_frame, nb)
         nb.add(self.content_frame, text=title)
         self.toplevel.geometry(f"{width}x{height}+{x}+{y}")
