@@ -32,21 +32,10 @@ import gui.utils.widget_transfer_manager as wtm
 @pytest.mark.detachment
 @pytest.mark.reparenting
 class TestDetachReattachAcrossWindows:
-    def test_detach_and_reattach_between_windows(self) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-        nb1 = ClosableNotebook(root)
-        nb1.pack()
-        frame = ttk.Frame(nb1)
-        lbl = ttk.Label(frame, text="hi")
-        lbl.pack()
-        nb1.add(frame, text="Tab1")
-
-        top = tk.Toplevel(root)
-        nb2 = ClosableNotebook(top)
-        nb2.pack()
+    def test_detach_and_reattach_between_windows(
+        self, notebooks: tuple[tk.Tk, ClosableNotebook, ClosableNotebook, ttk.Frame, ttk.Label]
+    ) -> None:
+        root, nb1, nb2, frame, lbl = notebooks
         manager = WidgetTransferManager()
 
         tab_id = nb1.tabs()[0]

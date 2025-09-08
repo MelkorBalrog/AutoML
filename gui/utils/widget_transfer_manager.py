@@ -27,6 +27,11 @@ try:  # pragma: no cover - support direct module execution
 except Exception:  # pragma: no cover - legacy path
     from tk_utils import cancel_after_events, reparent_widget
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from gui.utils.dockable_diagram_window import DockableDiagramWindow
+
 
 class WidgetTransferManager:
     """Move widgets between notebooks while preserving their state."""
@@ -58,10 +63,37 @@ class WidgetTransferManager:
         text = source.tab(tab_id, "text")
         cancel_after_events(orig)
 
+        try:  # defer import to avoid circular dependencies
+            from gui.utils.dockable_diagram_window import DockableDiagramWindow as DDW
+        except Exception:  # pragma: no cover - fallback for legacy paths
+            from dockable_diagram_window import DockableDiagramWindow as DDW
+
+        dock = getattr(orig, "_dock_window", None)
+        if isinstance(dock, DDW):
+            try:
+                if dock._notebook is source:
+                    width = source.winfo_width() or 200
+                    height = source.winfo_height() or 200
+                    x = source.winfo_rootx()
+                    y = source.winfo_rooty()
+                    dock.float(x, y, width, height)
+                else:
+                    dock.dock(target, len(target.tabs()), text)
+                    target.select(dock.content_frame)
+            except tk.TclError as exc:
+                try:
+                    dock.dock(source, len(source.tabs()), text)
+                    source.select(dock.content_frame)
+                except tk.TclError:
+                    pass
+                raise exc
+            return orig
+
         source.forget(orig)
         try:
             reparent_widget(orig, target)
             target.add(orig, text=text)
+            reparent_widget(orig, target)
             target.select(orig)
         except tk.TclError as exc:
             try:

@@ -50,6 +50,7 @@ from gui.windows.gsn_config_window import GSNElementConfig
 from mainappsrc.models.gsn import GSNDiagram, GSNModule
 from mainappsrc.models.gsn.nodes import GSNNode, ALLOWED_AWAY_TYPES
 from gui.utils.closable_notebook import ClosableNotebook
+from gui.utils.dockable_diagram_window import DockableDiagramWindow
 from gui.controls.mac_button_style import (
     apply_translucid_button_style,
     apply_purplish_button_style,
@@ -2307,8 +2308,11 @@ class AutoMLApp(
             self._update_analysis_menus(diagram_mode)
             return
 
-        canvas_tab = ttk.Frame(self.doc_nb)
-        self.doc_nb.add(canvas_tab, text="FTA" if diagram_mode == "FTA" else diagram_mode)
+        dock_window = DockableDiagramWindow(self.doc_nb)
+        canvas_tab = dock_window.content_frame
+        canvas_tab._dock_window = dock_window
+        title = "FTA" if diagram_mode == "FTA" else diagram_mode
+        dock_window.dock(self.doc_nb, len(self.doc_nb.tabs()), title)
 
         canvas = tk.Canvas(canvas_tab, bg=StyleManager.get_instance().canvas_bg)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -2329,6 +2333,7 @@ class AutoMLApp(
             "canvas": canvas,
             "hbar": hbar,
             "vbar": vbar,
+            "dock_window": dock_window,
         }
         self.canvas_tab = canvas_tab
         self.canvas_frame = canvas_tab
