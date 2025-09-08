@@ -20,8 +20,9 @@
 
 ## 0.2.262 - 2025-09-04
 
-- Fall back to Tk geometry reparenting when Windows ``SetParent``
-  fails so docked tabs no longer crash during safety management.
+- Cancel pending callbacks on the parent notebook before reparenting
+  docked or floated diagrams so Windows no longer raises ``SetParent
+  failed`` errors.
 
 ## 0.2.261 - 2025-09-04
 
