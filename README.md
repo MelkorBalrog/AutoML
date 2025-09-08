@@ -1,3 +1,4 @@
+version: 0.2.256
 <!--
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -17,8 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
-
-version: 0.2.251
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
 Reparent detached tabs across windows using native OS APIs so notebooks move
@@ -1766,4 +1765,3 @@ Steps to reproduce:
 4. Use **Query** for `SlipperyRoad` to obtain approximately 0.305.
 
 This end-to-end flow links HAZOP findings to risk assessment ratings, fault trees, FMEDA metrics, reliability data and causal Bayesian network reasoning for a coherent safety & security case.
-
