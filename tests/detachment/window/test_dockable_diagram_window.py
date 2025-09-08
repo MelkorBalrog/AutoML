@@ -16,8 +16,32 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Project version information."""
+"""Tests for the dockable diagram window helper."""
 
-VERSION = "0.2.259"
+from __future__ import annotations
 
-__all__ = ["VERSION"]
+import pytest
+import tkinter as tk
+from tkinter import ttk
+
+from gui.utils.closable_notebook import ClosableNotebook
+from gui.utils.dockable_diagram_window import DockableDiagramWindow
+
+
+@pytest.mark.detachment
+@pytest.mark.dockable
+class TestDockableDiagramWindow:
+    def test_dock_inserts_tab_into_empty_notebook(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(root)
+        dw = DockableDiagramWindow(frame)
+        dw.dock(nb, 0, "A")
+        assert nb.tabs()
+        assert nb.nametowidget(nb.tabs()[0]) is frame
+        root.destroy()
+
