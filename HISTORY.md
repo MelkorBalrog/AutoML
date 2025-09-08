@@ -18,13 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.256 - 2025-09-04
-
-- Use placeholder tabs to register targets prior to widget reparenting and
-  fall back to reparent-first logic when placeholder registration fails.
-- Add regression tests covering both placeholder registration and fallback
-  behavior.
-
 ## 0.2.255 - 2025-09-04
 
 - Register target tab before reparenting widgets to ensure rollback of
