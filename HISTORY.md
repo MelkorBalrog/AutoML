@@ -18,12 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.261 - 2025-09-04
-
-- Register target notebook tab before reparenting widgets to catch
-  add failures early and strengthen rollback to restore the original
-  notebook when registration fails.
-
 ## 0.2.260 - 2025-09-04
 
 - Cancel pending Tk ``after`` callbacks before reparenting docked or

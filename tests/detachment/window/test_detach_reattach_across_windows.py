@@ -86,11 +86,11 @@ class TestDetachReattachAcrossWindows:
 
         def spy_reparent(child, new_parent):
             call_order.append("reparent")
-            assert registered
+            assert not registered
 
         monkeypatch.setattr(wtm, "reparent_widget", spy_reparent)
 
         tab_id = nb1.tabs()[0]
         manager.detach_tab(nb1, tab_id, nb2)
-        assert call_order == ["add", "reparent"]
+        assert call_order == ["reparent", "add"]
         root.destroy()

@@ -91,13 +91,8 @@ class WidgetTransferManager:
 
         source.forget(orig)
         try:
+            reparent_widget(orig, target)
             target.add(orig, text=text)
-        except tk.TclError as exc:
-            source.add(orig, text=text)
-            source.select(orig)
-            raise exc
-
-        try:
             reparent_widget(orig, target)
             target.select(orig)
         except tk.TclError as exc:
