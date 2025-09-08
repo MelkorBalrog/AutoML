@@ -15,109 +15,51 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Dock a diagram in a notebook or float it in a window."""
+
+"""Dockable diagram window helper."""
 
 from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
 
-from .closable_notebook import ClosableNotebook
-from .tk_utils import cancel_after_events, reparent_widget
+from .tk_utils import reparent_widget
 
 
 class DockableDiagramWindow:
-    """Allow a diagram to be docked into a notebook or floated."""
+    """Host a diagram so it can dock in a notebook or float in a window."""
 
-    def __init__(self, root: tk.Misc) -> None:
-        self.root = root
-        self.win = tk.Toplevel(root)
-        self.win.transient(root)
-        try:  # pragma: no cover - some platforms do not support grouping
-            self.win.wm_group(root)
-        except Exception:
-            pass
-        self.win.withdraw()
-        self.content_frame = tk.Frame(self.win)
-        self.content_frame.pack(expand=True, fill="both")
-        self.win.bind("<Destroy>", self._on_destroy)
-        self._notebook: ClosableNotebook | None = None
+    def __init__(self, content: ttk.Frame) -> None:
+        self.content_frame = content
+        self.toplevel: tk.Toplevel | None = None
 
     # ------------------------------------------------------------------
-    # Docking and floating
+    # Dock and float operations
     # ------------------------------------------------------------------
-    def dock(self, notebook: ClosableNotebook, index: int, title: str) -> None:
-        """Insert the content into *notebook* at *index* with *title*."""
-        self._notebook = notebook
+    def dock(self, notebook: ttk.Notebook, index: int, title: str) -> None:
+        """Insert the diagram into *notebook* at *index*."""
+
         reparent_widget(self.content_frame, notebook)
-        notebook.insert(index, self.content_frame, text=title)
+        tabs = notebook.tabs()
+        if index >= len(tabs):
+            notebook.add(self.content_frame, text=title)
+        else:
+            notebook.insert(index, self.content_frame, text=title)
         notebook.select(self.content_frame)
-        self.win.withdraw()
-        diagram = self._diagram()
-        if diagram is not None:
-            self._ensure_toolbox(diagram)
-            self._activate_hooks(diagram)
 
-    def float(self, x: int, y: int, width: int, height: int) -> None:
-        """Withdraw the tab and display the diagram in a standalone window."""
-        nb = self._notebook
-        if nb is not None:
-            try:
-                nb.forget(self.content_frame)
-            except Exception:
-                pass
-        reparent_widget(self.content_frame, self.win)
-        self.content_frame.pack(expand=True, fill="both")
-        self.win.geometry(f"{width}x{height}+{x}+{y}")
-        self.win.deiconify()
-        try:  # pragma: no cover - focus may fail on some setups
-            self.win.focus_force()
-        except tk.TclError:
-            pass
-        diagram = self._diagram()
-        if diagram is not None:
-            self._ensure_toolbox(diagram)
-            self._activate_hooks(diagram)
+    def float(self, width: int, height: int, x: int, y: int, title: str) -> None:
+        """Show the diagram in a separate transient window."""
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-    def _diagram(self) -> tk.Widget | None:
-        children = self.content_frame.winfo_children()
-        return children[0] if children else None
+        if self.toplevel is None:
+            self.toplevel = tk.Toplevel()
+            self.toplevel.transient(self.content_frame.winfo_toplevel())
+            nb = ttk.Notebook(self.toplevel)
+            nb.pack(expand=True, fill="both")
+            self.toplevel.notebook = nb  # type: ignore[attr-defined]
+        else:
+            nb = self.toplevel.notebook  # type: ignore[attr-defined]
 
-    def _ensure_toolbox(self, widget: tk.Widget) -> None:
-        """Ensure any toolbox frame is packed and functional."""
-        frame = getattr(widget, "toolbox", getattr(widget, "tools_frame", None))
-        if isinstance(frame, tk.Widget) and not frame.winfo_manager():
-            try:
-                frame.pack(side="left")
-            except Exception:
-                pass
-        selector = getattr(widget, "toolbox_selector", None)
-        switch = getattr(widget, "_switch_toolbox", None)
-        if isinstance(selector, ttk.Combobox) and callable(switch):
-            try:
-                selector.bind("<<ComboboxSelected>>", lambda _e: switch())
-            except Exception:
-                pass
-
-    def _activate_hooks(self, widget: tk.Widget) -> None:
-        """Invoke lifecycle hooks on *widget* if present."""
-        for name in ("_rebuild_toolboxes", "_activate_parent_phase", "_switch_toolbox"):
-            func = getattr(widget, name, None)
-            if callable(func):
-                try:
-                    func()
-                except Exception:
-                    pass
-
-    # ------------------------------------------------------------------
-    # Cleanup
-    # ------------------------------------------------------------------
-    def _on_destroy(self, _event: tk.Event) -> None:  # pragma: no cover - GUI event
-        """Cancel pending callbacks when the window is destroyed."""
-        try:
-            cancel_after_events(self.win)
-        except Exception:
-            pass
+        reparent_widget(self.content_frame, nb)
+        nb.add(self.content_frame, text=title)
+        self.toplevel.geometry(f"{width}x{height}+{x}+{y}")
+        self.toplevel.deiconify()

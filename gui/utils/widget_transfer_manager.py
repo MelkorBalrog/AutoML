@@ -91,8 +91,7 @@ class WidgetTransferManager:
 
         source.forget(orig)
         try:
-            orig.update_idletasks()
-            target.update_idletasks()
+            reparent_widget(orig, target)
             target.add(orig, text=text)
             reparent_widget(orig, target)
             target.select(orig)

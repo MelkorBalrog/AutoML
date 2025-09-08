@@ -29,26 +29,6 @@ from gui.utils.widget_transfer_manager import WidgetTransferManager
 import gui.utils.widget_transfer_manager as wtm
 
 
-@pytest.fixture
-def notebooks() -> tuple[tk.Tk, ClosableNotebook, ClosableNotebook, ttk.Frame, ttk.Label]:
-    """Create two notebooks in separate windows for detachment tests."""
-    try:
-        root = tk.Tk()
-    except tk.TclError:
-        pytest.skip("Tk not available")
-    nb1 = ClosableNotebook(root)
-    nb1.pack()
-    frame = ttk.Frame(nb1)
-    lbl = ttk.Label(frame, text="hi")
-    lbl.pack()
-    nb1.add(frame, text="Tab1")
-    top = tk.Toplevel(root)
-    nb2 = ClosableNotebook(top)
-    nb2.pack()
-    yield root, nb1, nb2, frame, lbl
-    root.destroy()
-
-
 @pytest.mark.detachment
 @pytest.mark.reparenting
 class TestDetachReattachAcrossWindows:
@@ -106,11 +86,11 @@ class TestDetachReattachAcrossWindows:
 
         def spy_reparent(child, new_parent):
             call_order.append("reparent")
-            assert registered and registered[0] is child
+            assert not registered
 
         monkeypatch.setattr(wtm, "reparent_widget", spy_reparent)
 
         tab_id = nb1.tabs()[0]
         manager.detach_tab(nb1, tab_id, nb2)
-        assert call_order == ["add", "reparent"]
+        assert call_order == ["reparent", "add"]
         root.destroy()
