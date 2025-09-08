@@ -18,6 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.262 - 2025-09-04
+
+- Cancel pending callbacks on the parent notebook before reparenting
+  docked or floated diagrams so Windows no longer raises ``SetParent
+  failed`` errors.
+
 ## 0.2.261 - 2025-09-04
 
 - Register target notebook tab before reparenting widgets to catch

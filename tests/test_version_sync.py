@@ -33,10 +33,11 @@ from mainappsrc.version import VERSION
 
 def _readme_version() -> str:
     """Extract the version string from the README."""
-
-    first_line = ROOT.joinpath("README.md").read_text(encoding="utf-8").splitlines()[0]
-    prefix, version = first_line.split(":", maxsplit=1)
-    return version.strip()
+    for line in ROOT.joinpath("README.md").read_text(encoding="utf-8").splitlines():
+        stripped = line.strip().lower()
+        if stripped.startswith("version:"):
+            return stripped.split(":", maxsplit=1)[1].strip()
+    raise AssertionError("version line not found")
 
 
 def test_readme_matches_version() -> None:

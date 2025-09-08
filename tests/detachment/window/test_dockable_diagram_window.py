@@ -43,3 +43,63 @@ class TestDockableDiagramWindow:
         assert nb.tabs()
         assert nb.nametowidget(nb.tabs()[0]) is frame
         root.destroy()
+
+    def test_dock_cancels_parent_callbacks(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb_src = ClosableNotebook(root)
+        nb_src.pack()
+        nb_dst = ClosableNotebook(root)
+        nb_dst.pack()
+        frame = ttk.Frame(nb_src)
+        nb_src.add(frame, text="T1")
+        dw = DockableDiagramWindow(frame)
+
+        called = {"parent": False, "child": False}
+
+        def fake_cancel(widget, cancelled=None):  # noqa: ANN001 - test helper
+            if widget is nb_src:
+                called["parent"] = True
+            if widget is frame:
+                called["child"] = True
+
+        monkeypatch.setattr(
+            "gui.utils.dockable_diagram_window.cancel_after_events",
+            fake_cancel,
+        )
+
+        dw.dock(nb_dst, 0, "T2")
+        assert called["parent"] and called["child"]
+        root.destroy()
+
+    def test_float_cancels_parent_callbacks(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="T1")
+        dw = DockableDiagramWindow(frame)
+
+        called = {"parent": False, "child": False}
+
+        def fake_cancel(widget, cancelled=None):  # noqa: ANN001 - test helper
+            if widget is nb:
+                called["parent"] = True
+            if widget is frame:
+                called["child"] = True
+
+        monkeypatch.setattr(
+            "gui.utils.dockable_diagram_window.cancel_after_events",
+            fake_cancel,
+        )
+
+        dw.float(200, 200, 0, 0, "T1")
+        assert called["parent"] and called["child"]
+        if dw.toplevel is not None:
+            dw.toplevel.destroy()
+        root.destroy()

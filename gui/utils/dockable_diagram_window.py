@@ -39,6 +39,9 @@ class DockableDiagramWindow:
     def dock(self, notebook: ttk.Notebook, index: int, title: str) -> None:
         """Insert the diagram into *notebook* at *index*."""
 
+        parent = self.content_frame.master
+        if parent is not None:
+            cancel_after_events(parent)
         cancel_after_events(self.content_frame)
         reparent_widget(self.content_frame, notebook)
         tabs = notebook.tabs()
@@ -60,6 +63,9 @@ class DockableDiagramWindow:
         else:
             nb = self.toplevel.notebook  # type: ignore[attr-defined]
 
+        parent = self.content_frame.master
+        if parent is not None:
+            cancel_after_events(parent)
         cancel_after_events(self.content_frame)
         reparent_widget(self.content_frame, nb)
         nb.add(self.content_frame, text=title)
