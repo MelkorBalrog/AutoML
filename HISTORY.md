@@ -18,6 +18,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.256 - 2025-09-04
+
+- Introduce DockableDiagramWindow for docking diagrams into notebooks or floating windows.
+
 ## 0.2.255 - 2025-09-04
 
 - Register target tab before reparenting widgets to ensure rollback of
