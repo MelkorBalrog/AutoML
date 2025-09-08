@@ -36,6 +36,17 @@
   fall back to reparent-first logic when placeholder registration fails.
 - Add regression tests covering both placeholder registration and fallback
   behavior.
+- Detect DockableDiagramWindow in WidgetTransferManager so diagrams float and
+  dock via dedicated APIs without direct widget reparenting.
+
+## 0.2.257 - 2025-09-04
+
+- Route diagram tabs through DockableDiagramWindow and switch detachment to
+  float/dock operations instead of WidgetTransferManager.
+
+## 0.2.256 - 2025-09-04
+
+- Introduce DockableDiagramWindow for docking diagrams into notebooks or floating windows.
 
 ## 0.2.255 - 2025-09-04
 

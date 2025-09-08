@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING
 from analysis.fmeda_utils import GATE_NODE_TYPES
 from gui.dialogs.edit_node_dialog import EditNodeDialog
 from gui.toolboxes.search_toolbox import SearchToolbox
+from gui.utils.dockable_diagram_window import DockableDiagramWindow
 
 if TYPE_CHECKING:  # pragma: no cover - for type checking only
     from .automl_core import AutoMLApp
@@ -256,6 +257,8 @@ class Navigation_Selection_Input:
         if getattr(app, "search_tab", None) and app.search_tab.winfo_exists():
             app.doc_nb.select(app.search_tab)
             return
-        app.search_tab = SearchToolbox(app.doc_nb, app)
-        app.doc_nb.add(app.search_tab, text="Search")
+        dock_window = DockableDiagramWindow(app.doc_nb)
+        app.search_tab = SearchToolbox(dock_window.content_frame, app)
+        app.search_tab._dock_window = dock_window
+        dock_window.dock(app.doc_nb, len(app.doc_nb.tabs()), "Search")
         app.doc_nb.select(app.search_tab)
