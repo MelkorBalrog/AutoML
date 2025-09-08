@@ -59,19 +59,48 @@ class WidgetTransferManager:
         cancel_after_events(orig)
 
         source.forget(orig)
+
+        # First attempt: register a placeholder tab before reparenting the
+        # widget so the target notebook is aware of the incoming tab.
+        placeholder = tk.Frame(target)
         try:
+            target.add(placeholder, text=text)
+            index = target.index(placeholder)
             orig.update_idletasks()
             target.update_idletasks()
-            target.add(orig, text=text)
             reparent_widget(orig, target)
+            target.insert(index, orig, text=text)
+            target.forget(placeholder)
+            placeholder.destroy()
             target.select(orig)
-        except tk.TclError as exc:
+        except tk.TclError:
+            # Roll back placeholder registration and fall back to the original
+            # approach (reparent first, then add) for environments where the
+            # placeholder technique fails.
             try:
-                target.forget(orig)
+                target.forget(placeholder)
+                placeholder.destroy()
             except tk.TclError:
                 pass
+
+            # Reattach to source before retrying.
             source.add(orig, text=text)
             source.select(orig)
-            raise exc
+
+            source.forget(orig)
+            try:
+                orig.update_idletasks()
+                target.update_idletasks()
+                reparent_widget(orig, target)
+                target.add(orig, text=text)
+                target.select(orig)
+            except tk.TclError as exc:
+                try:
+                    reparent_widget(orig, source)
+                except tk.TclError:
+                    pass
+                source.add(orig, text=text)
+                source.select(orig)
+                raise exc
 
         return orig
