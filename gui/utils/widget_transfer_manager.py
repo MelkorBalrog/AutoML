@@ -62,14 +62,19 @@ class WidgetTransferManager:
         try:
             orig.update_idletasks()
             target.update_idletasks()
-            reparent_widget(orig, target)
             target.add(orig, text=text)
+            reparent_widget(orig, target)
             target.select(orig)
         except tk.TclError as exc:
             try:
                 target.forget(orig)
             except tk.TclError:
                 pass
+            if orig.master is not source:
+                try:
+                    reparent_widget(orig, source)
+                except tk.TclError:
+                    pass
             source.add(orig, text=text)
             source.select(orig)
             raise exc

@@ -26,6 +26,7 @@ from tkinter import ttk
 
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.widget_transfer_manager import WidgetTransferManager
+import gui.utils.widget_transfer_manager as wtm
 
 
 @pytest.mark.detachment
@@ -60,4 +61,47 @@ class TestDetachReattachAcrossWindows:
         assert lbl.master is moved_back
         assert moved_back is frame
         assert nb1.nametowidget(nb1.tabs()[0]) is frame
+        root.destroy()
+
+    def test_tab_registered_before_reparent(self, monkeypatch) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb1 = ClosableNotebook(root)
+        nb1.pack()
+        frame = ttk.Frame(nb1)
+        nb1.add(frame, text="T1")
+
+        top = tk.Toplevel(root)
+        nb2 = ClosableNotebook(top)
+        nb2.pack()
+        manager = WidgetTransferManager()
+
+        call_order: list[str] = []
+        registered: list[tk.Widget] = []
+
+        def fake_add(child, **kw):
+            call_order.append("add")
+            registered.append(child)
+
+        def fake_select(child):
+            pass
+
+        def fake_tabs():
+            return [str(w) for w in registered]
+
+        monkeypatch.setattr(nb2, "add", fake_add)
+        monkeypatch.setattr(nb2, "select", fake_select)
+        monkeypatch.setattr(nb2, "tabs", fake_tabs)
+
+        def spy_reparent(child, new_parent):
+            call_order.append("reparent")
+            assert registered and registered[0] is child
+
+        monkeypatch.setattr(wtm, "reparent_widget", spy_reparent)
+
+        tab_id = nb1.tabs()[0]
+        manager.detach_tab(nb1, tab_id, nb2)
+        assert call_order == ["add", "reparent"]
         root.destroy()
