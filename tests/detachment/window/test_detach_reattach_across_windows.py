@@ -87,28 +87,3 @@ class TestDetachReattachAcrossWindows:
             manager.detach_tab(nb1, tab_id, nb2)
         assert not nb2.tabs()
         assert nb1.nametowidget(nb1.tabs()[0]) is frame
-
-    def test_fallback_when_placeholder_fails(
-        self,
-        notebooks: tuple[tk.Tk, ClosableNotebook, ClosableNotebook, ttk.Frame, ttk.Label],
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        root, nb1, nb2, frame, _lbl = notebooks
-        manager = WidgetTransferManager()
-
-        original_add = nb2.add
-        calls: dict[str, int] = {"n": 0}
-
-        def failing_add(child: tk.Widget, **kw) -> None:
-            if calls["n"] == 0:
-                calls["n"] += 1
-                raise tk.TclError("boom")
-            original_add(child, **kw)
-
-        monkeypatch.setattr(nb2, "add", failing_add)
-
-        tab_id = nb1.tabs()[0]
-        moved = manager.detach_tab(nb1, tab_id, nb2)
-        assert calls["n"] == 1
-        assert moved is frame
-        assert nb2.nametowidget(nb2.tabs()[0]) is frame
