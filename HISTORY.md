@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.258 - 2025-09-04
+
+- Detect DockableDiagramWindow in WidgetTransferManager so diagrams float and
+  dock via dedicated APIs without direct widget reparenting.
+
 ## 0.2.257 - 2025-09-04
 
 - Route diagram tabs through DockableDiagramWindow and switch detachment to

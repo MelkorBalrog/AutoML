@@ -41,7 +41,6 @@ try:  # pragma: no cover - support direct module execution
     from .widget_transfer_manager import WidgetTransferManager
 except Exception:  # pragma: no cover - legacy path
     from widget_transfer_manager import WidgetTransferManager
-from .dockable_diagram_window import DockableDiagramWindow
 
 logger = logging.getLogger(__name__)
 
@@ -464,8 +463,11 @@ class ClosableNotebook(ttk.Notebook):
 
         text = self.tab(tab_id, "text")
         child = self.nametowidget(tab_id)
+        from gui.utils.dockable_diagram_window import (
+            DockableDiagramWindow as DDW,
+        )
         dock = getattr(child, "_dock_window", None)
-        if isinstance(dock, DockableDiagramWindow):
+        if isinstance(dock, DDW):
             try:
                 self._cancel_after_events(child)
             except Exception:
@@ -888,11 +890,14 @@ class ClosableNotebook(ttk.Notebook):
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         child = self.nametowidget(tab_id)
+        from gui.utils.dockable_diagram_window import (
+            DockableDiagramWindow as DDW,
+        )
         dock = getattr(child, "_dock_window", None)
         self.update_idletasks()
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
-        if isinstance(dock, DockableDiagramWindow):
+        if isinstance(dock, DDW):
             self._floating_windows.append(dock.win)
 
             def _on_destroy(_e, w=dock.win) -> None:
