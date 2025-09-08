@@ -101,6 +101,11 @@ class WidgetTransferManager:
                 target.forget(orig)
             except tk.TclError:
                 pass
+            if orig.master is not source:
+                try:
+                    reparent_widget(orig, source)
+                except tk.TclError:
+                    pass
             source.add(orig, text=text)
             source.select(orig)
             raise exc

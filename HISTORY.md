@@ -20,6 +20,22 @@
 
 ## 0.2.258 - 2025-09-04
 
+- Register target tab before widget reparenting so notebooks track tabs
+  prior to moving their children. Add regression test ensuring registration
+  precedes widget transfer.
+
+## 0.2.257 - 2025-09-04
+
+- Restore reparent-first tab transfer after placeholder registration proved
+  unreliable, ensuring tabs move with their children across windows.
+- Simplify detachment tests to match the reverted logic.
+
+## 0.2.256 - 2025-09-04
+
+- Use placeholder tabs to register targets prior to widget reparenting and
+  fall back to reparent-first logic when placeholder registration fails.
+- Add regression tests covering both placeholder registration and fallback
+  behavior.
 - Detect DockableDiagramWindow in WidgetTransferManager so diagrams float and
   dock via dedicated APIs without direct widget reparenting.
 

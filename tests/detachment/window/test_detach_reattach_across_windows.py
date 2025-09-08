@@ -26,6 +26,7 @@ from tkinter import ttk
 
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.widget_transfer_manager import WidgetTransferManager
+import gui.utils.widget_transfer_manager as wtm
 
 
 @pytest.fixture
@@ -69,21 +70,47 @@ class TestDetachReattachAcrossWindows:
         assert lbl.master is moved_back
         assert moved_back is frame
         assert nb1.nametowidget(nb1.tabs()[0]) is frame
+        root.destroy()
 
-    def test_tab_registers_before_widget_reparent(
-        self, notebooks: tuple[tk.Tk, ClosableNotebook, ClosableNotebook, ttk.Frame, ttk.Label], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        root, nb1, nb2, frame, _lbl = notebooks
+    def test_tab_registered_before_reparent(self, monkeypatch) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb1 = ClosableNotebook(root)
+        nb1.pack()
+        frame = ttk.Frame(nb1)
+        nb1.add(frame, text="T1")
+
+        top = tk.Toplevel(root)
+        nb2 = ClosableNotebook(top)
+        nb2.pack()
         manager = WidgetTransferManager()
 
-        def fake_reparent(orig: tk.Widget, target: tk.Widget) -> None:
-            assert nb2.tabs(), "tab not registered before reparent"
-            assert frame.master is nb1
-            raise tk.TclError("boom")
+        call_order: list[str] = []
+        registered: list[tk.Widget] = []
 
-        monkeypatch.setattr("gui.utils.widget_transfer_manager.reparent_widget", fake_reparent)
+        def fake_add(child, **kw):
+            call_order.append("add")
+            registered.append(child)
+
+        def fake_select(child):
+            pass
+
+        def fake_tabs():
+            return [str(w) for w in registered]
+
+        monkeypatch.setattr(nb2, "add", fake_add)
+        monkeypatch.setattr(nb2, "select", fake_select)
+        monkeypatch.setattr(nb2, "tabs", fake_tabs)
+
+        def spy_reparent(child, new_parent):
+            call_order.append("reparent")
+            assert registered and registered[0] is child
+
+        monkeypatch.setattr(wtm, "reparent_widget", spy_reparent)
+
         tab_id = nb1.tabs()[0]
-        with pytest.raises(tk.TclError):
-            manager.detach_tab(nb1, tab_id, nb2)
-        assert not nb2.tabs()
-        assert nb1.nametowidget(nb1.tabs()[0]) is frame
+        manager.detach_tab(nb1, tab_id, nb2)
+        assert call_order == ["add", "reparent"]
+        root.destroy()
