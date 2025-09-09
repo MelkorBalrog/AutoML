@@ -26,6 +26,7 @@ from tkinter import ttk
 
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.dockable_diagram_window import DockableDiagramWindow
+from gui.utils.tk_utils import reparent_widget
 
 @pytest.mark.detachment
 @pytest.mark.dockable
@@ -42,4 +43,104 @@ class TestDockableDiagramWindow:
         dw.dock(nb, 0, "A")
         assert nb.tabs()
         assert nb.nametowidget(nb.tabs()[0]) is frame
+        root.destroy()
+
+    def test_dock_cancels_parent_callbacks(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb_src = ClosableNotebook(root)
+        nb_src.pack()
+        nb_dst = ClosableNotebook(root)
+        nb_dst.pack()
+        frame = ttk.Frame(nb_src)
+        nb_src.add(frame, text="T1")
+        dw = DockableDiagramWindow(frame)
+
+        called = {"parent": False, "child": False}
+
+        def fake_cancel(widget, cancelled=None):  # noqa: ANN001 - test helper
+            if widget is nb_src:
+                called["parent"] = True
+            if widget is frame:
+                called["child"] = True
+
+        monkeypatch.setattr(
+            "gui.utils.dockable_diagram_window.cancel_after_events",
+            fake_cancel,
+        )
+
+        dw.dock(nb_dst, 0, "T2")
+        assert called["parent"] and called["child"]
+        root.destroy()
+
+    def test_float_cancels_parent_callbacks(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="T1")
+        dw = DockableDiagramWindow(frame)
+
+        called = {"parent": False, "child": False}
+
+        def fake_cancel(widget, cancelled=None):  # noqa: ANN001 - test helper
+            if widget is nb:
+                called["parent"] = True
+            if widget is frame:
+                called["child"] = True
+
+        monkeypatch.setattr(
+            "gui.utils.dockable_diagram_window.cancel_after_events",
+            fake_cancel,
+        )
+
+        dw.float(200, 200, 0, 0, "T1")
+        assert called["parent"] and called["child"]
+        if dw.toplevel is not None:
+            dw.toplevel.destroy()
+        root.destroy()
+
+    def test_dock_skips_reparent_when_parent_matches(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="T1")
+        dw = DockableDiagramWindow(frame)
+
+        called = False
+
+        def fake_reparent(widget, new_parent):  # noqa: ANN001 - test helper
+            nonlocal called
+            called = True
+
+        monkeypatch.setattr(
+            "gui.utils.dockable_diagram_window.reparent_widget", fake_reparent
+        )
+
+        dw.dock(nb, 1, "T2")
+        assert not called
+        root.destroy()
+
+    def test_reparent_widget_noop_when_parent_same(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="T1")
+        reparent_widget(frame, nb)
+        assert frame.master is nb
         root.destroy()

@@ -18,6 +18,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.263 - 2025-09-04
+
+- Skip reparenting when a diagram already resides in the target notebook
+  and guard against SetParent failures when widgets and parents match.
+
+## 0.2.262 - 2025-09-04
+
+- Cancel pending callbacks on the parent notebook before reparenting
+  docked or floated diagrams so Windows no longer raises ``SetParent
+  failed`` errors.
+
 ## 0.2.261 - 2025-09-04
 
 - Register target notebook tab before reparenting widgets to catch

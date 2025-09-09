@@ -100,6 +100,9 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
 def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
     """Reparent *widget* into *new_parent* using OS-level APIs."""
 
+    if widget is new_parent or widget.master is new_parent:
+        return
+
     widget.update_idletasks()
     new_parent.update_idletasks()
     wid = int(widget.winfo_id())
