@@ -117,7 +117,12 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
 
     if sys.platform.startswith("win"):
         if ctypes.windll.user32.SetParent(wid, pid) == 0:
-            raise tk.TclError("SetParent failed")
+            # Fallback to Tk geometry manager when OS-level reparenting fails
+            try:
+                widget.tk.call("place", str(widget), "-in", str(new_parent))
+                widget.tk.call("place", "forget", str(widget))
+            except tk.TclError as exc:
+                raise tk.TclError("SetParent failed") from exc
     elif sys.platform.startswith("linux"):
         x11 = ctypes.cdll.LoadLibrary("libX11.so.6")
         display = x11.XOpenDisplay(None)
