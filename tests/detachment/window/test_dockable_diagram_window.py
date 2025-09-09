@@ -26,6 +26,7 @@ from tkinter import ttk
 
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.dockable_diagram_window import DockableDiagramWindow
+from gui.utils.tk_utils import reparent_widget
 
 @pytest.mark.detachment
 @pytest.mark.dockable
@@ -102,4 +103,44 @@ class TestDockableDiagramWindow:
         assert called["parent"] and called["child"]
         if dw.toplevel is not None:
             dw.toplevel.destroy()
+        root.destroy()
+
+    def test_dock_skips_reparent_when_parent_matches(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="T1")
+        dw = DockableDiagramWindow(frame)
+
+        called = False
+
+        def fake_reparent(widget, new_parent):  # noqa: ANN001 - test helper
+            nonlocal called
+            called = True
+
+        monkeypatch.setattr(
+            "gui.utils.dockable_diagram_window.reparent_widget", fake_reparent
+        )
+
+        dw.dock(nb, 1, "T2")
+        assert not called
+        root.destroy()
+
+    def test_reparent_widget_noop_when_parent_same(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="T1")
+        reparent_widget(frame, nb)
+        assert frame.master is nb
         root.destroy()

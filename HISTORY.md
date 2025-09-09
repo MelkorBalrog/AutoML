@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.263 - 2025-09-04
+
+- Skip reparenting when a diagram already resides in the target notebook
+  and guard against SetParent failures when widgets and parents match.
+
 ## 0.2.262 - 2025-09-04
 
 - Cancel pending callbacks on the parent notebook before reparenting

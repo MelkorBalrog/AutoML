@@ -43,7 +43,8 @@ class DockableDiagramWindow:
         if parent is not None:
             cancel_after_events(parent)
         cancel_after_events(self.content_frame)
-        reparent_widget(self.content_frame, notebook)
+        if parent is not notebook:
+            reparent_widget(self.content_frame, notebook)
         tabs = notebook.tabs()
         if index >= len(tabs):
             notebook.add(self.content_frame, text=title)
@@ -67,7 +68,8 @@ class DockableDiagramWindow:
         if parent is not None:
             cancel_after_events(parent)
         cancel_after_events(self.content_frame)
-        reparent_widget(self.content_frame, nb)
+        if parent is not nb:
+            reparent_widget(self.content_frame, nb)
         nb.add(self.content_frame, text=title)
         self.toplevel.geometry(f"{width}x{height}+{x}+{y}")
         self.toplevel.deiconify()
