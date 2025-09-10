@@ -18,6 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.265 - 2025-09-04
+
+- Track ``DockableDiagramWindow`` toplevels when detaching tabs and pass
+  geometry arguments in the correct order so floating windows no longer
+  raise ``AttributeError`` during tab moves.
+
 ## 0.2.264 - 2025-09-04
 
 - Create dedicated tab frames before docking so the document notebook is

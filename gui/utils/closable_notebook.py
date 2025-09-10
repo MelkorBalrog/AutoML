@@ -898,18 +898,21 @@ class ClosableNotebook(ttk.Notebook):
         width = self.winfo_width() or 200
         height = self.winfo_height() or 200
         if isinstance(dock, DDW):
-            self._floating_windows.append(dock.win)
+            text = self.tab(child, "text")
+            dock.float(width, height, x, y, text)
+            win = dock.toplevel
+            if win is not None:
+                self._floating_windows.append(win)
 
-            def _on_destroy(_e, w=dock.win) -> None:
-                try:
-                    self._cancel_after_events(w)
-                except Exception:
-                    pass
-                if w in self._floating_windows:
-                    self._floating_windows.remove(w)
+                def _on_destroy(_e, w=win) -> None:
+                    try:
+                        self._cancel_after_events(w)
+                    except Exception:
+                        pass
+                    if w in self._floating_windows:
+                        self._floating_windows.remove(w)
 
-            dock.win.bind("<Destroy>", _on_destroy, add="+")
-            dock.float(x, y, width, height)
+                win.bind("<Destroy>", _on_destroy, add="+")
             ClosableNotebook._tab_hosts.pop(child, None)
             return
         from .detached_window import DetachedWindow
