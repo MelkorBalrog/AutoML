@@ -18,6 +18,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.267 - 2025-09-10
+
+- Forget tab before floating dockable diagrams to avoid Tk reparent errors.
+
+## 0.2.266 - 2025-09-10
+
+- Supply diagram title when detaching dockable windows to satisfy
+  ``DockableDiagramWindow.float``.
+
+## 0.2.265 - 2025-09-04
+
+- Provide ``win`` property for ``DockableDiagramWindow`` so detached tabs
+  create a floating window without attribute errors.
+
 ## 0.2.264 - 2025-09-04
 
 - Create dedicated tab frames before docking so the document notebook is
