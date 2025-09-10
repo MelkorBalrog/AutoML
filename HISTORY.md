@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.268 - 2025-09-10
+
+- Cancel pending ``after`` callbacks on tabs prior to detaching dockable
+  diagrams, preventing ``invalid command name`` errors when floating.
+
 ## 0.2.267 - 2025-09-10
 
 - Forget tab before floating dockable diagrams to avoid Tk reparent errors.

@@ -910,6 +910,10 @@ class ClosableNotebook(ttk.Notebook):
 
             dock.win.bind("<Destroy>", _on_destroy, add="+")
             title = self.tab(child, "text")
+            # Cancel callbacks tied to the tab before moving it to the
+            # floating notebook so no ``after`` events fire on a widget that
+            # has been detached from its original parent.
+            self._cancel_after_events(child)
             # Remove the tab from this notebook before floating to avoid
             # reparenting errors when adding the content frame to the new
             # notebook hosted by the floating window.
