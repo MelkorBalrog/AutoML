@@ -910,6 +910,10 @@ class ClosableNotebook(ttk.Notebook):
 
             dock.win.bind("<Destroy>", _on_destroy, add="+")
             title = self.tab(child, "text")
+            # Remove the tab from this notebook before floating to avoid
+            # reparenting errors when adding the content frame to the new
+            # notebook hosted by the floating window.
+            self.forget(child)
             dock.float(width, height, x, y, title)
             ClosableNotebook._tab_hosts.pop(child, None)
             return
