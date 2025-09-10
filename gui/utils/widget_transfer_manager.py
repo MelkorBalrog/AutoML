@@ -76,7 +76,7 @@ class WidgetTransferManager:
                     height = source.winfo_height() or 200
                     x = source.winfo_rootx()
                     y = source.winfo_rooty()
-                    dock.float(width, height, x, y, text)
+                    dock.float(x, y, width, height)
                 else:
                     dock.dock(target, len(target.tabs()), text)
                     target.select(dock.content_frame)

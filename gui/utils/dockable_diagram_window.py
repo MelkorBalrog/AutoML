@@ -32,7 +32,6 @@ class DockableDiagramWindow:
     def __init__(self, content: ttk.Frame) -> None:
         self.content_frame = content
         self.toplevel: tk.Toplevel | None = None
-        self._notebook: ttk.Notebook | None = None
 
     # ------------------------------------------------------------------
     # Dock and float operations
@@ -52,7 +51,6 @@ class DockableDiagramWindow:
         else:
             notebook.insert(index, self.content_frame, text=title)
         notebook.select(self.content_frame)
-        self._notebook = notebook
 
     def float(self, width: int, height: int, x: int, y: int, title: str) -> None:
         """Show the diagram in a separate transient window."""
@@ -75,4 +73,3 @@ class DockableDiagramWindow:
         nb.add(self.content_frame, text=title)
         self.toplevel.geometry(f"{width}x{height}+{x}+{y}")
         self.toplevel.deiconify()
-        self._notebook = nb
