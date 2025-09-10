@@ -144,3 +144,17 @@ class TestDockableDiagramWindow:
         reparent_widget(frame, nb)
         assert frame.master is nb
         root.destroy()
+
+    def test_win_creates_toplevel_once(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        frame = ttk.Frame(root)
+        dw = DockableDiagramWindow(frame)
+        win1 = dw.win
+        assert isinstance(win1, tk.Toplevel)
+        win2 = dw.win
+        assert win1 is win2
+        win1.destroy()
+        root.destroy()
