@@ -24,6 +24,7 @@ import tkinter as tk
 import pytest
 
 from gui.utils.closable_notebook import ClosableNotebook
+from gui.utils.dockable_diagram_window import DockableDiagramWindow
 from tkinter import ttk
 
 
@@ -92,4 +93,28 @@ class TestDetachedTab:
         diagrams = [w for w in new_frame.winfo_children() if w.winfo_name() == "diagram"]
         assert len(toolboxes) == 1
         assert len(diagrams) == 1
+        root.destroy()
+
+    def test_dock_window_detach_passes_title(self):
+        root = tk.Tk()
+        nb = ClosableNotebook(root)
+        frame = ttk.Frame(nb)
+
+        class SpyDock(DockableDiagramWindow):
+            def __init__(self, content):
+                super().__init__(content)
+                self.args = None
+
+            def float(self, width, height, x, y, title):
+                self.args = (width, height, x, y, title)
+                super().float(width, height, x, y, title)
+
+        dock = SpyDock(frame)
+        frame._dock_window = dock
+        nb.add(frame, text="Docked")
+        tab_id = nb.tabs()[0]
+        nb._detach_tab(tab_id, 5, 5)
+        assert dock.args[-1] == "Docked"
+        for w in list(nb._floating_windows):
+            w.destroy()
         root.destroy()

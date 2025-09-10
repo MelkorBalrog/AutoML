@@ -909,7 +909,8 @@ class ClosableNotebook(ttk.Notebook):
                     self._floating_windows.remove(w)
 
             dock.win.bind("<Destroy>", _on_destroy, add="+")
-            dock.float(x, y, width, height)
+            title = self.tab(child, "text")
+            dock.float(width, height, x, y, title)
             ClosableNotebook._tab_hosts.pop(child, None)
             return
         from .detached_window import DetachedWindow

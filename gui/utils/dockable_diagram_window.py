@@ -33,6 +33,15 @@ class DockableDiagramWindow:
         self.content_frame = content
         self.toplevel: tk.Toplevel | None = None
 
+    @property
+    def win(self) -> tk.Toplevel:
+        """Return the floating window, creating it on demand."""
+
+        if self.toplevel is None:
+            self.toplevel = tk.Toplevel()
+            self.toplevel.withdraw()
+        return self.toplevel
+
     # ------------------------------------------------------------------
     # Dock and float operations
     # ------------------------------------------------------------------
@@ -55,14 +64,14 @@ class DockableDiagramWindow:
     def float(self, width: int, height: int, x: int, y: int, title: str) -> None:
         """Show the diagram in a separate transient window."""
 
-        if self.toplevel is None:
-            self.toplevel = tk.Toplevel()
-            self.toplevel.transient(self.content_frame.winfo_toplevel())
-            nb = ttk.Notebook(self.toplevel)
+        win = self.win
+        if not hasattr(win, "notebook"):
+            win.transient(self.content_frame.winfo_toplevel())
+            nb = ttk.Notebook(win)
             nb.pack(expand=True, fill="both")
-            self.toplevel.notebook = nb  # type: ignore[attr-defined]
+            win.notebook = nb  # type: ignore[attr-defined]
         else:
-            nb = self.toplevel.notebook  # type: ignore[attr-defined]
+            nb = win.notebook  # type: ignore[attr-defined]
 
         parent = self.content_frame.master
         if parent is not None:
@@ -71,5 +80,5 @@ class DockableDiagramWindow:
         if parent is not nb:
             reparent_widget(self.content_frame, nb)
         nb.add(self.content_frame, text=title)
-        self.toplevel.geometry(f"{width}x{height}+{x}+{y}")
-        self.toplevel.deiconify()
+        win.geometry(f"{width}x{height}+{x}+{y}")
+        win.deiconify()
