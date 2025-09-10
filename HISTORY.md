@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.264 - 2025-09-04
+
+- Create dedicated tab frames before docking so the document notebook is
+  never inserted into itself, preventing Tk "can't add ... as slave" errors.
+
 ## 0.2.263 - 2025-09-04
 
 - Skip reparenting when a diagram already resides in the target notebook

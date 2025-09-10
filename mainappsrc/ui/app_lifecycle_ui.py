@@ -676,8 +676,8 @@ class AppLifecycleUI:
                 self.doc_nb.select(tab_id)
                 return self.doc_nb.nametowidget(tab_id)
 
-        dock_window = DockableDiagramWindow(self.doc_nb)
-        tab = dock_window.content_frame
+        tab = ttk.Frame(self.doc_nb)
+        dock_window = DockableDiagramWindow(tab)
         tab._dock_window = dock_window
         display = self._truncate_tab_title(title)
         dock_window.dock(self.doc_nb, len(self.doc_nb.tabs()), display)
