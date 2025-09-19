@@ -45,6 +45,31 @@ class HazardsForMalfunctionTests(unittest.TestCase):
         app.hazop_docs = [HazopDoc("HZDOC", [entry])]
         self.assertEqual(app.get_hazards_for_malfunction("M"), ["HZ"])
 
+    def test_hazop_doc_serialization_round_trip(self):
+        entry = HazopEntry(
+            function="F",
+            malfunction="M",
+            mtype="Deviation",
+            scenario="S",
+            conditions="C",
+            hazard="HZ",
+            safety=True,
+            rationale="Because",
+            covered=True,
+            covered_by="Requirement",
+            component="Comp",
+        )
+        doc = HazopDoc("Doc", [entry])
+
+        data = doc.to_dict()
+        restored = HazopDoc.from_dict(data)
+
+        self.assertEqual(restored.name, doc.name)
+        self.assertEqual(len(restored.entries), 1)
+        self.assertTrue(restored.entries[0].safety)
+        self.assertTrue(restored.entries[0].covered)
+        self.assertEqual(restored.entries[0].component, "Comp")
+
 
 if __name__ == "__main__":
     unittest.main()
