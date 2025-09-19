@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.271 - 2025-09-10
+
+- Introduce a reusable resize controller that propagates toplevel window
+  dimensions to detached notebooks and dockable diagram content so floating
+  diagrams expand when windows resize or maximize.
+- Extend detachment and dockable window tests with resize controller coverage.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer
