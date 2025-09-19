@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.270 - 2025-09-10
+
+- Restore standard decorations on detached notebooks so floating windows offer
+  minimize, maximize, and close buttons when tabs snap out of the main frame.
+- Update dockable diagram floating windows to retain full window controls and
+  add regression coverage asserting transient styling is no longer applied.
+
 ## 0.2.269 - 2025-09-10
 
 - Replace the floating notebook with a dedicated container frame so dockable

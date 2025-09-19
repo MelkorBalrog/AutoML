@@ -24,6 +24,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from .tk_utils import cancel_after_events, reparent_widget
+from .window_controls import restore_window_buttons
 
 
 class DockableDiagramWindow:
@@ -33,7 +34,6 @@ class DockableDiagramWindow:
         self.content_frame = content
         self.toplevel: tk.Toplevel | None = None
         self._float_container: ttk.Frame | None = None
-        self._transient_parent: tk.Misc | None = None
 
     @property
     def win(self) -> tk.Toplevel:
@@ -42,8 +42,8 @@ class DockableDiagramWindow:
         if self.toplevel is None or not self.toplevel.winfo_exists():
             self.toplevel = tk.Toplevel()
             self.toplevel.withdraw()
+            restore_window_buttons(self.toplevel)
             self._float_container = None
-            self._transient_parent = None
             self.toplevel.bind("<Destroy>", self._on_destroy, add="+")
         return self.toplevel
 
@@ -80,7 +80,6 @@ class DockableDiagramWindow:
 
         self.toplevel = None
         self._float_container = None
-        self._transient_parent = None
 
     # ------------------------------------------------------------------
     # Dock and float operations
@@ -108,19 +107,10 @@ class DockableDiagramWindow:
                 pass
 
     def float(self, width: int, height: int, x: int, y: int, title: str) -> None:
-        """Show the diagram in a separate transient window."""
+        """Show the diagram in a separate top-level window."""
 
         win = self.win
-        try:
-            transient_parent = self.content_frame.winfo_toplevel()
-        except tk.TclError:
-            transient_parent = None
-        if transient_parent is not None and transient_parent is not self._transient_parent:
-            try:
-                win.transient(transient_parent)
-            except tk.TclError:
-                pass
-            self._transient_parent = transient_parent
+        restore_window_buttons(win)
 
         container = self._ensure_float_container(win)
 
