@@ -198,6 +198,31 @@ class TestDockableDiagramWindow:
         nb.add(frame, text="T1")
         reparent_widget(frame, nb)
         assert frame.master is nb
+
+    def test_float_does_not_call_transient(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        frame = ttk.Frame(root)
+        dw = DockableDiagramWindow(frame)
+
+        called = {"transient": False}
+
+        def fail_transient(self, *args, **kwargs):  # noqa: ANN001 - test helper
+            called["transient"] = True
+            raise AssertionError("DockableDiagramWindow should not mark the window transient")
+
+        monkeypatch.setattr(tk.Toplevel, "transient", fail_transient)
+
+        dw.float(200, 200, 0, 0, "Float Title")
+        assert not called["transient"]
+        if dw.toplevel is not None and dw.toplevel.winfo_exists():
+            dw.toplevel.destroy()
+        root.destroy()
         root.destroy()
 
     def test_win_creates_toplevel_once(self) -> None:

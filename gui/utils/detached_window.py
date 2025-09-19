@@ -23,6 +23,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from .closable_notebook import ClosableNotebook, cancel_after_events
+from .window_controls import restore_window_buttons
 
 
 class DetachedWindow:
@@ -38,7 +39,7 @@ class DetachedWindow:
     ) -> None:
         self.root = root
         self.win = tk.Toplevel(root)
-        self.win.transient(root)
+        restore_window_buttons(self.win)
         self.win.geometry(f"{width}x{height}+{x}+{y}")
         self.nb = ClosableNotebook(self.win)
         self.nb.pack(expand=True, fill="both")

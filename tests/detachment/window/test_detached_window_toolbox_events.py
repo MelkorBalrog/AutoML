@@ -81,3 +81,26 @@ class TestDetachedWindowWidgetEvents:
         diagram.toolbox_selector.event_generate("<<ComboboxSelected>>")
         assert diagram.log.count("switch") == count + 1
         root.destroy()
+
+
+class TestDetachedWindowWindowControls:
+    def test_detached_window_does_not_use_transient(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        called = {"transient": False}
+
+        def fail_transient(self, *args, **kwargs):  # noqa: ANN001 - test helper
+            called["transient"] = True
+            raise AssertionError("DetachedWindow should not mark the window transient")
+
+        monkeypatch.setattr(tk.Toplevel, "transient", fail_transient)
+
+        win = DetachedWindow(root, width=200, height=200, x=10, y=10)
+        assert not called["transient"]
+        win.win.destroy()
+        root.destroy()
