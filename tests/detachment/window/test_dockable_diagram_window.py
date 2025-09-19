@@ -105,6 +105,61 @@ class TestDockableDiagramWindow:
             dw.toplevel.destroy()
         root.destroy()
 
+    def test_float_reparents_into_container(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="T1")
+        dw = DockableDiagramWindow(frame)
+
+        nb.forget(frame)
+        dw.float(300, 200, 10, 15, "Float Title")
+
+        container = dw._float_container
+        assert container is not None
+        assert container.master is dw.win
+        assert frame.master is container
+        try:
+            info = frame.pack_info()
+        except tk.TclError:
+            info = {}
+        assert info.get("fill") == "both"
+        assert info.get("expand") == "1"
+        assert dw.win.winfo_viewable()
+        assert dw.win.title() == "Float Title"
+
+        dw.win.destroy()
+        root.destroy()
+
+    def test_dock_withdraws_floating_window(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="T1")
+        dw = DockableDiagramWindow(frame)
+
+        nb.forget(frame)
+        dw.float(200, 200, 0, 0, "T1")
+        dw.dock(nb, 0, "T1")
+
+        state = "withdrawn"
+        try:
+            state = dw.win.state()
+        except tk.TclError:
+            pass
+        assert state == "withdrawn"
+
+        dw.win.destroy()
+        root.destroy()
+
     def test_dock_skips_reparent_when_parent_matches(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
