@@ -79,6 +79,12 @@ class DockableDiagramWindow:
         cancel_after_events(self.content_frame)
         if parent is not nb:
             reparent_widget(self.content_frame, nb)
-        nb.add(self.content_frame, text=title)
+
+        tab_id = str(self.content_frame)
+        existing_tabs = nb.tabs()
+        if tab_id not in existing_tabs:
+            nb.add(self.content_frame, text=title)
+        else:
+            nb.tab(self.content_frame, text=title)
         win.geometry(f"{width}x{height}+{x}+{y}")
         win.deiconify()
