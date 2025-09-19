@@ -81,3 +81,65 @@ class TestDetachedWindowWidgetEvents:
         diagram.toolbox_selector.event_generate("<<ComboboxSelected>>")
         assert diagram.log.count("switch") == count + 1
         root.destroy()
+
+
+class TestDetachedWindowWindowControls:
+    def test_detached_window_does_not_use_transient(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        called = {"transient": False}
+
+        def fail_transient(self, *args, **kwargs):  # noqa: ANN001 - test helper
+            called["transient"] = True
+            raise AssertionError("DetachedWindow should not mark the window transient")
+
+        monkeypatch.setattr(tk.Toplevel, "transient", fail_transient)
+
+        win = DetachedWindow(root, width=200, height=200, x=10, y=10)
+        assert not called["transient"]
+        win.win.destroy()
+        root.destroy()
+
+
+class TestDetachedWindowResizing:
+    def test_add_registers_widget_with_resizer(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        recorded: list[object] = []
+
+        class RecordingResizer:
+            def __init__(self, win, primary=None):  # noqa: ANN001 - test helper
+                self.win = win
+                self.primary = primary
+                self.added: list[tk.Widget] = []
+                recorded.append(self)
+
+            def add_target(self, widget):  # noqa: ANN001 - test helper
+                self.added.append(widget)
+
+        monkeypatch.setattr(
+            "gui.utils.detached_window.WindowResizeController",
+            RecordingResizer,
+        )
+
+        win = DetachedWindow(root, width=220, height=200, x=5, y=5)
+        diagram = DummyDiagram(root)
+        diagram.toolbox.pack_forget()
+        win.add(diagram, "Tab")
+
+        assert recorded, "Resize controller should be constructed"
+        tracker = recorded[-1]
+        assert diagram in tracker.added
+
+        win.win.destroy()
+        root.destroy()

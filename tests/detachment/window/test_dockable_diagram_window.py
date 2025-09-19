@@ -198,6 +198,79 @@ class TestDockableDiagramWindow:
         nb.add(frame, text="T1")
         reparent_widget(frame, nb)
         assert frame.master is nb
+
+    def test_float_does_not_call_transient(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        frame = ttk.Frame(root)
+        dw = DockableDiagramWindow(frame)
+
+        called = {"transient": False}
+
+        def fail_transient(self, *args, **kwargs):  # noqa: ANN001 - test helper
+            called["transient"] = True
+            raise AssertionError("DockableDiagramWindow should not mark the window transient")
+
+        monkeypatch.setattr(tk.Toplevel, "transient", fail_transient)
+
+        dw.float(200, 200, 0, 0, "Float Title")
+        assert not called["transient"]
+        if dw.toplevel is not None and dw.toplevel.winfo_exists():
+            dw.toplevel.destroy()
+        root.destroy()
+        root.destroy()
+
+    def test_resizer_tracks_content(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        frame = ttk.Frame(root)
+        resizers: list[object] = []
+
+        class RecordingResizer:
+            def __init__(self, win, primary=None):  # noqa: ANN001 - test helper
+                self.win = win
+                self.primary_calls: list[ttk.Frame] = []
+                self.add_calls: list[ttk.Frame] = []
+                self.remove_calls: list[ttk.Frame] = []
+                if primary is not None:
+                    self.primary_calls.append(primary)
+                resizers.append(self)
+
+            def set_primary_target(self, widget):  # noqa: ANN001 - test helper
+                self.primary_calls.append(widget)
+
+            def add_target(self, widget):  # noqa: ANN001 - test helper
+                self.add_calls.append(widget)
+
+            def remove_target(self, widget):  # noqa: ANN001 - test helper
+                self.remove_calls.append(widget)
+
+        monkeypatch.setattr(
+            "gui.utils.dockable_diagram_window.WindowResizeController",
+            RecordingResizer,
+        )
+
+        dw = DockableDiagramWindow(frame)
+        dw.float(250, 200, 5, 5, "Floating")
+        assert resizers, "Resize controller should be instantiated"
+        tracker = resizers[-1]
+        assert tracker.primary_calls, "Floating container should be set as primary target"
+        assert frame in tracker.add_calls
+
+        nb = ClosableNotebook(root)
+        dw.dock(nb, 0, "Docked")
+        assert frame in tracker.remove_calls
+
+        if dw.toplevel is not None and dw.toplevel.winfo_exists():
+            dw.toplevel.destroy()
         root.destroy()
 
     def test_win_creates_toplevel_once(self) -> None:

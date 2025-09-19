@@ -23,6 +23,8 @@ import tkinter as tk
 from tkinter import ttk
 
 from .closable_notebook import ClosableNotebook, cancel_after_events
+from .window_controls import restore_window_buttons
+from .window_resizer import WindowResizeController
 
 
 class DetachedWindow:
@@ -38,10 +40,15 @@ class DetachedWindow:
     ) -> None:
         self.root = root
         self.win = tk.Toplevel(root)
-        self.win.transient(root)
+        restore_window_buttons(self.win)
         self.win.geometry(f"{width}x{height}+{x}+{y}")
         self.nb = ClosableNotebook(self.win)
         self.nb.pack(expand=True, fill="both")
+        self._resizer: WindowResizeController | None = None
+        try:
+            self._resizer = WindowResizeController(self.win, self.nb)
+        except Exception:
+            self._resizer = None
         self.win.bind("<Destroy>", self._on_destroy)
 
     # ------------------------------------------------------------------
@@ -59,6 +66,8 @@ class DetachedWindow:
         except Exception:
             pass
         self.nb.select(widget)
+        if self._resizer is not None:
+            self._resizer.add_target(widget)
         self._ensure_toolbox(widget)
         self._activate_hooks(widget)
 
@@ -97,3 +106,4 @@ class DetachedWindow:
             cancel_after_events(self.win)
         except Exception:
             pass
+        self._resizer = None
