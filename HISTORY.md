@@ -18,6 +18,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.269 - 2025-09-10
+
+- Replace the floating notebook with a dedicated container frame so dockable
+  diagrams float reliably on Windows without Tk ``can't add ... as slave``
+  errors and withdraw floating windows after re-docking.
+- Extend dockable window tests to cover floating container behavior and window
+  withdrawal lifecycle.
+
 ## 0.2.268 - 2025-09-10
 
 - Cancel pending ``after`` callbacks on tabs prior to detaching dockable

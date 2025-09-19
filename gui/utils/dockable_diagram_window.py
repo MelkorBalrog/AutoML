@@ -32,15 +32,55 @@ class DockableDiagramWindow:
     def __init__(self, content: ttk.Frame) -> None:
         self.content_frame = content
         self.toplevel: tk.Toplevel | None = None
+        self._float_container: ttk.Frame | None = None
+        self._transient_parent: tk.Misc | None = None
 
     @property
     def win(self) -> tk.Toplevel:
         """Return the floating window, creating it on demand."""
 
-        if self.toplevel is None:
+        if self.toplevel is None or not self.toplevel.winfo_exists():
             self.toplevel = tk.Toplevel()
             self.toplevel.withdraw()
+            self._float_container = None
+            self._transient_parent = None
+            self.toplevel.bind("<Destroy>", self._on_destroy, add="+")
         return self.toplevel
+
+    def _ensure_float_container(self, win: tk.Toplevel) -> ttk.Frame:
+        """Return the floating container, creating it when necessary."""
+
+        container = self._float_container
+        if container is None or not container.winfo_exists():
+            container = ttk.Frame(win)
+            container.pack(expand=True, fill="both")
+            self._float_container = container
+        return container
+
+    def _release_from_geometry(self) -> None:
+        """Release the content frame from any existing geometry manager."""
+
+        try:
+            manager = self.content_frame.winfo_manager()
+        except Exception:
+            return
+
+        try:
+            if manager == "pack":
+                self.content_frame.pack_forget()
+            elif manager == "grid":
+                self.content_frame.grid_forget()
+            elif manager == "place":
+                self.content_frame.place_forget()
+        except tk.TclError:
+            pass
+
+    def _on_destroy(self, _event: tk.Event) -> None:
+        """Reset cached handles when the floating window is destroyed."""
+
+        self.toplevel = None
+        self._float_container = None
+        self._transient_parent = None
 
     # ------------------------------------------------------------------
     # Dock and float operations
@@ -52,6 +92,7 @@ class DockableDiagramWindow:
         if parent is not None:
             cancel_after_events(parent)
         cancel_after_events(self.content_frame)
+        self._release_from_geometry()
         if parent is not notebook:
             reparent_widget(self.content_frame, notebook)
         tabs = notebook.tabs()
@@ -60,31 +101,52 @@ class DockableDiagramWindow:
         else:
             notebook.insert(index, self.content_frame, text=title)
         notebook.select(self.content_frame)
+        if self.toplevel is not None and self.toplevel.winfo_exists():
+            try:
+                self.toplevel.withdraw()
+            except tk.TclError:
+                pass
 
     def float(self, width: int, height: int, x: int, y: int, title: str) -> None:
         """Show the diagram in a separate transient window."""
 
         win = self.win
-        if not hasattr(win, "notebook"):
-            win.transient(self.content_frame.winfo_toplevel())
-            nb = ttk.Notebook(win)
-            nb.pack(expand=True, fill="both")
-            win.notebook = nb  # type: ignore[attr-defined]
-        else:
-            nb = win.notebook  # type: ignore[attr-defined]
+        try:
+            transient_parent = self.content_frame.winfo_toplevel()
+        except tk.TclError:
+            transient_parent = None
+        if transient_parent is not None and transient_parent is not self._transient_parent:
+            try:
+                win.transient(transient_parent)
+            except tk.TclError:
+                pass
+            self._transient_parent = transient_parent
+
+        container = self._ensure_float_container(win)
 
         parent = self.content_frame.master
         if parent is not None:
             cancel_after_events(parent)
         cancel_after_events(self.content_frame)
-        if parent is not nb:
-            reparent_widget(self.content_frame, nb)
+        self._release_from_geometry()
+        if parent is not container:
+            reparent_widget(self.content_frame, container)
 
-        tab_id = str(self.content_frame)
-        existing_tabs = nb.tabs()
-        if tab_id not in existing_tabs:
-            nb.add(self.content_frame, text=title)
-        else:
-            nb.tab(self.content_frame, text=title)
+        try:
+            self.content_frame.pack_configure(expand=True, fill="both")
+        except tk.TclError:
+            try:
+                self.content_frame.pack(expand=True, fill="both")
+            except tk.TclError:
+                pass
+
+        try:
+            win.title(title)
+        except tk.TclError:
+            pass
         win.geometry(f"{width}x{height}+{x}+{y}")
         win.deiconify()
+        try:
+            win.lift()
+        except tk.TclError:
+            pass
