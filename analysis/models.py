@@ -146,6 +146,33 @@ class HazopEntry:
     covered_by: str
     component: str = ""
 
+    # ------------------------------------------------------------------
+    def to_dict(self) -> dict:
+        """Return a serialisable representation of this HAZOP entry."""
+
+        data = asdict(self)
+        data["safety"] = bool(self.safety)
+        data["covered"] = bool(self.covered)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "HazopEntry":
+        """Construct a HAZOP entry from *data* mapping."""
+
+        return cls(
+            function=data.get("function", ""),
+            malfunction=data.get("malfunction", ""),
+            mtype=data.get("mtype", ""),
+            scenario=data.get("scenario", ""),
+            conditions=data.get("conditions", ""),
+            hazard=data.get("hazard", ""),
+            safety=bool(data.get("safety", False)),
+            rationale=data.get("rationale", ""),
+            covered=bool(data.get("covered", False)),
+            covered_by=data.get("covered_by", ""),
+            component=data.get("component", ""),
+        )
+
 @dataclass
 class HaraEntry:
     malfunction: str
@@ -167,6 +194,24 @@ class HazopDoc:
     name: str
     entries: list
     meta: Metadata = field(default_factory=Metadata)
+
+    # ------------------------------------------------------------------
+    def to_dict(self) -> dict:
+        """Return a serialisable representation of this HAZOP document."""
+
+        return {
+            "name": self.name,
+            "entries": [entry.to_dict() for entry in self.entries],
+            "meta": asdict(self.meta),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "HazopDoc":
+        """Recreate a HAZOP document from *data* mapping."""
+
+        entries = [HazopEntry.from_dict(item) for item in data.get("entries", [])]
+        meta = Metadata(**data.get("meta", {})) if data.get("meta") else Metadata()
+        return cls(name=data.get("name", ""), entries=entries, meta=meta)
 
 @dataclass
 class HaraDoc:
