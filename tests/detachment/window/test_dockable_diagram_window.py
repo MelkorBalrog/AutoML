@@ -135,6 +135,38 @@ class TestDockableDiagramWindow:
         dw.win.destroy()
         root.destroy()
 
+    def test_float_resizes_content_with_window(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        canvas = tk.Canvas(frame)
+        canvas.pack(expand=True, fill="both")
+        dw = DockableDiagramWindow(frame)
+
+        nb.add(frame, text="T1")
+        nb.forget(frame)
+        dw.float(240, 200, 0, 0, "T1")
+
+        win = dw.win
+        container = dw._float_container
+        assert container is not None
+        win.update_idletasks()
+        initial_w, initial_h = frame.winfo_width(), frame.winfo_height()
+
+        win.geometry("480x420+0+0")
+        win.update_idletasks()
+        container.update_idletasks()
+
+        assert frame.winfo_width() == container.winfo_width() >= initial_w
+        assert frame.winfo_height() == container.winfo_height() >= initial_h
+
+        win.destroy()
+        root.destroy()
+
     def test_dock_withdraws_floating_window(self) -> None:
         try:
             root = tk.Tk()

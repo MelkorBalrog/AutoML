@@ -55,6 +55,15 @@ class DockableDiagramWindow:
             container = ttk.Frame(win)
             container.pack(expand=True, fill="both")
             self._float_container = container
+        else:
+            try:
+                container.pack_configure(expand=True, fill="both")
+            except tk.TclError:
+                container.pack(expand=True, fill="both")
+        try:
+            container.pack_propagate(False)
+        except tk.TclError:
+            pass
         return container
 
     def _release_from_geometry(self) -> None:

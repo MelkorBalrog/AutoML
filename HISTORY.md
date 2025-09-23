@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.271 - 2025-09-11
+
+- Prevent dockable floating containers from shrinking to their original size
+  so snapped-out diagrams expand when the window is resized or maximized.
+- Add regression coverage ensuring dockable floating content tracks window
+  size changes after resizing.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer
