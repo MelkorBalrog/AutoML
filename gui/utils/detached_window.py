@@ -42,7 +42,14 @@ class DetachedWindow:
         restore_window_buttons(self.win)
         self.win.geometry(f"{width}x{height}+{x}+{y}")
         self.nb = ClosableNotebook(self.win)
-        self.nb.pack(expand=True, fill="both")
+        try:
+            self.win.grid_rowconfigure(0, weight=1)
+            self.win.grid_columnconfigure(0, weight=1)
+            self.nb.grid(row=0, column=0, sticky="nsew")
+        except tk.TclError:
+            # Fallback to ``pack`` when ``grid`` is unavailable on very old Tk
+            # variants or when another geometry manager is already active.
+            self.nb.pack(expand=True, fill="both")
         self.win.bind("<Destroy>", self._on_destroy)
 
     # ------------------------------------------------------------------
@@ -62,6 +69,7 @@ class DetachedWindow:
         self.nb.select(widget)
         self._ensure_toolbox(widget)
         self._activate_hooks(widget)
+        self._expand_widget(widget)
 
     def _ensure_toolbox(self, widget: tk.Widget) -> None:
         """Ensure any toolbox frame is packed and functional."""
@@ -88,6 +96,96 @@ class DetachedWindow:
                     func()
                 except Exception:
                     pass
+
+    def _expand_widget(self, widget: tk.Widget) -> None:
+        """Force *widget* to stretch with the detached window."""
+
+        manager = ""
+        try:
+            manager = widget.winfo_manager()
+        except Exception:
+            manager = ""
+
+        if manager == "pack":
+            self._expand_pack_widget(widget)
+            return
+        if manager == "grid":
+            self._expand_grid_widget(widget)
+            return
+        if manager == "place":
+            self._expand_place_widget(widget)
+            return
+
+        # Unknown or unmanaged widgets—try every strategy defensively.
+        self._expand_pack_widget(widget)
+        self._expand_grid_widget(widget)
+        self._expand_place_widget(widget)
+
+    def _expand_pack_widget(self, widget: tk.Widget) -> None:
+        try:
+            widget.pack_configure(expand=True, fill="both")
+        except Exception:
+            try:
+                widget.pack(expand=True, fill="both")
+            except Exception:
+                pass
+
+    def _expand_grid_widget(self, widget: tk.Widget) -> None:
+        try:
+            info = widget.grid_info()
+        except Exception:
+            info = {}
+
+        sticky = info.get("sticky", "")
+        desired = "nsew" if not sticky else "".join(sorted(set(sticky) | set("nsew")))
+        if desired != sticky:
+            try:
+                widget.grid_configure(sticky=desired)
+            except Exception:
+                pass
+
+        parent = getattr(widget, "master", None)
+        if parent is None:
+            return
+
+        row = info.get("row")
+        col = info.get("column")
+
+        def _ensure_weight(configurator, index) -> None:
+            if index is None:
+                return
+            try:
+                idx = int(index)
+            except Exception:
+                return
+            try:
+                cfg = configurator(idx)
+            except Exception:
+                cfg = {}
+            weight = 0
+            if isinstance(cfg, dict):
+                weight = cfg.get("weight", 0) or 0
+            if weight:
+                return
+            try:
+                configurator(idx, weight=1)
+            except Exception:
+                pass
+
+        try:
+            _ensure_weight(parent.grid_rowconfigure, row)
+        except Exception:
+            pass
+        try:
+            _ensure_weight(parent.grid_columnconfigure, col)
+        except Exception:
+            pass
+
+    def _expand_place_widget(self, widget: tk.Widget) -> None:
+        try:
+            widget.place_configure(relx=0, rely=0, relwidth=1.0, relheight=1.0)
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Cleanup
