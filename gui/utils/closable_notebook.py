@@ -943,7 +943,6 @@ class ClosableNotebook(ttk.Notebook):
             return
         dw._ensure_toolbox(child)
         dw._activate_hooks(child)
-        dw._expand_widget(child)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""

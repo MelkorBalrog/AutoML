@@ -24,7 +24,6 @@ from tkinter import ttk
 
 import pytest
 
-from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.detached_window import DetachedWindow
 
 
@@ -104,85 +103,4 @@ class TestDetachedWindowWindowControls:
         win = DetachedWindow(root, width=200, height=200, x=10, y=10)
         assert not called["transient"]
         win.win.destroy()
-        root.destroy()
-
-
-class TestDetachedWindowResizing:
-    def test_detached_tab_expands_with_window(self) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-
-        win = DetachedWindow(root, width=200, height=200, x=20, y=20)
-        frame = tk.Frame(win.nb)
-        canvas = tk.Canvas(frame, width=50, height=50)
-        canvas.pack()
-        win.add(frame, "Tab")
-
-        win.win.update_idletasks()
-        manager = frame.winfo_manager()
-
-        if manager == "pack":
-            info = frame.pack_info()
-            assert info.get("expand") == "1"
-            assert info.get("fill") == "both"
-        elif manager == "grid":
-            info = frame.grid_info()
-            sticky = info.get("sticky", "")
-            assert set("nsew").issubset(set(sticky))
-            parent = frame.master
-            row = int(info.get("row", 0))
-            col = int(info.get("column", 0))
-            assert parent.grid_rowconfigure(row).get("weight", 0) > 0
-            assert parent.grid_columnconfigure(col).get("weight", 0) > 0
-        elif manager == "place":
-            info = frame.place_info()
-            assert info.get("relwidth") == "1.0"
-            assert info.get("relheight") == "1.0"
-        else:  # pragma: no cover - unexpected geometry manager
-            pytest.skip(f"Unhandled geometry manager: {manager}")
-
-        win.win.geometry("460x420")
-        win.win.update_idletasks()
-        assert frame.winfo_width() == win.nb.winfo_width()
-        assert frame.winfo_height() == win.nb.winfo_height()
-        root.destroy()
-
-    def test_notebook_detach_expands_with_floating_window(self) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-
-        nb = ClosableNotebook(root)
-        nb.pack(expand=True, fill="both")
-        frame = tk.Frame(nb)
-        canvas = tk.Canvas(frame, width=60, height=60)
-        canvas.pack(expand=True, fill="both")
-        nb.add(frame, text="Tab")
-        nb.update_idletasks()
-
-        tab_id = nb.tabs()[0]
-        nb._detach_tab(tab_id, x=30, y=30)
-
-        assert nb._floating_windows, "Detachment did not create a floating window"
-        win = nb._floating_windows[-1]
-        floating_nb = next(
-            child for child in win.winfo_children() if isinstance(child, ClosableNotebook)
-        )
-        detached = floating_nb.nametowidget(floating_nb.tabs()[0])
-
-        win.geometry("420x360")
-        win.update_idletasks()
-        floating_nb.update_idletasks()
-        assert detached.winfo_width() == floating_nb.winfo_width()
-        assert detached.winfo_height() == floating_nb.winfo_height()
-
-        win.geometry("320x260")
-        win.update_idletasks()
-        floating_nb.update_idletasks()
-        assert detached.winfo_width() == floating_nb.winfo_width()
-        assert detached.winfo_height() == floating_nb.winfo_height()
-
         root.destroy()
