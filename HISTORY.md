@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.271 - 2025-09-10
+
+- Ensure detached windows stretch moved notebook tabs so snapped-out diagrams
+  resize with their floating container.
+- Add regression coverage confirming detached tabs configure their geometry
+  managers to expand alongside window resizing.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer
