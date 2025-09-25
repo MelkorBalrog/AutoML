@@ -27,6 +27,15 @@ LOGGER = logging.getLogger(__name__)
 
 _IS_WINDOWS = sys.platform.startswith("win")
 
+
+def _python_is_finalizing() -> bool:
+    """Return ``True`` when the Python interpreter is shutting down."""
+
+    is_finalizing = getattr(sys, "is_finalizing", None)
+    if is_finalizing is None:
+        return False
+    return bool(is_finalizing())
+
 if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
     import ctypes
     from ctypes import wintypes
@@ -136,6 +145,12 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
                 self._original = None
 
         def _procedure(self, hwnd, msg, wparam, lparam):  # noqa: ANN001
+            if _python_is_finalizing():
+                original = self._original
+                if original:
+                    return _CALL_WINDOW_PROC(original, hwnd, msg, wparam, lparam)
+                return _DEF_WINDOW_PROC(hwnd, msg, wparam, lparam)
+
             dimensions: tuple[int, int] | None = None
             if msg == WM_SIZE:
                 dimensions = self._extract_wm_size_dimensions(lparam)
@@ -162,7 +177,14 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
         def _extract_windowpos_dimensions(lparam: int) -> tuple[int, int] | None:
             if not lparam:
                 return None
-            windowpos = ctypes.cast(lparam, ctypes.POINTER(_WINDOWPOS)).contents
+            try:
+                windowpos = ctypes.cast(lparam, ctypes.POINTER(_WINDOWPOS)).contents
+            except (ValueError, OSError):
+                LOGGER.debug(
+                    "Unable to cast WINDOWPOS from lParam during resize notification",
+                    exc_info=True,
+                )
+                return None
             if windowpos.flags & SWP_NOSIZE:
                 return None
             return int(windowpos.cx), int(windowpos.cy)
