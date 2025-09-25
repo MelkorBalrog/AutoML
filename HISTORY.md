@@ -20,13 +20,12 @@
 
 ## 0.2.275 - 2025-09-10
 
-- Update Tk widget path metadata after native reparenting so detached diagrams
-  fully transfer to their floating containers and resize with the new window
-  instead of the original notebook.
-- Generate unique widget names when target containers already include a child
-  with the same identifier to prevent Tk path collisions during detachment.
-- Extend the reparenting regression suite with Tk path and naming assertions to
-  guard the synchronisation logic across native Windows and Linux code paths.
+- Remove floating diagram pages from their originating notebook before
+  performing native reparenting so resizing follows the floating window instead
+  of the notebook that previously owned the tab.
+- Extend the floating window regression coverage to assert snapped-out content
+  is no longer registered with the source notebook, preventing geometry updates
+  from the wrong container.
 
 ## 0.2.274 - 2025-09-10
 

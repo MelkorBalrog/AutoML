@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 import types
-import typing as t
 import tkinter as tk
 
 import pytest
@@ -32,47 +31,11 @@ from gui.utils import tk_utils
 class _DummyTk:
     def __init__(self) -> None:
         self.calls: list[tuple[str, ...]] = []
-        self.children: dict[str, set[str]] = {}
-        self.renames: list[tuple[str, str]] = []
 
-    def register_widget(self, widget: "_DummyWidget") -> None:
-        parent_path = getattr(widget.master, "_w", ".") if widget.master else "."
-        path = getattr(widget, "_w", None)
-        if path is None:
-            return
-        parent_key = str(parent_path) or "."
-        self.children.setdefault(parent_key, set()).add(str(path))
-
-    def call(self, *args: str) -> t.Any:
-        call = tuple(str(a) for a in args)
-        self.calls.append(call)
-        if not args:
-            return None
-        if args[0] == "tk::unsupported::reparent":
+    def call(self, *args: str) -> None:
+        self.calls.append(tuple(str(a) for a in args))
+        if args and args[0] == "tk::unsupported::reparent":
             raise tk.TclError("unsupported")
-        if args[0] == "winfo" and len(args) >= 3 and args[1] == "children":
-            parent = str(args[2]) or "."
-            return tuple(sorted(self.children.get(parent, ())))
-        if args[0] == "rename" and len(args) == 3:
-            old_path, new_path = str(args[1]), str(args[2])
-            self.renames.append((old_path, new_path))
-            updated: dict[str, set[str]] = {}
-            for parent, kids in self.children.items():
-                new_parent = parent
-                if parent == old_path or parent.startswith(f"{old_path}."):
-                    new_parent = parent.replace(old_path, new_path, 1)
-                updated.setdefault(new_parent, set())
-                for kid in kids:
-                    new_kid = kid
-                    if kid == old_path or kid.startswith(f"{old_path}."):
-                        new_kid = kid.replace(old_path, new_path, 1)
-                    updated[new_parent].add(new_kid)
-            self.children = updated
-            parent_key = new_path.rsplit(".", 1)[0] if "." in new_path else "."
-            parent_key = parent_key or "."
-            self.children.setdefault(parent_key, set()).add(new_path)
-            return ""
-        return ""
 
 
 class _DummyWidget:
@@ -83,22 +46,13 @@ class _DummyWidget:
         master: "_DummyWidget | None" = None,
     ) -> None:
         self._id = widget_id
+        self.tk = _DummyTk()
         self._name = name or f"w{widget_id}"
         self.children: dict[str, _DummyWidget] = {}
-        if master is not None:
-            self.tk = master.tk
-            self.master = master
-        else:
-            self.tk = _DummyTk()
-            self.master = None
-        parent_path = getattr(self.master, "_w", ".") if self.master else "."
-        if parent_path in ("", "."):
-            self._w = f".{self._name}"
-        else:
-            self._w = f"{parent_path}.{self._name}"
+        self.master = master
         if master is not None and hasattr(master, "children"):
             master.children[self._name] = self
-        self.tk.register_widget(self)
+
         self._manager = ""
 
     def update_idletasks(self) -> None:  # pragma: no cover - trivial
@@ -115,9 +69,8 @@ class _DummyWidget:
 @pytest.mark.reparenting
 class TestTkReparentNotifications:
     def test_linux_reparent_notifies_tk(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        root = _DummyWidget(1, name="root")
-        original_parent = _DummyWidget(19, name="orig", master=root)
-        parent = _DummyWidget(20, name="parent", master=root)
+        original_parent = _DummyWidget(19, name="orig")
+        parent = _DummyWidget(20, name="parent")
         widget = _DummyWidget(10, name="child", master=original_parent)
 
         monkeypatch.setattr(tk_utils.sys, "platform", "linux")
@@ -162,9 +115,8 @@ class TestTkReparentNotifications:
         assert called["reparent"] == (1, widget.winfo_id(), parent.winfo_id(), 0, 0)
 
     def test_windows_reparent_notifies_tk(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        root = _DummyWidget(2, name="root")
-        original_parent = _DummyWidget(19, name="orig", master=root)
-        parent = _DummyWidget(21, name="parent", master=root)
+        original_parent = _DummyWidget(19, name="orig")
+        parent = _DummyWidget(21, name="parent")
         widget = _DummyWidget(11, name="child", master=original_parent)
 
         monkeypatch.setattr(tk_utils.sys, "platform", "win32")
@@ -200,79 +152,9 @@ class TestTkReparentNotifications:
         assert counter["count"] == 1
         assert fake_user32.calls == [(widget.winfo_id(), parent.winfo_id())]
 
-    def test_reparent_updates_widget_path(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        root = _DummyWidget(4, name="root")
-        original_parent = _DummyWidget(60, name="orig", master=root)
-        target_parent = _DummyWidget(70, name="target", master=root)
-        widget = _DummyWidget(80, name="child", master=original_parent)
-
-        monkeypatch.setattr(tk_utils.sys, "platform", "linux")
-
-        class _FakeX11:
-            def XOpenDisplay(self, _name):
-                return 1
-
-            def XReparentWindow(self, display, wid, pid, x, y):
-                return None
-
-            def XFlush(self, display):
-                return None
-
-            def XCloseDisplay(self, display):
-                return None
-
-        monkeypatch.setattr(
-            tk_utils.ctypes,
-            "cdll",
-            types.SimpleNamespace(LoadLibrary=lambda _name: _FakeX11()),
-        )
-
-        tk_utils.reparent_widget(widget, target_parent)
-
-        assert widget.master is target_parent
-        assert widget._w.startswith(target_parent._w)
-        assert widget.tk.renames
-
-    def test_reparent_generates_unique_name_on_conflict(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        root = _DummyWidget(5, name="root")
-        parent = _DummyWidget(90, name="parent", master=root)
-        existing = _DummyWidget(91, name="child", master=parent)
-        original_parent = _DummyWidget(92, name="orig", master=root)
-        widget = _DummyWidget(93, name="child", master=original_parent)
-
-        monkeypatch.setattr(tk_utils.sys, "platform", "linux")
-
-        class _FakeX11:
-            def XOpenDisplay(self, _name):
-                return 1
-
-            def XReparentWindow(self, display, wid, pid, x, y):
-                return None
-
-            def XFlush(self, display):
-                return None
-
-            def XCloseDisplay(self, display):
-                return None
-
-        monkeypatch.setattr(
-            tk_utils.ctypes,
-            "cdll",
-            types.SimpleNamespace(LoadLibrary=lambda _name: _FakeX11()),
-        )
-
-        tk_utils.reparent_widget(widget, parent)
-
-        assert widget.master is parent
-        assert widget._name != existing._name
-        assert widget._w.startswith(parent._w)
-
     def test_python_parent_references_update(self, monkeypatch):
-        root = _DummyWidget(3, name="root")
-        original_parent = _DummyWidget(30, name="orig", master=root)
-        target_parent = _DummyWidget(40, name="target", master=root)
+        original_parent = _DummyWidget(30, name="orig")
+        target_parent = _DummyWidget(40, name="target")
         widget = _DummyWidget(50, name="child", master=original_parent)
 
         monkeypatch.setattr(tk_utils.sys, "platform", "linux")
