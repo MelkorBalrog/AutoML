@@ -23,7 +23,37 @@ from __future__ import annotations
 import sys
 import ctypes
 import tkinter as tk
-import typing as t
+
+
+def _update_widget_master(widget: tk.Widget, new_parent: tk.Widget) -> None:
+    """Synchronise Tkinter's Python-level parent bookkeeping."""
+
+    old_parent = getattr(widget, "master", None)
+    if old_parent is new_parent:
+        return
+
+    try:
+        name = widget.winfo_name()
+    except Exception:
+        name = None
+
+    if isinstance(old_parent, tk.Misc) and name:
+        try:
+            old_children = getattr(old_parent, "children", None)
+            if isinstance(old_children, dict):
+                old_children.pop(name, None)
+        except Exception:
+            pass
+
+    widget.master = new_parent
+
+    if isinstance(new_parent, tk.Misc) and name:
+        try:
+            new_children = getattr(new_parent, "children", None)
+            if isinstance(new_children, dict):
+                new_children[name] = widget
+        except Exception:
+            pass
 
 
 GeometryState = tuple[str, dict[str, t.Any]]
@@ -345,3 +375,5 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
         )
     else:  # pragma: no cover - other platforms not implemented
         raise tk.TclError("OS-level reparenting not implemented")
+    if widget.master is not new_parent:
+        _update_widget_master(widget, new_parent)

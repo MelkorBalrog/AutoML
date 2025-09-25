@@ -187,6 +187,52 @@ class TestDockableDiagramWindow:
         assert not called
         root.destroy()
 
+    def test_float_registers_resizer_targets(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        class StubResizer:
+            def __init__(self, _win):
+                self.primary: list[tk.Widget] = []
+                self.added: list[tk.Widget] = []
+                self.removed: list[tk.Widget] = []
+
+            def set_primary_target(self, widget):  # noqa: ANN001 - stub API
+                self.primary.append(widget)
+
+            def add_target(self, widget):  # noqa: ANN001 - stub API
+                self.added.append(widget)
+
+            def remove_target(self, widget):  # noqa: ANN001 - stub API
+                self.removed.append(widget)
+
+        monkeypatch.setattr(
+            "gui.utils.dockable_diagram_window.WindowResizeController", StubResizer
+        )
+
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="T1")
+        dw = DockableDiagramWindow(frame)
+
+        nb.forget(frame)
+        dw.float(320, 200, 0, 0, "Float")
+        assert isinstance(dw._resizer, StubResizer)
+        assert dw._resizer.primary[-1] is dw._float_container
+        assert dw._resizer.added[-1] is frame
+
+        dw.dock(nb, 0, "T1")
+        assert frame in dw._resizer.removed
+
+        if dw.toplevel is not None:
+            dw.toplevel.destroy()
+        root.destroy()
+
     def test_reparent_widget_noop_when_parent_same(self) -> None:
         try:
             root = tk.Tk()
