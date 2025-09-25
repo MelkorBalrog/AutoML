@@ -52,26 +52,45 @@ class TestCancelAfterEvents:
         assert ident not in scheduled
         root.destroy()
 
-    def test_cancel_after_events_handles_nested_collections(self) -> None:
+    def test_cancel_after_events_handles_animate_id_suffix(self) -> None:
         root = tk.Tk()
         root.withdraw()
         frame = tk.Frame(root)
         nb = ClosableNotebook(root)
-        ident = frame.after(5_000, lambda: None)
-        frame._timer_map = {"pulse": {"anim": ident}}  # type: ignore[attr-defined]
+        ident = frame.after(10_000, lambda: None)
+        frame._animate_id = ident  # type: ignore[attr-defined
         nb._cancel_after_events(frame)
         scheduled = str(frame.tk.call("after", "info"))
         assert ident not in scheduled
         root.destroy()
 
-    def test_cancel_after_events_removes_tcl_commands(self) -> None:
+    def test_cancel_after_events_handles_dictionary_values(self) -> None:
         root = tk.Tk()
         root.withdraw()
         frame = tk.Frame(root)
         nb = ClosableNotebook(root)
-        command = frame.register(lambda: None)
-        frame._animate_callback = command  # type: ignore[attr-defined]
+        ident = frame.after(10_000, lambda: None)
+        frame._timer_handles = {"pulse": ident}  # type: ignore[attr-defined]
         nb._cancel_after_events(frame)
-        remaining = root.tk.call("info", "commands", command)
-        assert not remaining
+        scheduled = str(frame.tk.call("after", "info"))
+        assert ident not in scheduled
+        root.destroy()
+
+    def test_cancel_after_events_handles_callable_animation(self) -> None:
+        root = tk.Tk()
+        root.withdraw()
+        nb = ClosableNotebook(root)
+
+        class AnimatedFrame(tk.Frame):
+            def start(self) -> None:
+                self.after(10_000, self._animate)
+
+            def _animate(self) -> None:  # pragma: no cover - requires tkinter callback
+                self.after(10_000, self._animate)
+
+        frame = AnimatedFrame(root)
+        frame.start()
+        nb._cancel_after_events(frame)
+        scheduled = str(frame.tk.call("after", "info"))
+        assert "_animate" not in scheduled
         root.destroy()

@@ -47,3 +47,31 @@ class TestDockableDetachAfterCallbacks:
         if nb._floating_windows:
             nb._floating_windows[0].destroy()
         root.destroy()
+
+    def test_close_cancels_method_based_animation(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        root = tk.Tk(); root.withdraw()
+        nb = ClosableNotebook(root)
+
+        class AnimatedFrame(tk.Frame):
+            def __init__(self, master: tk.Widget) -> None:
+                super().__init__(master)
+                self.after(1, self._animate)
+
+            def _animate(self) -> None:  # pragma: no cover - requires tkinter callback
+                self.after(1, self._animate)
+
+        frame = AnimatedFrame(nb)
+        dock = DockableDiagramWindow(frame)
+        frame._dock_window = dock
+        nb.add(frame, text="Tab")
+        nb._detach_tab(str(frame), 100, 100)
+        root.update()
+        win = nb._floating_windows[0]
+        win.destroy()
+        root.update()
+        err = capsys.readouterr().err
+        assert "invalid command name" not in err
+        assert "_animate" not in str(root.tk.call("after", "info"))
+        root.destroy()

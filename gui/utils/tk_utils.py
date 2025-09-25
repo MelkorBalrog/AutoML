@@ -77,7 +77,7 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             for item in value:
                 yield from _iter_candidate_idents(item)
         elif isinstance(value, dict):
-            for item in value.items():
+            for item in value.values():
                 yield from _iter_candidate_idents(item)
 
     def _cancel_ident(ident: str) -> None:
@@ -141,10 +141,31 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
     except Exception:
         attributes = {}
 
+    def _cancel_callable(value: t.Any) -> None:
+        if not callable(value):
+            return
+        after_cancel = getattr(widget, "after_cancel", None)
+        if not callable(after_cancel):
+            return
+        try:
+            after_cancel(value)
+        except Exception:
+            return
+
     for name, value in attributes.items():
         cancel_by_name = isinstance(name, str) and name.endswith(
-            ("_anim", "_after", "_timer", "_animate", "_animation", "_animation_id")
+            (
+                "_anim",
+                "_after",
+                "_timer",
+                "_animate",
+                "_animate_id",
+                "_animation",
+                "_animation_id",
+            )
         )
+        if cancel_by_name:
+            _cancel_callable(value)
         for ident in _iter_candidate_idents(value):
             if not isinstance(ident, str) or ident in cancelled:
                 continue

@@ -18,14 +18,26 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.277 - 2025-09-13
+
+- Cancel method-based Tk ``after`` callbacks when dockable diagrams detach or
+  close so floating windows no longer crash with ``invalid command`` errors on
+  Windows after tabs are reopened.
+- Bind dockable diagram windows to a close handler that shuts down native
+  resizer hooks and Tk callbacks before destroying the floating toplevel.
+- Extend the after-callback regression suite to cover callable cancellation and
+  floating-window shutdown scenarios for method-driven animations.
+
 ## 0.2.276 - 2025-09-12
 
-- Ensure Tk ``after`` callbacks registered through nested collections or Tcl
-  commands are cancelled and deleted so detached windows no longer raise
-  ``invalid command name`` errors when reopened after closing.
-- Release resize controller hooks and native Win32 procedures when floating
-  windows are destroyed, preventing dangling callbacks from crashing Python
-  once the interpreter shuts down.
+- Release floating window resize controllers when detached diagrams close so
+  native Win32 hooks and Tk bindings stop forwarding geometry changes from the
+  original parent window.
+- Strengthen ``cancel_after_events`` to recognise ``_animate_id`` attributes and
+  callback identifiers stored inside dictionaries, eliminating lingering
+  ``invalid command`` errors when reopening diagrams.
+- Extend the window-resizer and after-callback regression suites to cover
+  shutdown flows and complex identifier storage patterns for detached tabs.
 
 ## 0.2.275 - 2025-09-11
 

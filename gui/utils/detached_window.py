@@ -108,7 +108,7 @@ class DetachedWindow:
             pass
         if self._resizer is not None:
             try:
-                self._resizer.close()
+                self._resizer.shutdown()
             except Exception:
                 pass
         self._resizer = None

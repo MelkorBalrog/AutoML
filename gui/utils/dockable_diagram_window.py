@@ -54,6 +54,10 @@ class DockableDiagramWindow:
                 self._resizer = WindowResizeController(self.toplevel)
             except Exception:
                 self._resizer = None
+            try:
+                self.toplevel.protocol("WM_DELETE_WINDOW", self._on_close)
+            except Exception:
+                pass
             self.toplevel.bind("<Destroy>", self._on_destroy, add="+")
         return self.toplevel
 
@@ -90,14 +94,43 @@ class DockableDiagramWindow:
     def _on_destroy(self, _event: tk.Event) -> None:
         """Reset cached handles when the floating window is destroyed."""
 
+        self._cleanup_after_events()
         if self._resizer is not None:
             try:
-                self._resizer.close()
+                self._resizer.shutdown()
             except Exception:
                 pass
         self.toplevel = None
         self._float_container = None
         self._resizer = None
+
+    def _cleanup_after_events(self) -> None:
+        """Cancel outstanding ``after`` callbacks tied to floating widgets."""
+
+        for widget in (self.content_frame, self.toplevel):
+            if widget is None:
+                continue
+            try:
+                cancel_after_events(widget)
+            except Exception:
+                continue
+
+    def _on_close(self) -> None:
+        """Handle user-initiated close requests for the floating window."""
+
+        win = self.toplevel
+        self._cleanup_after_events()
+        if self._resizer is not None:
+            try:
+                self._resizer.shutdown()
+            except Exception:
+                pass
+            self._resizer = None
+        if win is not None:
+            try:
+                win.destroy()
+            except tk.TclError:
+                pass
 
     # ------------------------------------------------------------------
     # Dock and float operations
