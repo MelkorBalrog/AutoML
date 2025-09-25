@@ -25,7 +25,50 @@ import ctypes
 import tkinter as tk
 import typing as t
 
+
+def _update_widget_master(widget: tk.Widget, new_parent: tk.Widget) -> None:
+    """Synchronise Tkinter's Python-level parent bookkeeping."""
+
+    old_parent = getattr(widget, "master", None)
+    if old_parent is new_parent:
+        return
+
+    try:
+        name = widget.winfo_name()
+    except Exception:
+        name = None
+
+    if isinstance(old_parent, tk.Misc) and name:
+        try:
+            old_children = getattr(old_parent, "children", None)
+            if isinstance(old_children, dict):
+                old_children.pop(name, None)
+        except Exception:
+            pass
+
+    widget.master = new_parent
+
+    if isinstance(new_parent, tk.Misc) and name:
+        try:
+            new_children = getattr(new_parent, "children", None)
+            if isinstance(new_children, dict):
+                new_children[name] = widget
+        except Exception:
+            pass
+
+
 GeometryState = tuple[str, dict[str, t.Any]]
+
+
+def _safe_widget_toplevel(widget: tk.Widget) -> str:
+    """Return the string representation of *widget*'s toplevel widget."""
+
+    try:
+        top = widget.winfo_toplevel()
+    except Exception:
+        return ""
+    return str(top)
+
 
 def _capture_geometry_state(widget: tk.Widget) -> GeometryState | None:
     """Capture the geometry manager configuration for *widget* if available."""
@@ -206,6 +249,60 @@ def _sync_widget_parents(widget: tk.Widget, new_parent: tk.Widget) -> None:
             pass
 
 
+def _retarget_bindtags(
+    widget: tk.Widget, old_toplevel: str, new_toplevel: str
+) -> None:
+    """Update bindtags and scripts from *old_toplevel* to *new_toplevel*."""
+
+    if not old_toplevel or not new_toplevel or old_toplevel == new_toplevel:
+        return
+
+    stack: list[tk.Widget] = [widget]
+    while stack:
+        node = stack.pop()
+        try:
+            tags = node.bindtags()
+        except Exception:
+            tags = None
+        if tags:
+            replacement = tuple(
+                new_toplevel if tag == old_toplevel else tag for tag in tags
+            )
+            if replacement != tags:
+                try:
+                    node.bindtags(replacement)
+                except Exception:
+                    pass
+
+        sequences: list[str] = []
+        try:
+            raw_sequences = node.bind()
+        except Exception:
+            raw_sequences = None
+        if isinstance(raw_sequences, str):
+            sequences = raw_sequences.split()
+        elif isinstance(raw_sequences, (list, tuple)):
+            sequences = [str(item) for item in raw_sequences]
+
+        for sequence in sequences:
+            try:
+                script = node.bind(sequence)
+            except Exception:
+                continue
+            if not isinstance(script, str) or old_toplevel not in script:
+                continue
+            try:
+                node.bind(sequence, script.replace(old_toplevel, new_toplevel))
+            except Exception:
+                continue
+
+        try:
+            children = node.winfo_children()
+        except Exception:
+            children = ()
+        stack.extend(children)
+
+
 def _notify_tk_reparent(widget: tk.Widget, new_parent: tk.Widget) -> None:
     """Inform Tk that *widget* now belongs to *new_parent*."""
 
@@ -228,6 +325,7 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
     if widget is new_parent or widget.master is new_parent:
         return
 
+    original_toplevel = _safe_widget_toplevel(widget)
     geometry_state = _capture_geometry_state(widget)
     widget.update_idletasks()
     new_parent.update_idletasks()
@@ -242,6 +340,9 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
     else:
         _notify_tk_reparent(widget, new_parent)
         _restore_geometry_state(widget, new_parent, geometry_state)
+        _retarget_bindtags(
+            widget, original_toplevel, _safe_widget_toplevel(widget)
+        )
         return
 
     if sys.platform.startswith("win"):
@@ -255,6 +356,9 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
             raise tk.TclError("SetParent failed")
         _notify_tk_reparent(widget, new_parent)
         _restore_geometry_state(widget, new_parent, geometry_state)
+        _retarget_bindtags(
+            widget, original_toplevel, _safe_widget_toplevel(widget)
+        )
     elif sys.platform.startswith("linux"):
         x11 = ctypes.cdll.LoadLibrary("libX11.so.6")
         display = x11.XOpenDisplay(None)
@@ -267,6 +371,9 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
             x11.XCloseDisplay(display)
         _notify_tk_reparent(widget, new_parent)
         _restore_geometry_state(widget, new_parent, geometry_state)
+        _retarget_bindtags(
+            widget, original_toplevel, _safe_widget_toplevel(widget)
+        )
     else:  # pragma: no cover - other platforms not implemented
         raise tk.TclError("OS-level reparenting not implemented")
     if widget.master is not new_parent:

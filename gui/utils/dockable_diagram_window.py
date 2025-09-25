@@ -68,13 +68,6 @@ class DockableDiagramWindow:
     def _release_from_geometry(self) -> None:
         """Release the content frame from any existing geometry manager."""
 
-        parent = self.content_frame.master
-        if isinstance(parent, ttk.Notebook):
-            try:
-                parent.forget(self.content_frame)
-            except tk.TclError:
-                pass
-
         try:
             manager = self.content_frame.winfo_manager()
         except Exception:
@@ -141,17 +134,14 @@ class DockableDiagramWindow:
             reparent_widget(self.content_frame, container)
 
         try:
-            self.content_frame.pack(in_=container, expand=True, fill="both")
+            self.content_frame.pack_configure(expand=True, fill="both")
         except tk.TclError:
             try:
-                self.content_frame.pack_configure(
-                    in_=container, expand=True, fill="both"
-                )
+                self.content_frame.pack(expand=True, fill="both")
             except tk.TclError:
-                try:
-                    self.content_frame.pack_configure(expand=True, fill="both")
-                except tk.TclError:
-                    pass
+                pass
+        if self._resizer is not None:
+            self._resizer.add_target(self.content_frame)
 
         try:
             win.title(title)
