@@ -39,9 +39,21 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
     GWL_WNDPROC = -4
     WM_SIZE = 0x0005
     WM_WINDOWPOSCHANGED = 0x0047
+    SWP_NOSIZE = 0x0001
 
     _USER32 = ctypes.windll.user32
     _KERNEL32 = ctypes.windll.kernel32
+
+    class _WINDOWPOS(ctypes.Structure):
+        _fields_ = [
+            ("hwnd", wintypes.HWND),
+            ("hwndInsertAfter", wintypes.HWND),
+            ("x", ctypes.c_int),
+            ("y", ctypes.c_int),
+            ("cx", ctypes.c_int),
+            ("cy", ctypes.c_int),
+            ("flags", ctypes.c_uint),
+        ]
 
     _CALL_WINDOW_PROC = _USER32.CallWindowProcW
     _CALL_WINDOW_PROC.argtypes = [
@@ -124,9 +136,14 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
                 self._original = None
 
         def _procedure(self, hwnd, msg, wparam, lparam):  # noqa: ANN001
-            if msg in (WM_SIZE, WM_WINDOWPOSCHANGED):
+            dimensions: tuple[int, int] | None = None
+            if msg == WM_SIZE:
+                dimensions = self._extract_wm_size_dimensions(lparam)
+            elif msg == WM_WINDOWPOSCHANGED:
+                dimensions = self._extract_windowpos_dimensions(lparam)
+            if dimensions is not None:
                 try:
-                    width, height = self._extract_dimensions(lparam)
+                    width, height = dimensions
                     self._callback(width, height)
                 except Exception:  # pragma: no cover - logging only
                     LOGGER.exception("Failed to propagate WM_SIZE event")
@@ -136,10 +153,19 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
             return _DEF_WINDOW_PROC(hwnd, msg, wparam, lparam)
 
         @staticmethod
-        def _extract_dimensions(lparam: int) -> tuple[int, int]:
+        def _extract_wm_size_dimensions(lparam: int) -> tuple[int, int]:
             width = lparam & 0xFFFF
             height = (lparam >> 16) & 0xFFFF
             return int(width), int(height)
+
+        @staticmethod
+        def _extract_windowpos_dimensions(lparam: int) -> tuple[int, int] | None:
+            if not lparam:
+                return None
+            windowpos = ctypes.cast(lparam, ctypes.POINTER(_WINDOWPOS)).contents
+            if windowpos.flags & SWP_NOSIZE:
+                return None
+            return int(windowpos.cx), int(windowpos.cy)
 
         def __del__(self) -> None:
             try:
@@ -173,3 +199,4 @@ def create_window_size_hook(
 
 
 __all__ = ["create_window_size_hook"]
+
