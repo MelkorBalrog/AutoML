@@ -18,6 +18,22 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.272 - 2025-09-10
+
+- Refresh Tk geometry bookkeeping after OS-level reparenting so detached tabs
+  resize with their floating windows on Windows and other platforms that rely on
+  native APIs instead of Tk's unsupported command.
+- Extend cross-toplevel detachment tests to assert Tk now reports the floating
+  notebook as the logical parent of detached tabs.
+
+## 0.2.271 - 2025-09-10
+
+- Update Tkinter reparenting to keep detached tabs bound to their floating
+  windows so geometry reacts to resizing the new window instead of the original
+  notebook.
+- Synchronize widget master bookkeeping when tabs float across windows and add
+  regression coverage for the updated parent tracking.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer
