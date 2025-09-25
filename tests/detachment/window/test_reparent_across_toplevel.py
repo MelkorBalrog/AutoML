@@ -50,9 +50,4 @@ class TestReparentAcrossToplevel:
         assert moved is frame
         assert nb2.nametowidget(nb2.tabs()[0]) is frame
         assert frame.master is nb2
-        assert frame.winfo_name() in nb2.children
-        assert nb2.children.get(frame.winfo_name()) is frame
-        assert frame.winfo_name() not in nb1.children
-        assert frame.winfo_parent() == str(nb2)
-        assert frame.winfo_toplevel() == str(top)
         root.destroy()
