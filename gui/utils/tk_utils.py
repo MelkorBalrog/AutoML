@@ -23,7 +23,6 @@ from __future__ import annotations
 import sys
 import ctypes
 import tkinter as tk
-import typing as t
 
 
 def _update_widget_master(widget: tk.Widget, new_parent: tk.Widget) -> None:
