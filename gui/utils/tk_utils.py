@@ -25,9 +25,7 @@ import ctypes
 import tkinter as tk
 import typing as t
 
-
 GeometryState = tuple[str, dict[str, t.Any]]
-
 
 def _capture_geometry_state(widget: tk.Widget) -> GeometryState | None:
     """Capture the geometry manager configuration for *widget* if available."""
@@ -271,3 +269,5 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
         _restore_geometry_state(widget, new_parent, geometry_state)
     else:  # pragma: no cover - other platforms not implemented
         raise tk.TclError("OS-level reparenting not implemented")
+    if widget.master is not new_parent:
+        _update_widget_master(widget, new_parent)
