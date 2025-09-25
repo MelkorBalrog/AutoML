@@ -35,10 +35,29 @@ class DummyToplevel:
         self.bindings: dict[str, list[t.Callable[[t.Any], None]]] = {}
         self.wm_resizable_calls: list[tuple[bool, bool]] = []
         self._hwnd = 101
+        self._funcids: dict[str, tuple[str, t.Callable[[t.Any], None]]] = {}
+        self.unbind_calls: list[tuple[str, str | None]] = []
 
     def bind(self, sequence: str, callback, add: str | None = None) -> str:  # noqa: ANN001
         self.bindings.setdefault(sequence, []).append(callback)
-        return f"{sequence}-{len(self.bindings[sequence])}"
+        funcid = f"{sequence}-{len(self.bindings[sequence])}"
+        self._funcids[funcid] = (sequence, callback)
+        return funcid
+
+    def unbind(self, sequence: str, funcid: str | None = None) -> None:
+        self.unbind_calls.append((sequence, funcid))
+        if funcid is None:
+            self.bindings.pop(sequence, None)
+            return
+        stored = self._funcids.pop(funcid, None)
+        if stored is None:
+            return
+        seq, callback = stored
+        callbacks = self.bindings.get(seq)
+        if callbacks and callback in callbacks:
+            callbacks.remove(callback)
+        if not callbacks:
+            self.bindings.pop(seq, None)
 
     def wm_resizable(self, width: bool, height: bool) -> None:  # noqa: ANN001
         self.wm_resizable_calls.append((width, height))
@@ -193,3 +212,33 @@ class TestWindowResizeController:
         monkeypatch.setattr(window_resizer, "create_window_size_hook", lambda *a, **k: None)
         controller = WindowResizeController(top)
         assert controller._win32_hook is None
+
+    def test_close_releases_resources(
+        self, top: DummyToplevel, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class Hook:
+            def __init__(self, _hwnd: int, _callback: t.Callable[[int, int], None]) -> None:
+                self.uninstalled = False
+
+            def uninstall(self) -> None:
+                self.uninstalled = True
+
+        created: list[Hook] = []
+
+        def factory(hwnd: int, callback: t.Callable[[int, int], None]) -> Hook:
+            hook = Hook(hwnd, callback)
+            created.append(hook)
+            return hook
+
+        monkeypatch.setattr(window_resizer, "create_window_size_hook", factory)
+        controller = WindowResizeController(top)
+        binding_id = controller._binding_id
+        controller.close()
+        assert controller.tracked_widgets == ()
+        assert controller._win32_hook is None
+        assert top.unbind_calls
+        assert ("<Configure>", binding_id) in top.unbind_calls
+        destroy_unbinds = [entry for entry in top.unbind_calls if entry[0] == "<Destroy>"]
+        assert destroy_unbinds
+        assert created and created[0].uninstalled
+        controller.close()  # idempotent cleanup should not raise

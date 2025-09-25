@@ -33,6 +33,7 @@ class WindowResizeController:
         self._primary: tk.Widget | None = None
         self._targets: list[tk.Widget] = []
         self._binding_id: str | None = None
+        self._destroy_binding_id: str | None = None
         self._callback: t.Callable[[tk.Event], None] | None = None
         self._last_size: tuple[int, int] | None = None
         self._win32_hook = None
@@ -102,6 +103,13 @@ class WindowResizeController:
         except Exception:
             self._binding_id = None
         self._install_win32_hook()
+        try:
+            self._destroy_binding_id = self.win.bind("<Destroy>", self._on_destroy, add="+")
+        except Exception:
+            self._destroy_binding_id = None
+
+    def _on_destroy(self, _event: tk.Event) -> None:  # pragma: no cover - GUI event
+        self.close()
 
     # ------------------------------------------------------------------
     # Windows integration
@@ -120,6 +128,17 @@ class WindowResizeController:
         except Exception:
             self._win32_hook = None
 
+    def _uninstall_win32_hook(self) -> None:
+        if self._win32_hook is None:
+            return
+        try:
+            uninstall = getattr(self._win32_hook, "uninstall", None)
+            if callable(uninstall):
+                uninstall()
+        except Exception:
+            pass
+        self._win32_hook = None
+
     def _toplevel_handle(self) -> int | None:
         getter = getattr(self.win, "winfo_id", None)
         if not callable(getter):
@@ -132,6 +151,38 @@ class WindowResizeController:
             return int(handle)
         except (TypeError, ValueError):
             return None
+
+    def close(self) -> None:
+        """Release native hooks and Tk bindings owned by the controller."""
+
+        binding_id = self._binding_id
+        if binding_id:
+            unbind = getattr(self.win, "unbind", None)
+            if callable(unbind):
+                try:
+                    unbind("<Configure>", binding_id)
+                except Exception:
+                    pass
+        self._binding_id = None
+        destroy_binding = self._destroy_binding_id
+        if destroy_binding:
+            unbind = getattr(self.win, "unbind", None)
+            if callable(unbind):
+                try:
+                    unbind("<Destroy>", destroy_binding)
+                except Exception:
+                    pass
+        self._destroy_binding_id = None
+        self._callback = None
+        self._uninstall_win32_hook()
+        self._targets.clear()
+        self._primary = None
+
+    def __del__(self) -> None:  # pragma: no cover - defensive cleanup
+        try:
+            self.close()
+        except Exception:
+            pass
 
     def _win32_resize(self, width: int, height: int) -> None:
         event = self._synthetic_event(width, height)

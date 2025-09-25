@@ -51,3 +51,27 @@ class TestCancelAfterEvents:
         scheduled = str(frame.tk.call("after", "info"))
         assert ident not in scheduled
         root.destroy()
+
+    def test_cancel_after_events_handles_nested_collections(self) -> None:
+        root = tk.Tk()
+        root.withdraw()
+        frame = tk.Frame(root)
+        nb = ClosableNotebook(root)
+        ident = frame.after(5_000, lambda: None)
+        frame._timer_map = {"pulse": {"anim": ident}}  # type: ignore[attr-defined]
+        nb._cancel_after_events(frame)
+        scheduled = str(frame.tk.call("after", "info"))
+        assert ident not in scheduled
+        root.destroy()
+
+    def test_cancel_after_events_removes_tcl_commands(self) -> None:
+        root = tk.Tk()
+        root.withdraw()
+        frame = tk.Frame(root)
+        nb = ClosableNotebook(root)
+        command = frame.register(lambda: None)
+        frame._animate_callback = command  # type: ignore[attr-defined]
+        nb._cancel_after_events(frame)
+        remaining = root.tk.call("info", "commands", command)
+        assert not remaining
+        root.destroy()

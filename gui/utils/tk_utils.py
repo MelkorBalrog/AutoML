@@ -76,6 +76,9 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
         elif isinstance(value, (list, tuple, set)):
             for item in value:
                 yield from _iter_candidate_idents(item)
+        elif isinstance(value, dict):
+            for item in value.items():
+                yield from _iter_candidate_idents(item)
 
     def _cancel_ident(ident: str) -> None:
         tkapp_local = getattr(widget, "tk", None)
@@ -84,7 +87,11 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
         try:
             tkapp_local.call("after", "cancel", ident)
         except Exception:
-            return
+            pass
+        try:
+            tkapp_local.deletecommand(ident)
+        except Exception:
+            pass
         try:
             root = widget._root()
         except Exception:

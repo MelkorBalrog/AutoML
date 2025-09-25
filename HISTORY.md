@@ -18,6 +18,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.276 - 2025-09-12
+
+- Ensure Tk ``after`` callbacks registered through nested collections or Tcl
+  commands are cancelled and deleted so detached windows no longer raise
+  ``invalid command name`` errors when reopened after closing.
+- Release resize controller hooks and native Win32 procedures when floating
+  windows are destroyed, preventing dangling callbacks from crashing Python
+  once the interpreter shuts down.
+
 ## 0.2.275 - 2025-09-11
 
 - Cancel lingering Tk ``after`` callbacks scheduled through animation helper

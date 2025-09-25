@@ -90,6 +90,11 @@ class DockableDiagramWindow:
     def _on_destroy(self, _event: tk.Event) -> None:
         """Reset cached handles when the floating window is destroyed."""
 
+        if self._resizer is not None:
+            try:
+                self._resizer.close()
+            except Exception:
+                pass
         self.toplevel = None
         self._float_container = None
         self._resizer = None

@@ -106,4 +106,9 @@ class DetachedWindow:
             cancel_after_events(self.win)
         except Exception:
             pass
+        if self._resizer is not None:
+            try:
+                self._resizer.close()
+            except Exception:
+                pass
         self._resizer = None
