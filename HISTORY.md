@@ -18,6 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.272 - 2025-09-10
+
+- Re-dock floating FTA diagram tabs before selecting them so creating new fault
+  trees never raises ``TclError`` when a previous diagram floats outside the
+  main notebook.
+
 ## 0.2.271 - 2025-09-10
 
 - Create a dedicated FTA tab container frame before docking so the document

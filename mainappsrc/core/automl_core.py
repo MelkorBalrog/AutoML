@@ -1226,6 +1226,48 @@ class AutoMLApp(
         nb.select(tab_id)
         return frame
 
+    def _select_doc_tab(self, tab: tk.Widget, title: str | None = None) -> None:
+        """Safely select *tab* in the documentation notebook.
+
+        Tabs may be detached into floating windows by the user.  Attempting to
+        select such a tab directly raises ``TclError`` because the notebook no
+        longer manages the widget.  This helper re-docks floating diagram tabs
+        when possible and gracefully ignores selection errors, preventing the
+        application from crashing during operations such as creating a new FTA
+        diagram while the previous one floats in a separate window.
+        """
+
+        if tab is None:
+            return
+        notebook = getattr(self, "doc_nb", None)
+        if notebook is None:
+            return
+
+        tab_id = str(tab)
+        tabs = set(notebook.tabs())
+        if tab_id not in tabs:
+            dock = getattr(tab, "_dock_window", None)
+            if dock is None or not hasattr(dock, "dock"):
+                return
+            if title is None:
+                title = self._tab_titles.get(tab_id)
+            if title is None:
+                try:
+                    title = tab.winfo_name()
+                except Exception:
+                    title = ""
+            try:
+                dock.dock(notebook, len(tabs), title)
+            except tk.TclError:
+                return
+            tabs = set(notebook.tabs())
+
+        if tab_id in tabs:
+            try:
+                notebook.select(tab)
+            except tk.TclError:
+                pass
+
     # ------------------------------------------------------------------
     # Label editing and styling helper wrappers
     # ------------------------------------------------------------------
@@ -2151,7 +2193,7 @@ class AutoMLApp(
             and self.diagram_rules_editor.winfo_exists()
         )
         if tab_exists:
-            self.doc_nb.select(self._diagram_rules_tab)
+            self._select_doc_tab(self._diagram_rules_tab)
             if editor_exists:
                 return
             parent = self._diagram_rules_tab
@@ -2173,7 +2215,7 @@ class AutoMLApp(
             and self.requirement_patterns_editor.winfo_exists()
         )
         if tab_exists:
-            self.doc_nb.select(self._req_patterns_tab)
+            self._select_doc_tab(self._req_patterns_tab)
             if editor_exists:
                 return
             parent = self._req_patterns_tab
@@ -2197,7 +2239,7 @@ class AutoMLApp(
             and self.report_template_editor.winfo_exists()
         )
         if tab_exists:
-            self.doc_nb.select(self._report_template_tab)
+            self._select_doc_tab(self._report_template_tab)
             if editor_exists:
                 return
             parent = self._report_template_tab
@@ -2222,7 +2264,7 @@ class AutoMLApp(
             and self.report_template_manager.winfo_exists()
         )
         if tab_exists:
-            self.doc_nb.select(self._report_template_mgr_tab)
+            self._select_doc_tab(self._report_template_mgr_tab)
             if manager_exists:
                 return
             parent = self._report_template_mgr_tab
@@ -2279,7 +2321,7 @@ class AutoMLApp(
 
     def show_requirements_explorer(self):
         if hasattr(self, "_req_exp_tab") and self._req_exp_tab.winfo_exists():
-            self.doc_nb.select(self._req_exp_tab)
+            self._select_doc_tab(self._req_exp_tab)
         else:
             self._req_exp_tab = self.lifecycle_ui._new_tab("Requirements Explorer")
             self._req_exp_window = RequirementsExplorerWindow(self._req_exp_tab, self)
@@ -2296,7 +2338,7 @@ class AutoMLApp(
         """
         tabs = getattr(self, "analysis_tabs", {})
         existing = tabs.get(diagram_mode)
-        
+
         if existing and existing["tab"].winfo_exists():
             self.canvas_tab = existing["tab"]
             self.canvas_frame = existing["tab"]
@@ -2304,7 +2346,8 @@ class AutoMLApp(
             self.hbar = existing["hbar"]
             self.vbar = existing["vbar"]
             self.diagram_mode = diagram_mode
-            self.doc_nb.select(self.canvas_tab)
+            title = existing.get("title") or self._tab_titles.get(str(self.canvas_tab), diagram_mode)
+            self._select_doc_tab(self.canvas_tab, title)
             self._update_analysis_menus(diagram_mode)
             return
 
@@ -2334,6 +2377,7 @@ class AutoMLApp(
             "hbar": hbar,
             "vbar": vbar,
             "dock_window": dock_window,
+            "title": title,
         }
         self.canvas_tab = canvas_tab
         self.canvas_frame = canvas_tab
@@ -2341,7 +2385,8 @@ class AutoMLApp(
         self.hbar = hbar
         self.vbar = vbar
         self.diagram_mode = diagram_mode
-        self.doc_nb.select(canvas_tab)
+        self._tab_titles[str(canvas_tab)] = title
+        self._select_doc_tab(canvas_tab, title)
         self._update_analysis_menus(diagram_mode)
 
     def create_fta_diagram(self):
