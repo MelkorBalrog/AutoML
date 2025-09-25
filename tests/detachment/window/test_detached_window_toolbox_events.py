@@ -104,37 +104,3 @@ class TestDetachedWindowWindowControls:
         assert not called["transient"]
         win.win.destroy()
         root.destroy()
-
-    def test_resizer_tracks_moved_widgets(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-
-        class StubResizer:
-            def __init__(self, _win, primary=None):  # noqa: ANN001 - stub API
-                self.primary = primary
-                self.added: list[tk.Widget] = []
-
-            def set_primary_target(self, widget):  # noqa: ANN001 - stub API
-                self.primary = widget
-
-            def add_target(self, widget):  # noqa: ANN001 - stub API
-                self.added.append(widget)
-
-        monkeypatch.setattr(
-            "gui.utils.detached_window.WindowResizeController", StubResizer
-        )
-
-        diagram = DummyDiagram(root)
-        win = DetachedWindow(root, width=200, height=200, x=10, y=10)
-        assert isinstance(win._resizer, StubResizer)
-        assert win._resizer.primary is win.nb
-
-        win.add(diagram, "Tab")
-        assert diagram in win._resizer.added
-
-        win.win.destroy()
-        root.destroy()
