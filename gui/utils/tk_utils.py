@@ -23,7 +23,57 @@ from __future__ import annotations
 import sys
 import ctypes
 import tkinter as tk
-import typing as t
+
+
+def _refresh_tk_parent(widget: tk.Widget, new_parent: tk.Widget) -> None:
+    """Refresh Tk's geometry bookkeeping after an OS-level reparent."""
+
+    try:
+        widget.tk.call("place", str(widget), "-in", str(new_parent))
+        widget.tk.call("place", "forget", str(widget))
+    except tk.TclError:
+        pass
+
+    try:
+        widget.tk.call("event", "generate", str(widget), "<Configure>")
+    except tk.TclError:
+        pass
+
+    try:
+        widget.tk.call("event", "generate", str(new_parent), "<Configure>")
+    except tk.TclError:
+        pass
+
+
+def _update_widget_master(widget: tk.Widget, new_parent: tk.Widget) -> None:
+    """Synchronise Tkinter's Python-level parent bookkeeping."""
+
+    old_parent = getattr(widget, "master", None)
+    if old_parent is new_parent:
+        return
+
+    try:
+        name = widget.winfo_name()
+    except Exception:
+        name = None
+
+    if isinstance(old_parent, tk.Misc) and name:
+        try:
+            old_children = getattr(old_parent, "children", None)
+            if isinstance(old_children, dict):
+                old_children.pop(name, None)
+        except Exception:
+            pass
+
+    widget.master = new_parent
+
+    if isinstance(new_parent, tk.Misc) and name:
+        try:
+            new_children = getattr(new_parent, "children", None)
+            if isinstance(new_children, dict):
+                new_children[name] = widget
+        except Exception:
+            pass
 
 
 def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) -> None:
@@ -111,9 +161,12 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
     # First try Tk's cross-platform reparent command if available
     try:
         widget.tk.call("tk::unsupported::reparent", str(widget), str(new_parent))
-        return
     except tk.TclError:
         pass
+    else:
+        _update_widget_master(widget, new_parent)
+        _refresh_tk_parent(widget, new_parent)
+        return
 
     if sys.platform.startswith("win"):
         if ctypes.windll.user32.SetParent(wid, pid) == 0:
@@ -123,6 +176,8 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
                 widget.tk.call("place", "forget", str(widget))
             except tk.TclError as exc:
                 raise tk.TclError("SetParent failed") from exc
+        _update_widget_master(widget, new_parent)
+        _refresh_tk_parent(widget, new_parent)
     elif sys.platform.startswith("linux"):
         x11 = ctypes.cdll.LoadLibrary("libX11.so.6")
         display = x11.XOpenDisplay(None)
@@ -131,5 +186,14 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
         x11.XReparentWindow(display, wid, pid, 0, 0)
         x11.XFlush(display)
         x11.XCloseDisplay(display)
+        try:
+            widget.tk.call("place", str(widget), "-in", str(new_parent))
+            widget.tk.call("place", "forget", str(widget))
+        except tk.TclError:
+            pass
+        _update_widget_master(widget, new_parent)
+        _refresh_tk_parent(widget, new_parent)
     else:  # pragma: no cover - other platforms not implemented
         raise tk.TclError("OS-level reparenting not implemented")
+    if widget.master is not new_parent:
+        _update_widget_master(widget, new_parent)
