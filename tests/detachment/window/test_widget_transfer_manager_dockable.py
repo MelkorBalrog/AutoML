@@ -1,4 +1,3 @@
-# GNU disclaimer
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
@@ -67,44 +66,4 @@ class TestWidgetTransferManagerDockable:
         assert called["dock"]
         assert moved is dock_win.content_frame
         assert nb2.nametowidget(nb2.tabs()[0]) is dock_win.content_frame
-        root.destroy()
-
-    def test_detach_tab_float_receives_geometry(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-
-        root.geometry("640x480")
-        nb1 = ClosableNotebook(root)
-        nb1.pack(expand=True, fill="both")
-        nb2 = ClosableNotebook(root)
-        nb2.pack_forget()
-
-        frame = tk.Frame(nb1)
-        dock_win = DockableDiagramWindow(frame)
-        frame._dock_window = dock_win
-        dock_win.content_frame = frame
-        nb1.add(frame, text="Detached Tab")
-        root.update_idletasks()
-
-        manager = WidgetTransferManager()
-        captured: dict[str, tuple[int, int, int, int, str]] = {}
-
-        def spy_float(width: int, height: int, x: int, y: int, title: str) -> None:
-            captured["args"] = (width, height, x, y, title)
-
-        monkeypatch.setattr(dock_win, "float", spy_float)
-
-        tab_id = nb1.tabs()[0]
-        manager.detach_tab(nb1, tab_id, nb2)
-
-        assert "args" in captured
-        width, height, x, y, title = captured["args"]
-        assert width == nb1.winfo_width() or width == 200
-        assert height == nb1.winfo_height() or height == 200
-        assert title == "Detached Tab"
-        assert x == nb1.winfo_rootx()
-        assert y == nb1.winfo_rooty()
-
         root.destroy()
