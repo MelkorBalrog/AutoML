@@ -20,20 +20,26 @@
 
 from __future__ import annotations
 
+import typing as t
+
 import tkinter as tk
 from tkinter import ttk
 
 from .tk_utils import cancel_after_events, reparent_widget
 from .window_controls import restore_window_buttons
+from .window_resizer import WindowResizeController
 
 
 class DockableDiagramWindow:
     """Host a diagram so it can dock in a notebook or float in a window."""
 
-    def __init__(self, content: ttk.Frame) -> None:
-        self.content_frame = content
+    def __init__(self, content: tk.Widget) -> None:
+        if isinstance(content, ttk.Notebook):
+            content = ttk.Frame(content)
+        self.content_frame = t.cast(tk.Widget, content)
         self.toplevel: tk.Toplevel | None = None
         self._float_container: ttk.Frame | None = None
+        self._resizer: WindowResizeController | None = None
 
     @property
     def win(self) -> tk.Toplevel:
@@ -44,6 +50,14 @@ class DockableDiagramWindow:
             self.toplevel.withdraw()
             restore_window_buttons(self.toplevel)
             self._float_container = None
+            try:
+                self._resizer = WindowResizeController(self.toplevel)
+            except Exception:
+                self._resizer = None
+            try:
+                self.toplevel.protocol("WM_DELETE_WINDOW", self._on_close)
+            except Exception:
+                pass
             self.toplevel.bind("<Destroy>", self._on_destroy, add="+")
         return self.toplevel
 
@@ -55,6 +69,8 @@ class DockableDiagramWindow:
             container = ttk.Frame(win)
             container.pack(expand=True, fill="both")
             self._float_container = container
+        if self._resizer is not None:
+            self._resizer.set_primary_target(container)
         return container
 
     def _release_from_geometry(self) -> None:
@@ -78,8 +94,43 @@ class DockableDiagramWindow:
     def _on_destroy(self, _event: tk.Event) -> None:
         """Reset cached handles when the floating window is destroyed."""
 
+        self._cleanup_after_events()
+        if self._resizer is not None:
+            try:
+                self._resizer.shutdown()
+            except Exception:
+                pass
         self.toplevel = None
         self._float_container = None
+        self._resizer = None
+
+    def _cleanup_after_events(self) -> None:
+        """Cancel outstanding ``after`` callbacks tied to floating widgets."""
+
+        for widget in (self.content_frame, self.toplevel):
+            if widget is None:
+                continue
+            try:
+                cancel_after_events(widget)
+            except Exception:
+                continue
+
+    def _on_close(self) -> None:
+        """Handle user-initiated close requests for the floating window."""
+
+        win = self.toplevel
+        self._cleanup_after_events()
+        if self._resizer is not None:
+            try:
+                self._resizer.shutdown()
+            except Exception:
+                pass
+            self._resizer = None
+        if win is not None:
+            try:
+                win.destroy()
+            except tk.TclError:
+                pass
 
     # ------------------------------------------------------------------
     # Dock and float operations
@@ -105,6 +156,8 @@ class DockableDiagramWindow:
                 self.toplevel.withdraw()
             except tk.TclError:
                 pass
+        if self._resizer is not None:
+            self._resizer.remove_target(self.content_frame)
 
     def float(self, width: int, height: int, x: int, y: int, title: str) -> None:
         """Show the diagram in a separate top-level window."""
@@ -129,6 +182,8 @@ class DockableDiagramWindow:
                 self.content_frame.pack(expand=True, fill="both")
             except tk.TclError:
                 pass
+        if self._resizer is not None:
+            self._resizer.add_target(self.content_frame)
 
         try:
             win.title(title)
