@@ -18,6 +18,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.278 - 2025-09-14
+
+- Correct Win32 resize hook to read ``WINDOWPOS`` structures instead of masking
+  ``lParam`` so floating diagram windows receive accurate dimensions when moved
+  without resizing.
+- Skip resize propagation for ``WM_WINDOWPOSCHANGED`` notifications flagged with
+  ``SWP_NOSIZE`` to avoid redundant callbacks during position-only changes.
+- Confirm Win32 hook safety by updating resize notification handling strategy
+  to eliminate spurious width and height bursts that could destabilise widget
+  layouts.
+
 ## 0.2.277 - 2025-09-13
 
 - Cancel method-based Tk ``after`` callbacks when dockable diagrams detach or
