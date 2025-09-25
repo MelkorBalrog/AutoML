@@ -18,6 +18,51 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.275 - 2025-09-10
+
+- Update Tk widget path metadata after native reparenting so detached diagrams
+  fully transfer to their floating containers and resize with the new window
+  instead of the original notebook.
+- Generate unique widget names when target containers already include a child
+  with the same identifier to prevent Tk path collisions during detachment.
+- Extend the reparenting regression suite with Tk path and naming assertions to
+  guard the synchronisation logic across native Windows and Linux code paths.
+
+## 0.2.274 - 2025-09-10
+
+- Retarget floating dockable diagrams to their new container when snapping out
+  tabs so geometry bindings follow the floating window instead of the original
+  notebook.
+- Assert floating windows record their container as the geometry manager target
+  to guard against regressions where Tk retains the prior parent reference.
+
+## 0.2.273 - 2025-09-10
+
+- Restore geometry-manager bindings after native reparenting so detached
+  widgets resize with their floating windows instead of tracking the original
+  notebook container.
+- Capture geometry manager configuration for widgets prior to reparenting and
+  reapply it once Tk acknowledges the new parent window across native and Tk
+  code paths.
+- Expand detachment regression coverage with grouped geometry-manager tests to
+  guard pack, grid, and place restoration logic alongside Tk notification
+  checks.
+
+## 0.2.272 - 2025-09-10
+
+- Synchronise Tkinter's Python widget hierarchy after native reparenting so
+  detached diagrams follow the floating window geometry instead of the
+  originating notebook.
+- Extend regression coverage to ensure Python-level parent references update
+  when the Linux reparenting path executes.
+
+## 0.2.271 - 2025-09-10
+
+- Notify Tk after reparenting detached widgets so floating windows resize with
+  their own containers instead of following the original notebook geometry.
+- Extend reparenting regression coverage to assert Tk notification occurs on
+  both Linux and Windows code paths.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer

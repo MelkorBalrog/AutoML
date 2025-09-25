@@ -123,12 +123,17 @@ class DockableDiagramWindow:
             reparent_widget(self.content_frame, container)
 
         try:
-            self.content_frame.pack_configure(expand=True, fill="both")
+            self.content_frame.pack(in_=container, expand=True, fill="both")
         except tk.TclError:
             try:
-                self.content_frame.pack(expand=True, fill="both")
+                self.content_frame.pack_configure(
+                    in_=container, expand=True, fill="both"
+                )
             except tk.TclError:
-                pass
+                try:
+                    self.content_frame.pack_configure(expand=True, fill="both")
+                except tk.TclError:
+                    pass
 
         try:
             win.title(title)

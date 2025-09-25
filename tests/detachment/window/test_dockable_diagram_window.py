@@ -127,6 +127,7 @@ class TestDockableDiagramWindow:
             info = frame.pack_info()
         except tk.TclError:
             info = {}
+        assert info.get("in") == str(container)
         assert info.get("fill") == "both"
         assert info.get("expand") == "1"
         assert dw.win.winfo_viewable()
