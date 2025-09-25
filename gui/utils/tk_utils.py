@@ -25,6 +25,84 @@ import ctypes
 import tkinter as tk
 import typing as t
 
+GeometryState = tuple[str, dict[str, t.Any]]
+
+def _capture_geometry_state(widget: tk.Widget) -> GeometryState | None:
+    """Capture the geometry manager configuration for *widget* if available."""
+
+    manager = ""
+    try:
+        manager = widget.winfo_manager()
+    except Exception:
+        manager = ""
+
+    if not manager:
+        return None
+
+    fetchers: dict[str, t.Callable[[], dict[str, t.Any]]] = {}
+
+    if hasattr(widget, "pack_info"):
+        fetchers["pack"] = widget.pack_info  # type: ignore[assignment]
+    if hasattr(widget, "grid_info"):
+        fetchers["grid"] = widget.grid_info  # type: ignore[assignment]
+    if hasattr(widget, "place_info"):
+        fetchers["place"] = widget.place_info  # type: ignore[assignment]
+
+    fetcher = fetchers.get(manager)
+    if fetcher is None:
+        return None
+
+    try:
+        options = fetcher()
+    except Exception:
+        return None
+
+    if not isinstance(options, dict) or not options:
+        return None
+
+    return (manager, dict(options))
+
+
+def _restore_geometry_state(
+    widget: tk.Widget, new_parent: tk.Widget, state: GeometryState | None
+) -> None:
+    """Restore geometry manager settings for *widget* using *state*."""
+
+    if state is None:
+        return
+
+    manager, options = state
+    normalised = {
+        ("in_" if key == "in" else key): value for key, value in options.items()
+    }
+
+    normalised["in_"] = new_parent
+
+    try:
+        if manager == "pack" and hasattr(widget, "pack_configure"):
+            if hasattr(widget, "pack_forget"):
+                try:
+                    widget.pack_forget()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+            widget.pack_configure(**normalised)  # type: ignore[arg-type]
+        elif manager == "grid" and hasattr(widget, "grid_configure"):
+            if hasattr(widget, "grid_forget"):
+                try:
+                    widget.grid_forget()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+            widget.grid_configure(**normalised)  # type: ignore[arg-type]
+        elif manager == "place" and hasattr(widget, "place_configure"):
+            if hasattr(widget, "place_forget"):
+                try:
+                    widget.place_forget()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+            widget.place_configure(**normalised)  # type: ignore[arg-type]
+    except Exception:
+        return
+
 
 GeometryState = tuple[str, dict[str, t.Any]]
 
@@ -330,7 +408,6 @@ def _retarget_widget_paths(widget: tk.Widget, new_parent: tk.Widget) -> None:
     _sync_widget_parents(widget, new_parent, previous_name)
     _refresh_descendant_paths(widget)
 
-
 def _notify_tk_reparent(widget: tk.Widget, new_parent: tk.Widget) -> None:
     """Inform Tk that *widget* now belongs to *new_parent*."""
 
@@ -394,3 +471,5 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
         _restore_geometry_state(widget, new_parent, geometry_state)
     else:  # pragma: no cover - other platforms not implemented
         raise tk.TclError("OS-level reparenting not implemented")
+    if widget.master is not new_parent:
+        _update_widget_master(widget, new_parent)
