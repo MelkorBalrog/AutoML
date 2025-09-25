@@ -30,6 +30,7 @@ import atexit
 import ctypes
 import gc
 import importlib
+import os
 import sys
 import threading
 import time
@@ -60,7 +61,14 @@ class MemoryManager:
         self._interval = interval
         self._max_usage = max_usage_percent
         self._stop_event = threading.Event()
-        self._thread = thread_manager.register("memory_manager", self._monitor, daemon=True)
+        disable_thread = os.getenv("AUTOML_DISABLE_MEMORY_MANAGER", "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        self._thread = None
+        if not disable_thread:
+            self._thread = thread_manager.register("memory_manager", self._monitor, daemon=True)
 
     def lazy_load(self, key: str, loader: Callable[[], Any]) -> Any:
         """Return cached object for *key*, loading it if necessary."""
@@ -172,7 +180,7 @@ class MemoryManager:
     def shutdown(self) -> None:
         """Stop the monitoring thread."""
         self._stop_event.set()
-        thread = thread_manager.unregister("memory_manager")
+        thread = thread_manager.unregister("memory_manager") if self._thread else None
         if thread and thread.is_alive():
             thread.join(timeout=1)
 
