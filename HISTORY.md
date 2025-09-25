@@ -18,30 +18,40 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.274 - 2025-09-10
+
+- Retarget Tk bindtags and binding scripts after native reparenting so detached
+  diagrams respond to their floating window events instead of the original
+  notebook toplevel.
+- Extend reparenting regression coverage with bindtag retargeting tests that
+  exercise widget hierarchies to guard the new behaviour.
+
 ## 0.2.273 - 2025-09-10
 
-- Introduce a Windows-specific resize hook that mirrors native WM_SIZE events
-  onto detached notebook content so floating windows resize independently of
-  their original parent frames.
-- Extend the resize controller tests to cover Windows hook integration and
-  ensure stub hooks are tolerated on non-Windows platforms.
+- Restore geometry-manager bindings after native reparenting so detached
+  widgets resize with their floating windows instead of tracking the original
+  notebook container.
+- Capture geometry manager configuration for widgets prior to reparenting and
+  reapply it once Tk acknowledges the new parent window across native and Tk
+  code paths.
+- Expand detachment regression coverage with grouped geometry-manager tests to
+  guard pack, grid, and place restoration logic alongside Tk notification
+  checks.
 
 ## 0.2.272 - 2025-09-10
 
-- Introduce a window resize controller that mirrors toplevel geometry onto
-  detached notebook containers and hosted diagrams so floating windows resize
-  their content independently of the original parent notebook.
-- Attach the resize controller to dockable diagram windows and detached
-  notebooks, ensuring tracked widgets are registered and released when tabs
-  float or dock, with regression tests validating the resize propagation.
+- Synchronise Tkinter's Python widget hierarchy after native reparenting so
+  detached diagrams follow the floating window geometry instead of the
+  originating notebook.
+- Extend regression coverage to ensure Python-level parent references update
+  when the Linux reparenting path executes.
 
 ## 0.2.271 - 2025-09-10
 
-- Update Tkinter reparenting to keep detached tabs bound to their floating
-  windows so geometry reacts to resizing the new window instead of the original
-  notebook.
-- Synchronize widget master bookkeeping when tabs float across windows and add
-  regression coverage for the updated parent tracking.
+- Notify Tk after reparenting detached widgets so floating windows resize with
+  their own containers instead of following the original notebook geometry.
+- Extend reparenting regression coverage to assert Tk notification occurs on
+  both Linux and Windows code paths.
 
 ## 0.2.270 - 2025-09-10
 
