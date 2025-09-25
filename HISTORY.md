@@ -18,6 +18,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.272 - 2025-09-10
+
+- Synchronise Tkinter's Python widget hierarchy after native reparenting so
+  detached diagrams follow the floating window geometry instead of the
+  originating notebook.
+- Extend regression coverage to ensure Python-level parent references update
+  when the Linux reparenting path executes.
+
+## 0.2.271 - 2025-09-10
+
+- Notify Tk after reparenting detached widgets so floating windows resize with
+  their own containers instead of following the original notebook geometry.
+- Extend reparenting regression coverage to assert Tk notification occurs on
+  both Linux and Windows code paths.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer
