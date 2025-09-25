@@ -58,7 +58,7 @@ class TestCancelAfterEvents:
         frame = tk.Frame(root)
         nb = ClosableNotebook(root)
         ident = frame.after(10_000, lambda: None)
-        frame._animate_id = ident  # type: ignore[attr-defined]
+        frame._animate_id = ident  # type: ignore[attr-defined
         nb._cancel_after_events(frame)
         scheduled = str(frame.tk.call("after", "info"))
         assert ident not in scheduled

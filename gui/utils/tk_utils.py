@@ -87,7 +87,11 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
         try:
             tkapp_local.call("after", "cancel", ident)
         except Exception:
-            return
+            pass
+        try:
+            tkapp_local.deletecommand(ident)
+        except Exception:
+            pass
         try:
             root = widget._root()
         except Exception:
