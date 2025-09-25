@@ -18,22 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.275 - 2025-09-10
-
-- Remove floating diagram pages from their originating notebook before
-  performing native reparenting so resizing follows the floating window instead
-  of the notebook that previously owned the tab.
-- Extend the floating window regression coverage to assert snapped-out content
-  is no longer registered with the source notebook, preventing geometry updates
-  from the wrong container.
-
 ## 0.2.274 - 2025-09-10
 
-- Retarget floating dockable diagrams to their new container when snapping out
-  tabs so geometry bindings follow the floating window instead of the original
-  notebook.
-- Assert floating windows record their container as the geometry manager target
-  to guard against regressions where Tk retains the prior parent reference.
+- Retarget Tk bindtags and binding scripts after native reparenting so detached
+  diagrams respond to their floating window events instead of the original
+  notebook toplevel.
+- Extend reparenting regression coverage with bindtag retargeting tests that
+  exercise widget hierarchies to guard the new behaviour.
 
 ## 0.2.273 - 2025-09-10
 

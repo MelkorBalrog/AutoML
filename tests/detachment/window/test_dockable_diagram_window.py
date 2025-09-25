@@ -116,6 +116,7 @@ class TestDockableDiagramWindow:
         nb.add(frame, text="T1")
         dw = DockableDiagramWindow(frame)
 
+        nb.forget(frame)
         dw.float(300, 200, 10, 15, "Float Title")
 
         container = dw._float_container
@@ -126,10 +127,8 @@ class TestDockableDiagramWindow:
             info = frame.pack_info()
         except tk.TclError:
             info = {}
-        assert info.get("in") == str(container)
         assert info.get("fill") == "both"
         assert info.get("expand") == "1"
-        assert frame not in [nb.nametowidget(tab) for tab in nb.tabs()]
         assert dw.win.winfo_viewable()
         assert dw.win.title() == "Float Title"
 

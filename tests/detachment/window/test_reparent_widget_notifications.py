@@ -54,6 +54,9 @@ class _DummyWidget:
             master.children[self._name] = self
 
         self._manager = ""
+        self._bindtags: tuple[str, ...] = (self._name, "all")
+        self._bindings: dict[str, str] = {}
+        self._toplevel = f".{self._name}_top"
 
     def update_idletasks(self) -> None:  # pragma: no cover - trivial
         return
@@ -63,6 +66,29 @@ class _DummyWidget:
 
     def winfo_manager(self) -> str:
         return self._manager
+
+    def winfo_children(self) -> tuple["_DummyWidget", ...]:
+        return tuple(self.children.values())
+
+    def winfo_toplevel(self) -> str:
+        return self._toplevel
+
+    def bindtags(
+        self, tags: tuple[str, ...] | list[str] | None = None
+    ) -> tuple[str, ...]:
+        if tags is None:
+            return self._bindtags
+        converted = tuple(tags)
+        self._bindtags = converted
+        return converted
+
+    def bind(self, sequence: str | None = None, func: str | None = None) -> str | tuple[str, ...]:
+        if sequence is None:
+            return tuple(self._bindings)
+        if func is None:
+            return self._bindings.get(sequence, "")
+        self._bindings[str(sequence)] = str(func)
+        return self._bindings[str(sequence)]
 
 
 @pytest.mark.detachment
@@ -310,3 +336,67 @@ class TestTkGeometryRestoration:
         assert widget.place_configured is not None
         assert widget.place_configured.get("in_") is parent
         assert widget.place_configured.get("x") == "10"
+
+
+@pytest.mark.detachment
+@pytest.mark.reparenting
+class TestTkBindtagRetargeting:
+    def test_bindtags_and_scripts_retarget_to_new_toplevel(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        original_parent = _DummyWidget(100, name="orig")
+        target_parent = _DummyWidget(110, name="target")
+        widget = _DummyWidget(120, name="child", master=original_parent)
+        subchild = _DummyWidget(130, name="subchild", master=widget)
+
+        original_parent._toplevel = ".orig"
+        widget._toplevel = ".orig"
+        subchild._toplevel = ".orig"
+        target_parent._toplevel = ".new"
+
+        widget.bindtags(("widget", ".orig", "all"))
+        subchild.bindtags(("sub", ".orig"))
+        widget.bind("<Configure>", "doit .orig resize")
+        subchild.bind("<Visibility>", "childcmd .orig update")
+
+        def _fake_notify(node: _DummyWidget, parent_node: _DummyWidget) -> None:
+            tk_utils._sync_widget_parents(node, parent_node)
+            node._toplevel = parent_node._toplevel
+            for descendant in node.winfo_children():
+                descendant._toplevel = parent_node._toplevel
+
+        monkeypatch.setattr(tk_utils, "_notify_tk_reparent", _fake_notify)
+        monkeypatch.setattr(
+            tk_utils, "_restore_geometry_state", lambda *args, **kwargs: None
+        )
+        monkeypatch.setattr(tk_utils.sys, "platform", "linux")
+
+        class _FakeX11:
+            def XOpenDisplay(self, _name: object) -> int:
+                return 1
+
+            def XReparentWindow(
+                self, display: int, wid: int, pid: int, x: int, y: int
+            ) -> None:
+                return None
+
+            def XFlush(self, display: int) -> None:
+                return None
+
+            def XCloseDisplay(self, display: int) -> None:
+                return None
+
+        monkeypatch.setattr(
+            tk_utils.ctypes,
+            "cdll",
+            types.SimpleNamespace(LoadLibrary=lambda _name: _FakeX11()),
+        )
+
+        tk_utils.reparent_widget(widget, target_parent)
+
+        assert widget.bindtags() == ("widget", ".new", "all")
+        assert subchild.bindtags() == ("sub", ".new")
+        assert ".new" in widget.bind("<Configure>")
+        assert ".orig" not in widget.bind("<Configure>")
+        assert ".new" in subchild.bind("<Visibility>")
+        assert ".orig" not in subchild.bind("<Visibility>")
