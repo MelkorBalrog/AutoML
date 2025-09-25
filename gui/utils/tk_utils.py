@@ -97,6 +97,53 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
         cancel_after_events(child, cancelled)
 
 
+def _sync_widget_parents(widget: tk.Widget, new_parent: tk.Widget) -> None:
+    """Synchronise Python-level parent references after reparenting."""
+
+    try:
+        old_parent = getattr(widget, "master", None)
+    except Exception:
+        old_parent = None
+
+    if old_parent is new_parent:
+        return
+
+    name = getattr(widget, "_name", None)
+
+    if name and hasattr(old_parent, "children"):
+        try:
+            old_parent.children.pop(name, None)
+        except Exception:
+            pass
+
+    try:
+        widget.master = new_parent
+    except Exception:
+        pass
+
+    if name and hasattr(new_parent, "children"):
+        try:
+            new_parent.children[name] = widget
+        except Exception:
+            pass
+
+
+def _notify_tk_reparent(widget: tk.Widget, new_parent: tk.Widget) -> None:
+    """Inform Tk that *widget* now belongs to *new_parent*."""
+
+    try:
+        widget.place(in_=new_parent)
+        widget.place_forget()
+    except Exception:
+        try:
+            widget.tk.call("place", str(widget), "-in", str(new_parent))
+            widget.tk.call("place", "forget", str(widget))
+        except Exception:
+            pass
+
+    _sync_widget_parents(widget, new_parent)
+
+
 def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
     """Reparent *widget* into *new_parent* using OS-level APIs."""
 
@@ -111,25 +158,32 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
     # First try Tk's cross-platform reparent command if available
     try:
         widget.tk.call("tk::unsupported::reparent", str(widget), str(new_parent))
-        return
     except tk.TclError:
         pass
+    else:
+        _notify_tk_reparent(widget, new_parent)
+        return
 
     if sys.platform.startswith("win"):
         if ctypes.windll.user32.SetParent(wid, pid) == 0:
             # Fallback to Tk geometry manager when OS-level reparenting fails
             try:
-                widget.tk.call("place", str(widget), "-in", str(new_parent))
-                widget.tk.call("place", "forget", str(widget))
+                widget.place(in_=new_parent)
+                widget.place_forget()
             except tk.TclError as exc:
                 raise tk.TclError("SetParent failed") from exc
+            raise tk.TclError("SetParent failed")
+        _notify_tk_reparent(widget, new_parent)
     elif sys.platform.startswith("linux"):
         x11 = ctypes.cdll.LoadLibrary("libX11.so.6")
         display = x11.XOpenDisplay(None)
         if not display:
             raise tk.TclError("XOpenDisplay failed")
-        x11.XReparentWindow(display, wid, pid, 0, 0)
-        x11.XFlush(display)
-        x11.XCloseDisplay(display)
+        try:
+            x11.XReparentWindow(display, wid, pid, 0, 0)
+            x11.XFlush(display)
+        finally:
+            x11.XCloseDisplay(display)
+        _notify_tk_reparent(widget, new_parent)
     else:  # pragma: no cover - other platforms not implemented
         raise tk.TclError("OS-level reparenting not implemented")
