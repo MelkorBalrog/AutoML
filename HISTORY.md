@@ -18,6 +18,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.278 - 2025-09-14
+
+- Correct Win32 resize hook to read ``WINDOWPOS`` structures instead of masking
+  ``lParam`` so floating diagram windows receive accurate dimensions when moved
+  without resizing.
+- Skip resize propagation for ``WM_WINDOWPOSCHANGED`` notifications flagged with
+  ``SWP_NOSIZE`` to avoid redundant callbacks during position-only changes.
+- Confirm Win32 hook safety by updating resize notification handling strategy
+  to eliminate spurious width and height bursts that could destabilise widget
+  layouts.
+
 ## 0.2.277 - 2025-09-13
 
 - Cancel method-based Tk ``after`` callbacks when dockable diagrams detach or
@@ -872,6 +883,7 @@
 - 0.2.103 - Introduced NavigationInputService to unify navigation and window helpers.
 - 0.2.26 - Import Syncing_And_IDs in fallback path to avoid initialization error.
 - 0.2.25 - Extract page and PAA helpers into dedicated module and delegate from core.
+- 0.2.279 - Prevent Win32 resize hook callbacks during Python finalization and guard WINDOWPOS casts.
 - 0.2.24 - Move UI lifecycle helpers to dedicated class and delegate calls.
 - 0.2.23 - Correct default style path so governance diagrams and icons retain their colours.
 - 0.2.22 - Re-export add_treeview_scrollbars via gui.utils for legacy compatibility.
