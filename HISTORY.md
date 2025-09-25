@@ -18,6 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.271 - 2025-09-11
+
+- Correct dockable diagram detachment so floating windows size content based on
+  the new top-level instead of the original notebook and add regression coverage
+  for geometry propagation during snapping.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer
