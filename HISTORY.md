@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.271 - 2025-09-10
+
+- Notify Tk after reparenting detached widgets so floating windows resize with
+  their own containers instead of following the original notebook geometry.
+- Extend reparenting regression coverage to assert Tk notification occurs on
+  both Linux and Windows code paths.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer
