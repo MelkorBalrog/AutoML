@@ -18,6 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.271 - 2025-09-10
+
+- Create a dedicated FTA tab container frame before docking so the document
+  notebook is never re-inserted into itself, eliminating Tk "can't add ... as
+  slave" errors when opening fault tree diagrams.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer
