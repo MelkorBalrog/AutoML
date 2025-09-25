@@ -22,6 +22,7 @@ from __future__ import annotations
 import ctypes
 import json
 import inspect
+import os
 from importlib import import_module
 from pathlib import Path
 import subprocess
@@ -33,6 +34,7 @@ from mainappsrc.services import _SERVICE_ATTRS
 _LIB_NAME = "libcore_api.so"
 _SRC_PATH = Path(__file__).with_suffix(".c")
 _LIB_PATH = Path(__file__).with_name(_LIB_NAME)
+_USE_NATIVE_DLL = os.environ.get("AUTOML_ENABLE_DLL", "0") == "1"
 
 
 def _build_library() -> None:
@@ -62,34 +64,73 @@ def _build_library() -> None:
     )
 
 
-if not _LIB_PATH.exists():
-    _build_library()
+_lib: ctypes.CDLL | None = None
 
-_lib = ctypes.CDLL(str(_LIB_PATH))
-_lib.automl_initialize.restype = ctypes.c_int
-_lib.automl_initialize()
+if _USE_NATIVE_DLL:
+    try:
+        if not _LIB_PATH.exists():
+            _build_library()
 
-_lib.add.argtypes = (ctypes.c_int, ctypes.c_int)
-_lib.add.restype = ctypes.c_int
+        _lib = ctypes.CDLL(str(_LIB_PATH))
+        _lib.automl_initialize.restype = ctypes.c_int
+        _lib.automl_initialize()
 
-_lib.automl_call.argtypes = (
-    ctypes.c_char_p,
-    ctypes.c_char_p,
-    ctypes.c_char_p,
-    ctypes.POINTER(ctypes.c_char_p),
-)
-_lib.automl_call.restype = ctypes.c_int
-_lib.automl_free.argtypes = (ctypes.c_void_p,)
-_lib.automl_free.restype = None
+        _lib.add.argtypes = (ctypes.c_int, ctypes.c_int)
+        _lib.add.restype = ctypes.c_int
+
+        _lib.automl_call.argtypes = (
+            ctypes.c_char_p,
+            ctypes.c_char_p,
+            ctypes.c_char_p,
+            ctypes.POINTER(ctypes.c_char_p),
+        )
+        _lib.automl_call.restype = ctypes.c_int
+        _lib.automl_free.argtypes = (ctypes.c_void_p,)
+        _lib.automl_free.restype = None
+    except Exception:
+        _lib = None
+        _USE_NATIVE_DLL = False
+
+
+def _resolve_callable(module: str, dotted: str) -> Callable[..., Any]:
+    target = import_module(module)
+    attr: object = target
+    for name in dotted.split("."):
+        attr = getattr(attr, name)
+    if not callable(attr):
+        raise TypeError(f"{module}.{dotted} is not callable")
+    return attr  # type: ignore[return-value]
+
+
+def _python_call(module: str, function: str, args_json: str) -> Any:
+    callable_obj = _resolve_callable(module, function)
+    if not args_json:
+        payload: Any = []
+    else:
+        payload = json.loads(args_json)
+    if isinstance(payload, dict):
+        raw_args = payload.get("args", [])
+        if not isinstance(raw_args, (list, tuple)):
+            raw_args = [raw_args]
+        kwargs = {k: v for k, v in payload.items() if k != "args"}
+        return callable_obj(*raw_args, **kwargs)
+    if isinstance(payload, list):
+        return callable_obj(*payload)
+    return callable_obj(payload)
 
 
 def add(left: int, right: int) -> int:
     """Return the sum of two integers using the compiled C library."""
+    if _lib is None:
+        return left + right
     return int(_lib.add(left, right))
 
 
 def call_service(module: str, function: str, args_json: str = "[]") -> object:
     """Invoke *function* from *module* with JSON-encoded arguments."""
+
+    if _lib is None:
+        return _python_call(module, function, args_json)
 
     result_ptr = ctypes.c_char_p()
     status = _lib.automl_call(
