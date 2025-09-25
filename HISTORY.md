@@ -18,6 +18,31 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.273 - 2025-09-10
+
+- Introduce a Windows-specific resize hook that mirrors native WM_SIZE events
+  onto detached notebook content so floating windows resize independently of
+  their original parent frames.
+- Extend the resize controller tests to cover Windows hook integration and
+  ensure stub hooks are tolerated on non-Windows platforms.
+
+## 0.2.272 - 2025-09-10
+
+- Introduce a window resize controller that mirrors toplevel geometry onto
+  detached notebook containers and hosted diagrams so floating windows resize
+  their content independently of the original parent notebook.
+- Attach the resize controller to dockable diagram windows and detached
+  notebooks, ensuring tracked widgets are registered and released when tabs
+  float or dock, with regression tests validating the resize propagation.
+
+## 0.2.271 - 2025-09-10
+
+- Update Tkinter reparenting to keep detached tabs bound to their floating
+  windows so geometry reacts to resizing the new window instead of the original
+  notebook.
+- Synchronize widget master bookkeeping when tabs float across windows and add
+  regression coverage for the updated parent tracking.
+
 ## 0.2.270 - 2025-09-10
 
 - Restore standard decorations on detached notebooks so floating windows offer
