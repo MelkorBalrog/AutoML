@@ -20,10 +20,41 @@
 
 from __future__ import annotations
 
-import sys
 import ctypes
+import sys
 import tkinter as tk
 import typing as t
+
+
+def _update_widget_master(widget: tk.Widget, new_parent: tk.Widget) -> None:
+    """Synchronise Tkinter's Python-level parent bookkeeping."""
+
+    old_parent = getattr(widget, "master", None)
+    if old_parent is new_parent:
+        return
+
+    try:
+        name = widget.winfo_name()
+    except Exception:
+        name = None
+
+    if isinstance(old_parent, tk.Misc) and name:
+        try:
+            old_children = getattr(old_parent, "children", None)
+            if isinstance(old_children, dict):
+                old_children.pop(name, None)
+        except Exception:
+            pass
+
+    widget.master = new_parent
+
+    if isinstance(new_parent, tk.Misc) and name:
+        try:
+            new_children = getattr(new_parent, "children", None)
+            if isinstance(new_children, dict):
+                new_children[name] = widget
+        except Exception:
+            pass
 
 
 def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) -> None:
@@ -31,6 +62,20 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
 
     if cancelled is None:
         cancelled = set()
+
+    def _looks_like_after_ident(ident: str) -> bool:
+        lowered = ident.lower()
+        return bool(lowered) and (
+            ident.isdigit()
+            or any(token in lowered for token in ("after", "timer", "anim", "pulse"))
+        )
+
+    def _iter_candidate_idents(value: t.Any) -> t.Iterator[str]:
+        if isinstance(value, str):
+            yield value
+        elif isinstance(value, (list, tuple, set)):
+            for item in value:
+                yield from _iter_candidate_idents(item)
 
     def _cancel_ident(ident: str) -> None:
         tkapp_local = getattr(widget, "tk", None)
@@ -85,13 +130,24 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
                 _cancel_ident(ident)
 
     try:
-        for name in dir(widget):
-            if name.endswith(("_anim", "_after", "_timer", "_animate")):
-                ident = getattr(widget, name, None)
-                if isinstance(ident, str) and ident not in cancelled:
-                    _cancel_ident(ident)
+        attributes = dict(vars(widget))
     except Exception:
-        pass
+        attributes = {}
+
+    for name, value in attributes.items():
+        cancel_by_name = isinstance(name, str) and name.endswith(
+            ("_anim", "_after", "_timer", "_animate", "_animation", "_animation_id")
+        )
+        for ident in _iter_candidate_idents(value):
+            if not isinstance(ident, str) or ident in cancelled:
+                continue
+            if cancel_by_name or _looks_like_after_ident(ident):
+                _cancel_ident(ident)
+                if cancel_by_name:
+                    try:
+                        setattr(widget, name, None)
+                    except Exception:
+                        pass
 
     for child in widget.winfo_children():
         cancel_after_events(child, cancelled)
@@ -111,6 +167,7 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
     # First try Tk's cross-platform reparent command if available
     try:
         widget.tk.call("tk::unsupported::reparent", str(widget), str(new_parent))
+        _update_widget_master(widget, new_parent)
         return
     except tk.TclError:
         pass
@@ -123,6 +180,7 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
                 widget.tk.call("place", "forget", str(widget))
             except tk.TclError as exc:
                 raise tk.TclError("SetParent failed") from exc
+        _update_widget_master(widget, new_parent)
     elif sys.platform.startswith("linux"):
         x11 = ctypes.cdll.LoadLibrary("libX11.so.6")
         display = x11.XOpenDisplay(None)
@@ -131,5 +189,13 @@ def reparent_widget(widget: tk.Widget, new_parent: tk.Widget) -> None:
         x11.XReparentWindow(display, wid, pid, 0, 0)
         x11.XFlush(display)
         x11.XCloseDisplay(display)
+        try:
+            widget.tk.call("place", str(widget), "-in", str(new_parent))
+            widget.tk.call("place", "forget", str(widget))
+        except tk.TclError:
+            pass
+        _update_widget_master(widget, new_parent)
     else:  # pragma: no cover - other platforms not implemented
         raise tk.TclError("OS-level reparenting not implemented")
+    if widget.master is not new_parent:
+        _update_widget_master(widget, new_parent)
