@@ -2308,8 +2308,8 @@ class AutoMLApp(
             self._update_analysis_menus(diagram_mode)
             return
 
-        dock_window = DockableDiagramWindow(self.doc_nb)
-        canvas_tab = dock_window.content_frame
+        canvas_tab = ttk.Frame(self.doc_nb)
+        dock_window = DockableDiagramWindow(canvas_tab)
         canvas_tab._dock_window = dock_window
         title = "FTA" if diagram_mode == "FTA" else diagram_mode
         dock_window.dock(self.doc_nb, len(self.doc_nb.tabs()), title)
