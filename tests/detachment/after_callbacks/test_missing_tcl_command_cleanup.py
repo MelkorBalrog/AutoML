@@ -61,3 +61,15 @@ class TestMissingCommandCleanup:
         assert "invalid command name" not in err
         assert "AttributeError" not in err
         root.destroy()
+
+    def test_cancel_registered_command_reference(self, capsys):
+        root, nb, btn, _ident = self._setup()
+        command_name = root.register(lambda: None)
+        job_id = root.tk.call("after", "1", command_name)
+        assert job_id  # ensure the command was scheduled
+        btn._animate = command_name  # type: ignore[attr-defined]
+        cancel_after_events(btn)
+        root.update()
+        err = capsys.readouterr().err
+        assert "invalid command name" not in err
+        root.destroy()

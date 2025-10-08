@@ -18,6 +18,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.282 - 2025-09-18
+
+- Harden ``cancel_after_events`` so it cancels pending Tk ``after`` jobs before
+  deleting their Tcl command shims, preventing floating diagram windows from
+  crashing with ``invalid command name`` errors during shutdown.
+- Extend the detachment regression suite with a scenario that registers Tcl
+  commands explicitly to confirm command-only references are cleaned up
+  correctly.
+
 ## 0.2.281 - 2025-09-17
 
 - Broaden Ghostscript detection to honour environment variables, search the
