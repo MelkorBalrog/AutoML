@@ -18,6 +18,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.280 - 2025-09-16
+
+- Cancel Tk ``after`` callbacks when the main event loop exits to prevent
+  ``invalid command`` crashes triggered by lingering animation hooks during
+  shutdown.
+- Destroy the root window through a guarded helper so shutdown runs safely even
+  if the UI was already torn down by the operating system.
+- Backport the cancellation helper into the launcher to keep Windows and Linux
+  behaviour consistent during application exit.
+
 ## 0.2.279 - 2025-09-15
 
 - Track dockable diagram notebook ownership to synchronise floating state and
