@@ -18,6 +18,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.281 - 2025-09-17
+
+- Broaden Ghostscript detection to honour environment variables, search the
+  system ``PATH``, and fall back to the Python wrapper so installations that
+  lack elevation complete successfully.
+- Expand the Ghostscript installation regression suite to cover the detection
+  helpers and confirm installation retries stop once any strategy succeeds.
+
 ## 0.2.280 - 2025-09-16
 
 - Cancel Tk ``after`` callbacks when the main event loop exits to prevent

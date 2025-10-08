@@ -28,6 +28,7 @@ is skipped.
 import argparse
 import importlib
 import os
+import shutil
 import subprocess
 import sys
 import types
@@ -130,6 +131,48 @@ REQUIRED_PACKAGES = [
 
 GS_PATH = Path(r"C:\\Program Files\\gs\\gs10.04.0\\bin\\gswin64c.exe")
 
+_GS_CANDIDATE_BINARIES = ("gswin64c.exe", "gswin32c.exe", "gs.exe")
+
+
+def _ghostscript_available() -> bool:
+    """Return ``True`` when a usable Ghostscript binary or module exists."""
+
+    if os.name != "nt":
+        return True
+
+    candidate_paths = [GS_PATH]
+    for env_key in ("GHOSTSCRIPT_EXE", "GHOSTSCRIPT_PATH"):
+        env_value = os.environ.get(env_key)
+        if env_value:
+            candidate_paths.append(Path(env_value))
+
+    for path in candidate_paths:
+        if isinstance(path, Path) and path.exists():
+            return True
+
+    for binary in _GS_CANDIDATE_BINARIES:
+        resolved = shutil.which(binary)
+        if resolved:
+            return True
+
+    try:
+        import ghostscript  # type: ignore[import-not-found]
+    except Exception:
+        return False
+
+    try:
+        # ``ghostscript`` initialises a shared library when available.  The
+        # initialisation raises ``OSError`` if the native binary is missing.
+        ghostscript.Ghostscript("-h")  # type: ignore[attr-defined]
+    except OSError:
+        return False
+    except Exception:
+        # Any other exception indicates the library was found but the
+        # invocation failed due to arguments; treat it as available.
+        return True
+    else:
+        return True
+
 
 _watchdog_stop: threading.Event | None = None
 _model_cleanup_stop: threading.Event | None = None
@@ -206,7 +249,7 @@ def ensure_ghostscript() -> None:
     """
     if os.name != "nt":
         return
-    if GS_PATH.exists():
+    if _ghostscript_available():
         return
     installers = [
         _install_ghostscript_via_winget,
@@ -216,7 +259,7 @@ def ensure_ghostscript() -> None:
     ]
     for installer in installers:
         if installer():
-            if GS_PATH.exists():
+            if _ghostscript_available():
                 return
     raise RuntimeError("Ghostscript installation failed")
 

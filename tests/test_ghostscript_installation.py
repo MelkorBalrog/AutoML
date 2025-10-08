@@ -16,8 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import pytest
+from pathlib import Path
+import sys
+from types import SimpleNamespace
 from unittest import mock
+
+import pytest
 
 import automl as launcher
 
@@ -31,17 +35,16 @@ def test_ensure_ghostscript_non_windows():
 def test_ensure_ghostscript_already_present():
     with mock.patch.object(launcher, "os") as m_os:
         m_os.name = "nt"
-        with mock.patch.object(launcher, "GS_PATH") as gs_path:
-            gs_path.exists.return_value = True
+        with mock.patch.object(launcher, "_ghostscript_available", return_value=True) as available:
             launcher.ensure_ghostscript()
-            gs_path.exists.assert_called_once()
+            available.assert_called_once()
 
 
 def test_ensure_ghostscript_installs():
     with mock.patch.object(launcher, "os") as m_os:
         m_os.name = "nt"
-        with mock.patch.object(launcher, "GS_PATH") as gs_path:
-            gs_path.exists.side_effect = [False, True]
+        availability = mock.Mock(side_effect=[False, False, True])
+        with mock.patch.object(launcher, "_ghostscript_available", availability):
             calls = []
 
             def fake_check_call(cmd, *args, **kwargs):
@@ -59,10 +62,34 @@ def test_ensure_ghostscript_installs():
 def test_ensure_ghostscript_failure():
     with mock.patch.object(launcher, "os") as m_os:
         m_os.name = "nt"
-        with mock.patch.object(launcher, "GS_PATH") as gs_path:
-            gs_path.exists.return_value = False
+        with mock.patch.object(launcher, "_ghostscript_available", return_value=False):
             def fail(*args, **kwargs):
                 raise FileNotFoundError
+
             with mock.patch.object(launcher.subprocess, "check_call", side_effect=fail):
                 with pytest.raises(RuntimeError):
                     launcher.ensure_ghostscript()
+
+
+def test_ghostscript_available_env_path(tmp_path, monkeypatch):
+    fake_path = tmp_path / "gswin64c.exe"
+    fake_path.write_text("echo")
+    monkeypatch.setattr(launcher, "os", SimpleNamespace(name="nt", environ={"GHOSTSCRIPT_EXE": str(fake_path)}))
+    assert launcher._ghostscript_available()
+
+
+def test_ghostscript_available_module(monkeypatch):
+    dummy_module = SimpleNamespace()
+
+    class DummyGhostscript:
+        def __init__(self, *_args, **_kwargs):
+            raise RuntimeError("usage error")
+
+    dummy_module.Ghostscript = DummyGhostscript
+    monkeypatch.setitem(sys.modules, "ghostscript", dummy_module)
+    monkeypatch.setattr(launcher, "os", SimpleNamespace(name="nt", environ={}))
+    with mock.patch.object(launcher, "GS_PATH", Path("/does/not/exist")):
+        with mock.patch.object(launcher.shutil, "which", return_value=None):
+            assert launcher._ghostscript_available()
+
+    sys.modules.pop("ghostscript", None)
