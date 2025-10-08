@@ -82,12 +82,61 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
 
     def _cancel_ident(ident: str) -> None:
         tkapp_local = getattr(widget, "tk", None)
-        if tkapp_local is None:
+        if tkapp_local is None or not ident:
             return
-        try:
-            tkapp_local.call("after", "cancel", ident)
-        except Exception:
-            pass
+
+        cancelled.add(ident)
+        cancelled_any = False
+
+        def _cancel_after_id(after_id: str) -> bool:
+            if not after_id or after_id in cancelled:
+                return False
+            try:
+                tkapp_local.call("after", "cancel", after_id)
+            except Exception:
+                return False
+            cancelled.add(after_id)
+            return True
+
+        def _iter_all_after_ids() -> t.Iterator[str]:
+            try:
+                all_ids = tkapp_local.call("after", "info")
+            except Exception:
+                return iter(())
+            if isinstance(all_ids, str):
+                all_ids = (all_ids,)
+            return (item for item in all_ids if isinstance(item, str))
+
+        if _cancel_after_id(ident):
+            cancelled_any = True
+        else:
+            try:
+                script = tkapp_local.call("after", "info", ident)
+            except Exception:
+                script = None
+            if script:
+                if _cancel_after_id(ident):
+                    cancelled_any = True
+
+        if not cancelled_any:
+            for after_id in _iter_all_after_ids():
+                if after_id in cancelled:
+                    continue
+                try:
+                    script = tkapp_local.call("after", "info", after_id)
+                except Exception:
+                    continue
+                if isinstance(script, (tuple, list)):
+                    script_text = " ".join(map(str, script))
+                else:
+                    script_text = str(script)
+                if ident in script_text:
+                    if _cancel_after_id(after_id):
+                        cancelled_any = True
+
+        if not cancelled_any:
+            return
+
         try:
             tkapp_local.deletecommand(ident)
         except Exception:
@@ -98,12 +147,11 @@ def cancel_after_events(widget: tk.Widget, cancelled: set[str] | None = None) ->
             root = None
         if root is not None:
             tcl_cmds = getattr(root, "_tclCommands", None)
-            if tcl_cmds is not None and ident in tcl_cmds:
+            if isinstance(tcl_cmds, dict) and ident in tcl_cmds:
                 try:
                     root.deletecommand(ident)
                 except Exception:
                     pass
-        cancelled.add(ident)
 
     tkapp = getattr(widget, "tk", None)
     if tkapp is not None and getattr(tkapp, "call", None) is not None:
