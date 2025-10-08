@@ -70,20 +70,44 @@ class WidgetTransferManager:
 
         dock = getattr(orig, "_dock_window", None)
         if isinstance(dock, DDW):
+            current_notebook = getattr(dock, "_notebook", None)
+            width = source.winfo_width() or orig.winfo_width() or 200
+            height = source.winfo_height() or orig.winfo_height() or 200
+            x = source.winfo_rootx()
+            y = source.winfo_rooty()
             try:
-                if dock._notebook is source:
-                    width = source.winfo_width() or 200
-                    height = source.winfo_height() or 200
-                    x = source.winfo_rootx()
-                    y = source.winfo_rooty()
-                    dock.float(x, y, width, height)
+                if current_notebook is target:
+                    try:
+                        target.select(dock.content_frame)
+                    except tk.TclError:
+                        pass
+                    return orig
+                if current_notebook is source:
+                    try:
+                        source.forget(orig)
+                    except tk.TclError:
+                        pass
+                    dock.float(width, height, x, y, text)
+                    dock._notebook = None
                 else:
+                    try:
+                        source.forget(orig)
+                    except tk.TclError:
+                        pass
                     dock.dock(target, len(target.tabs()), text)
-                    target.select(dock.content_frame)
+                    dock._notebook = target
+                    try:
+                        target.select(dock.content_frame)
+                    except tk.TclError:
+                        pass
             except tk.TclError as exc:
                 try:
                     dock.dock(source, len(source.tabs()), text)
-                    source.select(dock.content_frame)
+                    dock._notebook = source
+                    try:
+                        source.select(dock.content_frame)
+                    except tk.TclError:
+                        pass
                 except tk.TclError:
                     pass
                 raise exc

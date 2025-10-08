@@ -18,6 +18,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.279 - 2025-09-15
+
+- Track dockable diagram notebook ownership to synchronise floating state and
+  prevent stale references when windows detach or re-dock between notebooks.
+- Guard dockable detachment in the widget transfer manager, releasing tabs
+  before floating, restoring dimensions, and updating notebook ownership
+  across success and rollback paths.
+- Extend dockable window and transfer regression suites to verify floating
+  geometry, notebook tracking, and tab ownership updates during detach flows.
+
 ## 0.2.278 - 2025-09-14
 
 - Correct Win32 resize hook to read ``WINDOWPOS`` structures instead of masking
