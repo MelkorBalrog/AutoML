@@ -22,6 +22,7 @@ import math
 import sys
 import json
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 import tkinter as tk
 import os, sys
 import threading
@@ -38,6 +39,7 @@ from gui.dialogs.dialog_utils import askstring_fixed
 from gui.controls import messagebox
 from gui.utils import logger, add_treeview_scrollbars
 from gui.controls.button_utils import enable_listbox_hover_highlight
+from gui.utils.tk_utils import cancel_after_events
 from gui.utils.tooltip import ToolTip
 from gui.styles.style_manager import StyleManager
 from gui.toolboxes.review_toolbox import ReviewData, ReviewParticipant, ReviewComment
@@ -3090,6 +3092,17 @@ def load_user_data() -> tuple[dict, tuple[str, str]]:
         return users_future.result(), config_future.result()
 
 
+def _shutdown_root(root: tk.Misc) -> None:
+    """Cancel pending callbacks and destroy *root* safely."""
+
+    try:
+        cancel_after_events(root)
+    except Exception as exc:  # pragma: no cover - defensive shutdown path
+        logger.warning("Failed to cancel Tk callbacks during shutdown: %s", exc)
+    with suppress(tk.TclError):
+        root.destroy()
+
+
 def _launch_app() -> None:
     root = tk.Tk()
     root.minsize(1200, 700)
@@ -3125,7 +3138,10 @@ def _launch_app() -> None:
         except tk.TclError:
             pass
     app = AutoMLApp(root)
-    root.mainloop()
+    try:
+        root.mainloop()
+    finally:
+        _shutdown_root(root)
 
 
 def _watchdog_feeder(wd, stop_event, interval: float = 1.0) -> None:
