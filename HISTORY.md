@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.280 - 2025-09-16
+
+- Cancel splash screen animation and fade timers before destruction to prevent
+  ``invalid command name *_animate`` errors during shutdown.
+- Add regression tests confirming splash screen cleanup removes ``_animate``
+  callbacks from Tk's scheduler and Tcl command registry.
+
 ## 0.2.279 - 2025-09-15
 
 - Track dockable diagram notebook ownership to synchronise floating state and
