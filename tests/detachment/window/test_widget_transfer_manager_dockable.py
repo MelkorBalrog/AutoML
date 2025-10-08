@@ -43,6 +43,7 @@ class TestWidgetTransferManagerDockable:
         frame.pack()
         dock_win.content_frame._dock_window = dock_win
         dock_win.dock(nb1, 0, "Tab1")
+        dock_win._notebook = None
 
         manager = WidgetTransferManager()
         called: dict[str, bool] = {"dock": False}
@@ -66,4 +67,46 @@ class TestWidgetTransferManagerDockable:
         assert called["dock"]
         assert moved is dock_win.content_frame
         assert nb2.nametowidget(nb2.tabs()[0]) is dock_win.content_frame
+        assert dock_win._notebook is nb2
+        root.destroy()
+
+    def test_dockable_detach_floats_and_updates_tracking(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb1 = ClosableNotebook(root)
+        nb1.pack()
+        nb2 = ClosableNotebook(root)
+        nb2.pack()
+        dock_win = DockableDiagramWindow(root)
+        frame = tk.Frame(dock_win.content_frame)
+        frame.pack()
+        dock_win.content_frame._dock_window = dock_win
+        dock_win.dock(nb1, 0, "TabFloat")
+        nb1.update_idletasks()
+
+        tabs_before = list(nb1.tabs())
+        called: dict[str, bool] = {"float": False}
+
+        def spy_float(width, height, x, y, title):  # noqa: ANN001 - test helper
+            called["float"] = True
+            assert tabs_before[0] not in nb1.tabs()
+            assert width > 0
+            assert height > 0
+            assert title == "TabFloat"
+            dock_win.float(width, height, x, y, title)
+
+        monkeypatch.setattr(dock_win, "float", spy_float)
+
+        manager = WidgetTransferManager()
+        tab_id = nb1.tabs()[0]
+        moved = manager.detach_tab(nb1, tab_id, nb2)
+
+        assert called["float"]
+        assert moved is dock_win.content_frame
+        assert dock_win._notebook is None
+        assert dock_win.toplevel is dock_win.win
+        if dock_win.toplevel is not None and dock_win.toplevel.winfo_exists():
+            dock_win.toplevel.destroy()
         root.destroy()

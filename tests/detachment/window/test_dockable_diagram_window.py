@@ -143,6 +143,7 @@ class TestDockableDiagramWindow:
         assert info.get("expand") == "1"
         assert dw.win.winfo_viewable()
         assert dw.win.title() == "Float Title"
+        assert dw._notebook is None
 
         dw.win.destroy()
         root.destroy()
@@ -281,6 +282,34 @@ class TestDockableDiagramWindow:
         if dw.toplevel is not None and dw.toplevel.winfo_exists():
             dw.toplevel.destroy()
         root.destroy()
+        root.destroy()
+
+    def test_dock_and_float_update_notebook_tracking_and_geometry(self) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(root)
+        dw = DockableDiagramWindow(frame)
+
+        dw.dock(nb, 0, "Track")
+        assert dw._notebook is nb
+        assert nb.nametowidget(nb.tabs()[0]) is frame
+
+        nb.update_idletasks()
+        x = nb.winfo_rootx() + 25
+        y = nb.winfo_rooty() + 30
+        dw.float(320, 260, x, y, "Tracking")
+        dw.win.update_idletasks()
+        assert dw._notebook is None
+        assert dw.win.geometry().startswith(f"320x260+{x}+{y}")
+        container = dw._float_container
+        assert container is not None
+        assert frame.master is container
+
+        dw.win.destroy()
         root.destroy()
 
     def test_win_creates_toplevel_once(self) -> None:

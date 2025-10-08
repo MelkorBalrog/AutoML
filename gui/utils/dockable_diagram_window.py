@@ -40,6 +40,7 @@ class DockableDiagramWindow:
         self.toplevel: tk.Toplevel | None = None
         self._float_container: ttk.Frame | None = None
         self._resizer: WindowResizeController | None = None
+        self._notebook: ttk.Notebook | None = None
 
     @property
     def win(self) -> tk.Toplevel:
@@ -103,6 +104,7 @@ class DockableDiagramWindow:
         self.toplevel = None
         self._float_container = None
         self._resizer = None
+        self._notebook = None
 
     def _cleanup_after_events(self) -> None:
         """Cancel outstanding ``after`` callbacks tied to floating widgets."""
@@ -158,6 +160,7 @@ class DockableDiagramWindow:
                 pass
         if self._resizer is not None:
             self._resizer.remove_target(self.content_frame)
+        self._notebook = notebook
 
     def float(self, width: int, height: int, x: int, y: int, title: str) -> None:
         """Show the diagram in a separate top-level window."""
@@ -195,3 +198,4 @@ class DockableDiagramWindow:
             win.lift()
         except tk.TclError:
             pass
+        self._notebook = None
