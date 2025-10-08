@@ -21,6 +21,8 @@ import math
 import random
 from PIL import Image, ImageDraw, ImageTk, ImageFont
 
+from gui.utils.tk_utils import cancel_after_events
+
 
 class SplashScreen(tk.Toplevel):
     """Simple splash screen with rotating cube and gear."""
@@ -39,6 +41,7 @@ class SplashScreen(tk.Toplevel):
         self.duration = duration
         self.overrideredirect(True)
         self._on_close = on_close
+        self._closed = False
 
         # Track whether transparency is supported
         try:
@@ -489,6 +492,13 @@ class SplashScreen(tk.Toplevel):
 
     def _close(self):
         """Destroy splash screen and accompanying shadow window."""
+        if self._closed:
+            return
+        self._closed = True
+        cancel_after_events(self)
+        shadow = getattr(self, "shadow", None)
+        if isinstance(shadow, tk.Misc):
+            cancel_after_events(shadow)
         try:
             self.shadow.destroy()
         except Exception:
