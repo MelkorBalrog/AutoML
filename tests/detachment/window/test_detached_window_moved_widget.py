@@ -1,3 +1,4 @@
+# GNU disclaimer
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
@@ -24,6 +25,7 @@ from tkinter import ttk
 
 import pytest
 
+from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.detached_window import DetachedWindow
 
 
@@ -80,4 +82,76 @@ class TestDetachedWindowMovedWidget:
         count = diagram.log.count("switch")
         diagram.toolbox_selector.event_generate("<<ComboboxSelected>>")
         assert diagram.log.count("switch") == count + 1
+        root.destroy()
+
+    def test_detached_content_tracks_floating_window_resize(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        nb = ClosableNotebook(root)
+        nb.pack(expand=True, fill="both")
+
+        class TrackingDetachedWindow(DetachedWindow):
+            created: list["TrackingDetachedWindow"] = []
+
+            def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003 - signature from parent
+                super().__init__(*args, **kwargs)
+                TrackingDetachedWindow.created.append(self)
+
+        monkeypatch.setattr(
+            "gui.utils.closable_notebook.DetachedWindow", TrackingDetachedWindow
+        )
+        TrackingDetachedWindow.created.clear()
+
+        class LoggedFrame(tk.Frame):
+            def __init__(self, master: tk.Misc) -> None:
+                super().__init__(master)
+                self.events: list[str] = []
+                self.bind("<<HostWindowResized>>", self._on_host_resize, add="+")
+
+            def _on_host_resize(self, event: tk.Event) -> None:  # pragma: no cover - Tk callback
+                data = getattr(event, "data", "")
+                if not data:
+                    width = getattr(event, "width", 0)
+                    height = getattr(event, "height", 0)
+                    data = f"{width}x{height}"
+                self.events.append(str(data))
+
+        frame = LoggedFrame(nb)
+        nb.add(frame, text="Detached")
+        root.update_idletasks()
+
+        tabs = nb.tabs()
+        assert tabs
+        nb._detach_tab(tabs[0], 120, 160)
+
+        assert TrackingDetachedWindow.created
+        detached = TrackingDetachedWindow.created[-1]
+        win = detached.win
+        win.update_idletasks()
+
+        frame.events.clear()
+        win.geometry("420x315+40+40")
+        win.update()
+        win.update_idletasks()
+
+        assert frame.events, "Detached widget did not receive resize notification"
+        size_tokens = frame.events[-1].split("x")
+        assert len(size_tokens) == 2
+        width, height = map(int, size_tokens)
+        assert width == 420
+        assert height == 315
+        assert frame.winfo_width() == 420
+
+        nb.configure(width=200, height=180)
+        root.update_idletasks()
+        assert frame.events[-1] == "420x315"
+        assert frame.winfo_width() == 420
+
+        if detached.win.winfo_exists():
+            detached.win.destroy()
         root.destroy()

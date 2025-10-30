@@ -18,6 +18,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.283 - 2025-09-19
+
+- Ensure detached notebook tabs register with the floating window helper so
+  resize tracking and lifecycle hooks initialise together, preserving toolbox
+  activation after detachment.
+- Extend the detachment window regression suite with a resize scenario that
+  confirms floating windows propagate geometry updates to their hosted content
+  independently of the originating notebook.
+
 ## 0.2.282 - 2025-09-18
 
 - Harden ``cancel_after_events`` so it cancels pending Tk ``after`` jobs before

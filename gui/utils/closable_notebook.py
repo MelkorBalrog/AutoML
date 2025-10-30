@@ -1,3 +1,4 @@
+# GNU disclaimer
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
@@ -941,8 +942,11 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             logger.exception("Failed to detach tab %s", tab_id)
             return
-        dw._ensure_toolbox(child)
-        dw._activate_hooks(child)
+        try:
+            text = dw.nb.tab(child, "text")
+        except Exception:
+            text = ""
+        dw.add_moved_widget(child, text)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
