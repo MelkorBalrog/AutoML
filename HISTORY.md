@@ -18,6 +18,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.284 - 2025-09-20
+
+- Uninstall Windows resize hooks during interpreter shutdown and register a
+  global cleanup handler so callbacks are never invoked after the GIL is
+  released, avoiding Tk crashes when detached windows close.
+- Keep window resize controllers removing native hooks even while Python is
+  finalizing so floating diagram windows stop receiving Win32 messages during
+  teardown.
+
 ## 0.2.283 - 2025-09-19
 
 - Ensure detached tabs register with floating window resizers so diagrams resize

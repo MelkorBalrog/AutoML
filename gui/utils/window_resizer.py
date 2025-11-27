@@ -126,31 +126,7 @@ class WindowResizeController:
     def shutdown(self) -> None:
         """Release bindings and native hooks held by the controller."""
 
-        if _python_is_finalizing():
-            # Avoid manipulating Tk or Win32 hooks while the interpreter is
-            # finalizing to prevent callbacks from firing without a valid GIL.
-            self._win32_hook = None
-            self._targets.clear()
-            self._primary = None
-            self._last_size = None
-            return
-
-        unbind = getattr(self.win, "unbind", None)
-        if callable(unbind):
-            if self._binding_id is not None:
-                try:
-                    unbind("<Configure>", self._binding_id)
-                except Exception:
-                    pass
-                self._binding_id = None
-            if self._destroy_binding_id is not None:
-                try:
-                    unbind("<Destroy>", self._destroy_binding_id)
-                except Exception:
-                    pass
-                self._destroy_binding_id = None
-
-        self._callback = None
+        finalizing = _python_is_finalizing()
 
         hook = self._win32_hook
         if hook is not None:
@@ -160,6 +136,23 @@ class WindowResizeController:
                 pass
             self._win32_hook = None
 
+        if not finalizing:
+            unbind = getattr(self.win, "unbind", None)
+            if callable(unbind):
+                if self._binding_id is not None:
+                    try:
+                        unbind("<Configure>", self._binding_id)
+                    except Exception:
+                        pass
+                    self._binding_id = None
+                if self._destroy_binding_id is not None:
+                    try:
+                        unbind("<Destroy>", self._destroy_binding_id)
+                    except Exception:
+                        pass
+                    self._destroy_binding_id = None
+
+        self._callback = None
         self._targets.clear()
         self._primary = None
         self._last_size = None
