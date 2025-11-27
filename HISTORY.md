@@ -18,6 +18,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.285 - 2025-09-21
+
+- Strengthen thread shutdown by signalling registered stop events or callbacks,
+  joining with sensible timeouts, and logging unresponsive workers so
+  background feeders exit cleanly.
+- Invoke the improved shutdown path during application teardown to stop the
+  watchdog feeder before Python finalization begins.
+- Expand the thread manager regression suite to cover stop signalling and
+  warnings for threads that outlive the configured timeout.
+
 ## 0.2.284 - 2025-09-20
 
 - Uninstall Windows resize hooks during interpreter shutdown and register a

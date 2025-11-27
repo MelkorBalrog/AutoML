@@ -3157,11 +3157,15 @@ def main() -> None:
     install_best()
     wd = watchdog_best(10.0)
     stop_event = threading.Event()
-    thread_manager.register("watchdog", _watchdog_feeder, args=(wd, stop_event))
+    thread_manager.register(
+        "watchdog",
+        _watchdog_feeder,
+        args=(wd, stop_event),
+        stop_event=stop_event,
+    )
     try:
         _launch_app()
     finally:
-        stop_event.set()
         thread_manager.stop_all()
 
 if __name__ == "__main__":
