@@ -941,8 +941,15 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             logger.exception("Failed to detach tab %s", tab_id)
             return
-        dw._ensure_toolbox(child)
-        dw._activate_hooks(child)
+        try:
+            title = self.tab(child, "text")
+        except Exception:
+            title = ""
+        try:
+            dw.add_moved_widget(child, title)
+        except Exception:
+            dw._ensure_toolbox(child)
+            dw._activate_hooks(child)
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
