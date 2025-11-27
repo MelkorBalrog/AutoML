@@ -19,9 +19,11 @@
 
 from __future__ import annotations
 
+import atexit
 import logging
 import sys
 import typing as t
+import weakref
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,6 +41,8 @@ def _python_is_finalizing() -> bool:
 if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
     import ctypes
     from ctypes import wintypes
+
+    _HOOKS: "weakref.WeakSet[_Win32WindowProcHook]" = weakref.WeakSet()
 
     LRESULT = wintypes.LPARAM
     WNDPROC = ctypes.WINFUNCTYPE(
@@ -128,6 +132,7 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
             self._original: int | None = None
             self._wnd_proc = WNDPROC(self._procedure)
             self._install()
+            _HOOKS.add(self)
 
         def _install(self) -> None:
             proc_pointer = ctypes.cast(self._wnd_proc, ctypes.c_void_p).value
@@ -143,6 +148,10 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
                 _set_window_proc(self.hwnd, self._original)
             finally:
                 self._original = None
+                try:
+                    _HOOKS.discard(self)
+                except Exception:
+                    pass
 
         def _procedure(self, hwnd, msg, wparam, lparam):  # noqa: ANN001
             if _python_is_finalizing():
@@ -190,10 +199,29 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
             return int(windowpos.cx), int(windowpos.cy)
 
         def __del__(self) -> None:
+            if _python_is_finalizing():
+                try:
+                    _HOOKS.discard(self)
+                except Exception:
+                    pass
+                return
             try:
                 self.uninstall()
             except Exception:
                 LOGGER.debug("Ignoring error while uninstalling Win32 hook", exc_info=True)
+                try:
+                    _HOOKS.discard(self)
+                except Exception:
+                    pass
+
+    def _uninstall_registered_hooks() -> None:
+        for hook in list(_HOOKS):
+            try:
+                hook.uninstall()
+            except Exception:
+                LOGGER.debug("Ignoring error during registered hook uninstall", exc_info=True)
+
+    atexit.register(_uninstall_registered_hooks)
 else:  # pragma: no cover - exercised only on non-Windows platforms
 
     class _Win32WindowProcHook:  # type: ignore[no-redef]
