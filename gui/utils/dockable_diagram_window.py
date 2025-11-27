@@ -60,6 +60,11 @@ class DockableDiagramWindow:
             except Exception:
                 pass
             self.toplevel.bind("<Destroy>", self._on_destroy, add="+")
+        elif self._resizer is None:
+            try:
+                self._resizer = WindowResizeController(self.toplevel)
+            except Exception:
+                self._resizer = None
         return self.toplevel
 
     def _ensure_float_container(self, win: tk.Toplevel) -> ttk.Frame:
@@ -96,11 +101,7 @@ class DockableDiagramWindow:
         """Reset cached handles when the floating window is destroyed."""
 
         self._cleanup_after_events()
-        if self._resizer is not None:
-            try:
-                self._resizer.shutdown()
-            except Exception:
-                pass
+        self._shutdown_resizer()
         self.toplevel = None
         self._float_container = None
         self._resizer = None
@@ -122,12 +123,7 @@ class DockableDiagramWindow:
 
         win = self.toplevel
         self._cleanup_after_events()
-        if self._resizer is not None:
-            try:
-                self._resizer.shutdown()
-            except Exception:
-                pass
-            self._resizer = None
+        self._shutdown_resizer()
         if win is not None:
             try:
                 win.destroy()
@@ -153,6 +149,7 @@ class DockableDiagramWindow:
         else:
             notebook.insert(index, self.content_frame, text=title)
         notebook.select(self.content_frame)
+        self._shutdown_resizer()
         if self.toplevel is not None and self.toplevel.winfo_exists():
             try:
                 self.toplevel.withdraw()
@@ -199,3 +196,13 @@ class DockableDiagramWindow:
         except tk.TclError:
             pass
         self._notebook = None
+
+    def _shutdown_resizer(self) -> None:
+        resizer = self._resizer
+        if resizer is None:
+            return
+        try:
+            resizer.shutdown()
+        except Exception:
+            pass
+        self._resizer = None
