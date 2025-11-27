@@ -28,6 +28,14 @@ import weakref
 LOGGER = logging.getLogger(__name__)
 
 _IS_WINDOWS = sys.platform.startswith("win")
+SHUTTING_DOWN = False
+
+
+def begin_shutdown() -> None:
+    """Mark the module as shutting down to stop further callbacks."""
+
+    global SHUTTING_DOWN
+    SHUTTING_DOWN = True
 
 
 def _python_is_finalizing() -> bool:
@@ -154,7 +162,7 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
                     pass
 
         def _procedure(self, hwnd, msg, wparam, lparam):  # noqa: ANN001
-            if _python_is_finalizing():
+            if SHUTTING_DOWN or _python_is_finalizing():
                 original = self._original
                 if original:
                     return _CALL_WINDOW_PROC(original, hwnd, msg, wparam, lparam)
@@ -215,6 +223,7 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
                     pass
 
     def _uninstall_registered_hooks() -> None:
+        begin_shutdown()
         for hook in list(_HOOKS):
             try:
                 hook.uninstall()
@@ -248,5 +257,5 @@ def create_window_size_hook(
         return None
 
 
-__all__ = ["create_window_size_hook"]
+__all__ = ["SHUTTING_DOWN", "begin_shutdown", "create_window_size_hook"]
 
