@@ -18,6 +18,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.283 - 2025-09-19
+
+- Ensure detached tabs register with floating window resizers so diagrams resize
+  with their new host windows instead of the original notebooks, avoiding
+  crashes during window configuration.
+- Add a regression test covering the detachment flow to verify resized diagrams
+  are tracked by the floating window resizer and remain linked to their new
+  window instances.
+
 ## 0.2.282 - 2025-09-18
 
 - Harden ``cancel_after_events`` so it cancels pending Tk ``after`` jobs before
