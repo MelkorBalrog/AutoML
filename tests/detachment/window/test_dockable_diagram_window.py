@@ -27,6 +27,7 @@ from tkinter import ttk
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.dockable_diagram_window import DockableDiagramWindow
 from gui.utils.tk_utils import reparent_widget
+from gui.utils import win32_hooks
 
 @pytest.mark.detachment
 @pytest.mark.dockable
@@ -245,6 +246,65 @@ class TestDockableDiagramWindow:
         if dw.toplevel is not None:
             dw.toplevel.destroy()
         root.destroy()
+
+    def test_floating_window_shutdown_on_dock_and_destroy(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            pytest.skip("Tk not available")
+
+        shutdown_calls: list[str] = []
+
+        class FakeResizer:
+            def __init__(self, win: tk.Misc) -> None:  # noqa: D401
+                self.win = win
+                self.shutdown_called = False
+
+            def set_primary_target(self, widget: tk.Widget | None) -> None:  # noqa: ANN001
+                self.target = widget
+
+            def add_target(self, widget: tk.Widget | None) -> None:  # noqa: ANN001
+                self.target = widget
+
+            def remove_target(self, widget: tk.Widget | None) -> None:  # noqa: ANN001
+                if getattr(self, "target", None) is widget:
+                    self.target = None
+
+            def shutdown(self) -> None:
+                self.shutdown_called = True
+                shutdown_calls.append("shutdown")
+
+        monkeypatch.setattr(
+            "gui.utils.dockable_diagram_window.WindowResizeController", FakeResizer
+        )
+
+        nb = ClosableNotebook(root)
+        nb.pack()
+        frame = ttk.Frame(nb)
+        nb.add(frame, text="Tab")
+        dw = DockableDiagramWindow(frame)
+
+        dw.float(200, 200, 0, 0, "Floating")
+        initial_resizer = dw._resizer
+        win32_hooks.SHUTTING_DOWN = False
+        win32_hooks.begin_shutdown()
+        dw.dock(nb, 0, "Docked")
+        assert isinstance(initial_resizer, FakeResizer)
+        assert initial_resizer.shutdown_called
+
+        win32_hooks.SHUTTING_DOWN = False
+        dw.float(200, 200, 0, 0, "Floating Again")
+        second_resizer = dw._resizer
+        win32_hooks.begin_shutdown()
+        dw._on_close()
+        assert isinstance(second_resizer, FakeResizer)
+        assert second_resizer.shutdown_called
+
+        root.destroy()
+        win32_hooks.SHUTTING_DOWN = False
+        assert shutdown_calls
 
     def test_reparent_widget_noop_when_parent_same(self) -> None:
         try:

@@ -161,12 +161,23 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
                 except Exception:
                     pass
 
+        def _forward_to_original(self, hwnd, msg, wparam, lparam):  # noqa: ANN001
+            original = self._original
+            if original:
+                return _CALL_WINDOW_PROC(original, hwnd, msg, wparam, lparam)
+            return _DEF_WINDOW_PROC(hwnd, msg, wparam, lparam)
+
         def _procedure(self, hwnd, msg, wparam, lparam):  # noqa: ANN001
-            if SHUTTING_DOWN or _python_is_finalizing():
-                original = self._original
-                if original:
-                    return _CALL_WINDOW_PROC(original, hwnd, msg, wparam, lparam)
-                return _DEF_WINDOW_PROC(hwnd, msg, wparam, lparam)
+            if SHUTTING_DOWN:
+                return self._forward_to_original(hwnd, msg, wparam, lparam)
+
+            try:
+                finalizing = _python_is_finalizing()
+            except Exception:
+                finalizing = True
+
+            if finalizing:
+                return self._forward_to_original(hwnd, msg, wparam, lparam)
 
             dimensions: tuple[int, int] | None = None
             if msg == WM_SIZE:
@@ -179,10 +190,7 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
                     self._callback(width, height)
                 except Exception:  # pragma: no cover - logging only
                     LOGGER.exception("Failed to propagate WM_SIZE event")
-            original = self._original
-            if original:
-                return _CALL_WINDOW_PROC(original, hwnd, msg, wparam, lparam)
-            return _DEF_WINDOW_PROC(hwnd, msg, wparam, lparam)
+            return self._forward_to_original(hwnd, msg, wparam, lparam)
 
         @staticmethod
         def _extract_wm_size_dimensions(lparam: int) -> tuple[int, int]:
