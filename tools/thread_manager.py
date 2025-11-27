@@ -27,9 +27,13 @@ callable and arguments.  This lightweight approach helps keep the tool in
 sync and improves overall robustness.
 """
 
+import logging
 from dataclasses import dataclass
 import threading
 from typing import Any, Callable, Dict, Optional, Tuple
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -39,6 +43,8 @@ class _ThreadInfo:
     kwargs: Dict[str, Any]
     daemon: bool
     thread: threading.Thread
+    stop_callback: Optional[Callable[[], None]]
+    stop_event: Optional[threading.Event]
 
 
 class ThreadMonitor(threading.Thread):
@@ -65,6 +71,8 @@ class ThreadMonitor(threading.Thread):
 class ThreadManager:
     """Register and monitor worker threads."""
 
+    _DEFAULT_JOIN_TIMEOUT = 5.0
+
     def __init__(self, interval: float = 1.0) -> None:
         self._threads: Dict[str, _ThreadInfo] = {}
         self._lock = threading.Lock()
@@ -79,6 +87,8 @@ class ThreadManager:
         args: Tuple[Any, ...] | None = None,
         kwargs: Optional[Dict[str, Any]] = None,
         daemon: bool = True,
+        stop_callback: Optional[Callable[[], None]] = None,
+        stop_event: Optional[threading.Event] = None,
     ) -> threading.Thread:
         """Register and start *target* as a monitored thread."""
         if args is None:
@@ -88,14 +98,24 @@ class ThreadManager:
         thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=daemon)
         thread.start()
         with self._lock:
-            self._threads[name] = _ThreadInfo(target, args, kwargs, daemon, thread)
+            self._threads[name] = _ThreadInfo(
+                target,
+                args,
+                kwargs,
+                daemon,
+                thread,
+                stop_callback,
+                stop_event,
+            )
         return thread
 
     def register_current(self, name: str) -> threading.Thread:
         """Register the currently running thread without starting a new one."""
         thread = threading.current_thread()
         with self._lock:
-            self._threads[name] = _ThreadInfo(None, (), {}, thread.daemon, thread)
+            self._threads[name] = _ThreadInfo(
+                None, (), {}, thread.daemon, thread, None, None
+            )
         return thread
 
     def unregister(self, name: str) -> Optional[threading.Thread]:
@@ -118,19 +138,47 @@ class ThreadManager:
                     )
                     thread.start()
                     self._threads[name] = _ThreadInfo(
-                        info.target, info.args, info.kwargs, info.daemon, thread
+                        info.target,
+                        info.args,
+                        info.kwargs,
+                        info.daemon,
+                        thread,
+                        info.stop_callback,
+                        info.stop_event,
                     )
 
-    def stop_all(self) -> None:
-        """Stop monitoring and wait for all threads to finish."""
+    def stop_all(self, *, timeout: Optional[float] = None) -> None:
+        """Stop monitoring, request shutdown, and wait for all threads to finish."""
+
+        join_timeout = self._DEFAULT_JOIN_TIMEOUT if timeout is None else timeout
         self._monitor.stop()
-        self._monitor.join()
+        self._monitor.join(timeout=join_timeout)
+        if self._monitor.is_alive():
+            logger.warning(
+                "Thread monitor did not terminate within %.1f seconds", join_timeout
+            )
+
         with self._lock:
-            threads = list(self._threads.values())
+            threads = list(self._threads.items())
             self._threads.clear()
-        for info in threads:
-            if info.thread.is_alive() and info.thread is not threading.current_thread():
-                info.thread.join(timeout=0)
+
+        for name, info in threads:
+            if info.stop_event is not None:
+                info.stop_event.set()
+            if info.stop_callback is not None:
+                try:
+                    info.stop_callback()
+                except Exception:  # pragma: no cover - defensive logging
+                    logger.exception("Error while stopping thread '%s'", name)
+
+        for name, info in threads:
+            if not info.thread.is_alive() or info.thread is threading.current_thread():
+                continue
+            info.thread.join(timeout=join_timeout)
+            if info.thread.is_alive():
+                logger.warning(
+                    "Thread '%s' did not exit within %.1f seconds", name, join_timeout
+                )
 
 
 manager = ThreadManager()
