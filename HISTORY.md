@@ -27,6 +27,14 @@
   finalizing so floating diagram windows stop receiving Win32 messages during
   teardown.
 
+## 0.2.285 - 2025-09-21
+
+- Add a shutdown flag for Win32 hook procedures so callbacks stop executing as
+  soon as window teardown begins or Python starts finalizing, preventing late
+  WM_SIZE handling during interpreter exit.
+- Ensure Windows hook cleanup marks shutdown before unregistering hooks to block
+  stray resize notifications from triggering Python callbacks during atexit.
+
 ## 0.2.283 - 2025-09-19
 
 - Ensure detached tabs register with floating window resizers so diagrams resize
