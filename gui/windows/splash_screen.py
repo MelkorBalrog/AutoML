@@ -21,6 +21,8 @@ import math
 import random
 from PIL import Image, ImageDraw, ImageTk, ImageFont
 
+from gui.utils.tk_utils import cancel_after_events
+
 
 class SplashScreen(tk.Toplevel):
     """Simple splash screen with rotating cube and gear."""
@@ -120,6 +122,10 @@ class SplashScreen(tk.Toplevel):
         # Start animation and fade-in effect
         self._anim_after = self.after(10, self._animate)
         self._fade_in_after = self.after(10, self._fade_in)
+
+    def destroy(self):
+        self._cancel_pending_callbacks()
+        super().destroy()
 
     def close(self):
         """Begin fade-out sequence and invoke on_close callback when done."""
@@ -489,6 +495,7 @@ class SplashScreen(tk.Toplevel):
 
     def _close(self):
         """Destroy splash screen and accompanying shadow window."""
+        self._cancel_pending_callbacks()
         try:
             self.shadow.destroy()
         except Exception:
@@ -496,3 +503,25 @@ class SplashScreen(tk.Toplevel):
         super().destroy()
         if self._on_close:
             self._on_close()
+
+    def _cancel_pending_callbacks(self) -> None:
+        """Cancel scheduled callbacks before tearing down the window."""
+
+        for ident_name in ("_anim_after", "_fade_in_after", "_fade_out_after", "_close_after"):
+            ident = getattr(self, ident_name, None)
+            if ident:
+                try:
+                    self.after_cancel(ident)
+                except Exception:
+                    pass
+                try:
+                    setattr(self, ident_name, None)
+                except Exception:
+                    pass
+
+        for widget in (self, getattr(self, "shadow", None)):
+            if isinstance(widget, tk.Misc):
+                try:
+                    cancel_after_events(widget)
+                except Exception:
+                    continue
