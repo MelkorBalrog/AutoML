@@ -190,6 +190,8 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
             return int(windowpos.cx), int(windowpos.cy)
 
         def __del__(self) -> None:
+            if _python_is_finalizing():
+                return
             try:
                 self.uninstall()
             except Exception:

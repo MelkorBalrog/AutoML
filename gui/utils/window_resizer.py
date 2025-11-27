@@ -19,10 +19,20 @@
 
 from __future__ import annotations
 
+import sys
 import tkinter as tk
 import typing as t
 
 from gui.utils.win32_hooks import create_window_size_hook
+
+
+def _python_is_finalizing() -> bool:
+    """Return ``True`` when the Python interpreter is shutting down."""
+
+    finalizing = getattr(sys, "is_finalizing", None)
+    if finalizing is None:
+        return False
+    return bool(finalizing())
 
 
 class WindowResizeController:
@@ -115,6 +125,15 @@ class WindowResizeController:
     # ------------------------------------------------------------------
     def shutdown(self) -> None:
         """Release bindings and native hooks held by the controller."""
+
+        if _python_is_finalizing():
+            # Avoid manipulating Tk or Win32 hooks while the interpreter is
+            # finalizing to prevent callbacks from firing without a valid GIL.
+            self._win32_hook = None
+            self._targets.clear()
+            self._primary = None
+            self._last_size = None
+            return
 
         unbind = getattr(self.win, "unbind", None)
         if callable(unbind):
@@ -319,6 +338,8 @@ class WindowResizeController:
                 pass
 
     def __del__(self) -> None:  # pragma: no cover - defensive cleanup
+        if _python_is_finalizing():
+            return
         try:
             self.shutdown()
         except Exception:
