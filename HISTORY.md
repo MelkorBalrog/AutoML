@@ -28,17 +28,6 @@
 - Skip hook creation entirely when Win32 APIs are absent to prevent shutdown
   crashes during floating window teardown.
 
-## 0.2.286 - 2025-09-22
-
-- Short-circuit Win32 resize hooks as soon as interpreter shutdown starts to
-  avoid Python callbacks once finalization begins.
-- Ensure floating diagram windows always tear down resize controllers when they
-  dock or close so native hooks are unregistered before Tk destruction.
-- Add regression coverage for docking or destroying floating windows during
-  shutdown to guard against fatal errors.
-
-## 0.2.285 - 2025-09-21
-
 ## 0.2.284 - 2025-09-20
 
 - Uninstall Windows resize hooks during interpreter shutdown and register a
