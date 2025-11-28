@@ -18,12 +18,11 @@
 
 from __future__ import annotations
 
-"""Custom ttk.Notebook widget with fixed, non-detachable tabs.
+"""Custom ttk.Notebook widget with detachable, closeable tabs.
 
 The widget behaves like a regular :class:`ttk.Notebook` but displays a close
-button on the left of each tab. Tab dragging is limited to notebook reordering;
-detachment into floating windows is intentionally disabled to keep the user
-interface constrained to a single workspace.
+button on the left of each tab. Tabs can be reordered by dragging or detached
+into floating windows that preserve toolboxes and lifecycle hooks.
 """
 
 
@@ -37,6 +36,13 @@ try:  # pragma: no cover - support direct module execution
     from .tk_utils import cancel_after_events
 except Exception:  # pragma: no cover - legacy path
     from tk_utils import cancel_after_events
+
+if t.TYPE_CHECKING:  # pragma: no cover - type hints only
+    from .detached_window import DetachedWindow as DetachedWindowType
+    from .widget_transfer_manager import WidgetTransferManager as WidgetTransferManagerType
+
+DetachedWindow: t.Type["DetachedWindowType"] | None = None
+WidgetTransferManager: type | None = None
 
 logger = logging.getLogger(__name__)
 
@@ -584,6 +590,25 @@ class ClosableNotebook(ttk.Notebook):
                 continue
             setattr(clone, name, new_id)
 
+    def _copy_widget_config(self, src: tk.Widget, dst: tk.Widget) -> None:
+        """Copy configuration options from *src* to *dst* safely."""
+
+        try:
+            config = src.configure()
+        except Exception:
+            return
+        if not isinstance(config, dict):
+            return
+        for opt in config:
+            try:
+                value = src.cget(opt)
+            except Exception:
+                continue
+            try:
+                dst.configure({opt: value})
+            except Exception:
+                continue
+
     def _copy_widget_bindings(
         self,
         widget: tk.Widget,
@@ -886,16 +911,90 @@ class ClosableNotebook(ttk.Notebook):
 
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
+        global DetachedWindow, WidgetTransferManager
+        if DetachedWindow is None:
+            from .detached_window import DetachedWindow as DetachedWindowImpl
+
+            DetachedWindow = DetachedWindowImpl
+        if WidgetTransferManager is None:
+            from .widget_transfer_manager import WidgetTransferManager as WTMImpl
+
+            WidgetTransferManager = WTMImpl
+
         child = self.nametowidget(tab_id)
+        text = self.tab(tab_id, "text")
         try:
             self._cancel_after_events(child)
         except Exception:
             pass
+
         try:
-            self.select(tab_id)
-        except tk.TclError:
-            pass
-        logger.info("Tab detachment is disabled; keeping tab docked.")
+            width = max(child.winfo_width(), self.winfo_width())
+            height = max(child.winfo_height(), self.winfo_height())
+        except Exception:
+            width = 0
+            height = 0
+        width = width or 400
+        height = height or 300
+
+        root = self._app_root or self._root()
+        window = DetachedWindow(root, width, height, x, y)
+        manager = WidgetTransferManager()
+        try:
+            moved = manager.detach_tab(self, tab_id, window.nb)
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            logger.info(
+                "Tab detachment failed; keeping tab docked.",
+                exc_info=exc,
+            )
+            try:
+                window.win.destroy()
+            except Exception:
+                pass
+            try:
+                self.select(tab_id)
+            except tk.TclError:
+                pass
+            return
+
+        try:
+            window.add_moved_widget(moved, text)
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            logger.info(
+                "Detached window setup failed; restoring tab.",
+                exc_info=exc,
+            )
+            try:
+                manager.detach_tab(window.nb, str(moved), self)
+                self.tab(moved, text=text)
+                self.select(moved)
+            except Exception:
+                pass
+            try:
+                window.win.destroy()
+            except Exception:
+                pass
+            return
+
+        if isinstance(self.master, tk.Toplevel) and not self.tabs():
+            try:
+                self._cancel_after_events(self.master)
+            except Exception:
+                pass
+            try:
+                self.master.destroy()
+            except Exception:
+                pass
+
+        self._floating_windows.append(window.win)
+
+        def _forget(_event: tk.Event, win: tk.Toplevel = window.win) -> None:
+            try:
+                self._floating_windows.remove(win)
+            except ValueError:
+                pass
+
+        window.win.bind("<Destroy>", _forget, add="+")
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
