@@ -18,6 +18,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.289 - 2025-09-25
+
+- Rewire ``ClosableNotebook`` detachment to use the established transfer
+  pipeline, moving tabs into floating windows while preserving toolboxes and
+  lifecycle hooks.
+- Add GUI regression coverage for detachment, toolbox activation, and cleanup
+  flows to guard against regressions in the floating window pipeline.
+
 ## 0.2.288 - 2025-09-24
 
 - Disable floating dockable diagram windows so tabs remain fixed within their
