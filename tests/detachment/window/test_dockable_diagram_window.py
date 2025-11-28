@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Tests for the dockable diagram window helper."""
+"""Tests for the dockable diagram window helper with fixed tabs."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ from tkinter import ttk
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.dockable_diagram_window import DockableDiagramWindow
 from gui.utils.tk_utils import reparent_widget
+
 
 @pytest.mark.detachment
 @pytest.mark.dockable
@@ -87,90 +88,15 @@ class TestDockableDiagramWindow:
         assert called["parent"] and called["child"]
         root.destroy()
 
-    def test_float_cancels_parent_callbacks(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_float_raises_runtime_error(self) -> None:
         try:
             root = tk.Tk()
         except tk.TclError:
             pytest.skip("Tk not available")
-        nb = ClosableNotebook(root)
-        nb.pack()
-        frame = ttk.Frame(nb)
-        nb.add(frame, text="T1")
+        frame = ttk.Frame(root)
         dw = DockableDiagramWindow(frame)
-
-        called = {"parent": False, "child": False}
-
-        def fake_cancel(widget, cancelled=None):  # noqa: ANN001 - test helper
-            if widget is nb:
-                called["parent"] = True
-            if widget is frame:
-                called["child"] = True
-
-        monkeypatch.setattr(
-            "gui.utils.dockable_diagram_window.cancel_after_events",
-            fake_cancel,
-        )
-
-        dw.float(200, 200, 0, 0, "T1")
-        assert called["parent"] and called["child"]
-        if dw.toplevel is not None:
-            dw.toplevel.destroy()
-        root.destroy()
-
-    def test_float_reparents_into_container(self) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-        nb = ClosableNotebook(root)
-        nb.pack()
-        frame = ttk.Frame(nb)
-        nb.add(frame, text="T1")
-        dw = DockableDiagramWindow(frame)
-
-        nb.forget(frame)
-        dw.float(300, 200, 10, 15, "Float Title")
-
-        container = dw._float_container
-        assert container is not None
-        assert container.master is dw.win
-        assert frame.master is container
-        try:
-            info = frame.pack_info()
-        except tk.TclError:
-            info = {}
-        assert info.get("fill") == "both"
-        assert info.get("expand") == "1"
-        assert dw.win.winfo_viewable()
-        assert dw.win.title() == "Float Title"
-        assert dw._notebook is None
-
-        dw.win.destroy()
-        root.destroy()
-
-    def test_dock_withdraws_floating_window(self) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-        nb = ClosableNotebook(root)
-        nb.pack()
-        frame = ttk.Frame(nb)
-        nb.add(frame, text="T1")
-        dw = DockableDiagramWindow(frame)
-
-        nb.forget(frame)
-        dw.float(200, 200, 0, 0, "T1")
-        dw.dock(nb, 0, "T1")
-
-        state = "withdrawn"
-        try:
-            state = dw.win.state()
-        except tk.TclError:
-            pass
-        assert state == "withdrawn"
-
-        dw.win.destroy()
+        with pytest.raises(RuntimeError):
+            dw.float(200, 200, 0, 0, "Disabled")
         root.destroy()
 
     def test_dock_skips_reparent_when_parent_matches(
@@ -200,52 +126,6 @@ class TestDockableDiagramWindow:
         assert not called
         root.destroy()
 
-    def test_float_registers_resizer_targets(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-
-        class StubResizer:
-            def __init__(self, _win):
-                self.primary: list[tk.Widget] = []
-                self.added: list[tk.Widget] = []
-                self.removed: list[tk.Widget] = []
-
-            def set_primary_target(self, widget):  # noqa: ANN001 - stub API
-                self.primary.append(widget)
-
-            def add_target(self, widget):  # noqa: ANN001 - stub API
-                self.added.append(widget)
-
-            def remove_target(self, widget):  # noqa: ANN001 - stub API
-                self.removed.append(widget)
-
-        monkeypatch.setattr(
-            "gui.utils.dockable_diagram_window.WindowResizeController", StubResizer
-        )
-
-        nb = ClosableNotebook(root)
-        nb.pack()
-        frame = ttk.Frame(nb)
-        nb.add(frame, text="T1")
-        dw = DockableDiagramWindow(frame)
-
-        nb.forget(frame)
-        dw.float(320, 200, 0, 0, "Float")
-        assert isinstance(dw._resizer, StubResizer)
-        assert dw._resizer.primary[-1] is dw._float_container
-        assert dw._resizer.added[-1] is frame
-
-        dw.dock(nb, 0, "T1")
-        assert frame in dw._resizer.removed
-
-        if dw.toplevel is not None:
-            dw.toplevel.destroy()
-        root.destroy()
-
     def test_reparent_widget_noop_when_parent_same(self) -> None:
         try:
             root = tk.Tk()
@@ -257,34 +137,9 @@ class TestDockableDiagramWindow:
         nb.add(frame, text="T1")
         reparent_widget(frame, nb)
         assert frame.master is nb
-
-    def test_float_does_not_call_transient(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-
-        frame = ttk.Frame(root)
-        dw = DockableDiagramWindow(frame)
-
-        called = {"transient": False}
-
-        def fail_transient(self, *args, **kwargs):  # noqa: ANN001 - test helper
-            called["transient"] = True
-            raise AssertionError("DockableDiagramWindow should not mark the window transient")
-
-        monkeypatch.setattr(tk.Toplevel, "transient", fail_transient)
-
-        dw.float(200, 200, 0, 0, "Float Title")
-        assert not called["transient"]
-        if dw.toplevel is not None and dw.toplevel.winfo_exists():
-            dw.toplevel.destroy()
-        root.destroy()
         root.destroy()
 
-    def test_dock_and_float_update_notebook_tracking_and_geometry(self) -> None:
+    def test_dock_updates_notebook_tracking(self) -> None:
         try:
             root = tk.Tk()
         except tk.TclError:
@@ -298,30 +153,4 @@ class TestDockableDiagramWindow:
         assert dw._notebook is nb
         assert nb.nametowidget(nb.tabs()[0]) is frame
 
-        nb.update_idletasks()
-        x = nb.winfo_rootx() + 25
-        y = nb.winfo_rooty() + 30
-        dw.float(320, 260, x, y, "Tracking")
-        dw.win.update_idletasks()
-        assert dw._notebook is None
-        assert dw.win.geometry().startswith(f"320x260+{x}+{y}")
-        container = dw._float_container
-        assert container is not None
-        assert frame.master is container
-
-        dw.win.destroy()
-        root.destroy()
-
-    def test_win_creates_toplevel_once(self) -> None:
-        try:
-            root = tk.Tk()
-        except tk.TclError:
-            pytest.skip("Tk not available")
-        frame = ttk.Frame(root)
-        dw = DockableDiagramWindow(frame)
-        win1 = dw.win
-        assert isinstance(win1, tk.Toplevel)
-        win2 = dw.win
-        assert win1 is win2
-        win1.destroy()
         root.destroy()

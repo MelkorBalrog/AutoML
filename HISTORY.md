@@ -18,15 +18,36 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.285 - 2025-09-21
+## 0.2.288 - 2025-09-24
 
-- Strengthen thread shutdown by signalling registered stop events or callbacks,
-  joining with sensible timeouts, and logging unresponsive workers so
-  background feeders exit cleanly.
-- Invoke the improved shutdown path during application teardown to stop the
-  watchdog feeder before Python finalization begins.
-- Expand the thread manager regression suite to cover stop signalling and
-  warnings for threads that outlive the configured timeout.
+- Disable floating dockable diagram windows so tabs remain fixed within their
+  notebooks, preventing pop-out behaviour during drag operations.
+- Block detachment paths in ``ClosableNotebook`` and associated helpers so
+  window hooks and floating top-levels are no longer created, keeping the GUI
+  constrained to a single workspace.
+- Update dockable diagram tests to assert floating is rejected and docking
+  callbacks still clean up parent event queues.
+
+## 0.2.287 - 2025-09-23
+
+- Load Win32 resize hook dependencies via ``WinDLL`` with explicit error
+  handling, refusing to install hooks when the system libraries or functions are
+  unavailable.
+- Guard hook registration and teardown with thread-safe bookkeeping so shutdown
+  and WM_SIZE forwarding remain robust without relying on injected DLL handles.
+- Skip hook creation entirely when Win32 APIs are absent to prevent shutdown
+  crashes during floating window teardown.
+
+## 0.2.286 - 2025-09-22
+
+- Short-circuit Win32 resize hooks as soon as interpreter shutdown starts to
+  avoid Python callbacks once finalization begins.
+- Ensure floating diagram windows always tear down resize controllers when they
+  dock or close so native hooks are unregistered before Tk destruction.
+- Add regression coverage for docking or destroying floating windows during
+  shutdown to guard against fatal errors.
+
+## 0.2.285 - 2025-09-21
 
 ## 0.2.284 - 2025-09-20
 
