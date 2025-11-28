@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.289 - 2025-09-25
+
+- Protect governance diagram toolboxes from memory cleanup by pinning the active
+  toolbox key with a heartbeat so visible frames are not destroyed mid-session.
+- Add regression tests covering cleanup cycles for Governance Core toolboxes to
+  ensure frames remain available after memory manager sweeps.
+
 ## 0.2.288 - 2025-09-24
 
 - Disable floating dockable diagram windows so tabs remain fixed within their

@@ -23,6 +23,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from gui.architecture import GovernanceDiagramWindow
+from tools.memory_manager import manager as memory_manager
 
 
 def test_switch_rebuilds_destroyed_frames():
@@ -60,3 +61,80 @@ def test_switch_rebuilds_destroyed_frames():
     frames = win._toolbox_frames["Entities"]
     assert len(frames) == 1
     assert frames[0].winfo_exists()
+
+
+def _reset_memory_manager():
+    memory_manager.discard_prefix("")
+    memory_manager._active.clear()
+
+
+class DummyToolbox:
+    def __init__(self):
+        self._callbacks = {}
+        self._counter = 0
+
+    def after(self, _delay, func):
+        self._counter += 1
+        self._callbacks[self._counter] = func
+        return self._counter
+
+    def after_cancel(self, ident):
+        self._callbacks.pop(ident, None)
+
+
+class DummyFrame:
+    def __init__(self):
+        self.destroyed = False
+        self.packed = False
+
+    def pack(self, *a, **k):
+        self.packed = True
+
+    def pack_forget(self, *a, **k):
+        self.packed = False
+
+    def destroy(self):
+        self.destroyed = True
+
+    def winfo_exists(self):
+        return not self.destroyed
+
+
+def _build_window(choice: str = "Governance Core"):
+    _reset_memory_manager()
+    win = GovernanceDiagramWindow.__new__(GovernanceDiagramWindow)
+    win.diagram_id = "diag-cleanup"
+    win.toolbox = DummyToolbox()
+    win._toolbox_frames = {}
+    win._frame_loaders = {choice: DummyFrame}
+    win.toolbox_var = types.SimpleNamespace(get=lambda: choice)
+    return win
+
+
+def test_active_governance_toolbox_survives_cleanup():
+    win = _build_window()
+    GovernanceDiagramWindow._switch_toolbox(win)
+    frame = win._toolbox_frames["Governance Core"][0]
+
+    memory_manager.cleanup()
+
+    assert frame in win._toolbox_frames["Governance Core"]
+    assert not frame.destroyed
+
+
+def test_toolbox_heartbeat_marks_active_between_cleanups():
+    win = _build_window()
+    GovernanceDiagramWindow._switch_toolbox(win)
+    frame = win._toolbox_frames["Governance Core"][0]
+
+    memory_manager.cleanup()
+
+    assert win.toolbox._callbacks
+    # Run the scheduled heartbeat to refresh active status
+    for cb in list(win.toolbox._callbacks.values()):
+        cb()
+
+    memory_manager.cleanup()
+
+    assert frame in win._toolbox_frames["Governance Core"]
+    assert not frame.destroyed
