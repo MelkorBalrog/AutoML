@@ -1,4 +1,5 @@
 # Author: Miguel Marina <karel.capek.robotics@gmail.com>
+# Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Copyright (C) 2025 Capek System Safety & Robotic Solutions
@@ -68,9 +69,9 @@ class TestCanvasWindows:
 @pytest.mark.detached_tab
 @pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
 class TestDetachedTab:
-    """Detached tab regression tests."""
+    """Detached tab behaviour is disabled to keep tabs fixed."""
 
-    def test_detached_tab_has_single_toolbox_and_diagram(self):
+    def test_drag_release_outside_keeps_tab_docked(self):
         root = tk.Tk()
         nb = ClosableNotebook(root)
         frame = ttk.Frame(nb)
@@ -89,60 +90,37 @@ class TestDetachedTab:
         release.y_root = nb.winfo_rooty() + nb.winfo_height() + 40
         nb._on_tab_release(release)
 
-        win = nb._floating_windows[0]
-        new_nb = next(w for w in win.winfo_children() if isinstance(w, ClosableNotebook))
-        new_frame = new_nb.nametowidget(new_nb.tabs()[0])
-        toolboxes = [w for w in new_frame.winfo_children() if w.winfo_name() == "toolbox"]
-        diagrams = [w for w in new_frame.winfo_children() if w.winfo_name() == "diagram"]
-        assert len(toolboxes) == 1
-        assert len(diagrams) == 1
+        assert nb.tabs()
+        assert nb.nametowidget(nb.tabs()[0]) is frame
+        assert not nb._floating_windows
         root.destroy()
 
-    def test_dock_window_detach_passes_title(self):
+    def test_dock_window_detach_is_blocked(self, monkeypatch: pytest.MonkeyPatch):
         root = tk.Tk()
         nb = ClosableNotebook(root)
         frame = ttk.Frame(nb)
 
         class SpyDock(DockableDiagramWindow):
-            def __init__(self, content):
-                super().__init__(content)
-                self.args = None
-
-            def float(self, width, height, x, y, title):
-                self.args = (width, height, x, y, title)
-                super().float(width, height, x, y, title)
+            def float(self, width, height, x, y, title):  # noqa: ANN001
+                raise AssertionError("Floating should not be called")
 
         dock = SpyDock(frame)
         frame._dock_window = dock
         nb.add(frame, text="Docked")
         tab_id = nb.tabs()[0]
+        monkeypatch.setattr(dock, "float", dock.float)
         nb._detach_tab(tab_id, 5, 5)
-        assert dock.args[-1] == "Docked"
-        for w in list(nb._floating_windows):
-            w.destroy()
+        assert tab_id in nb.tabs()
+        assert not nb._floating_windows
         root.destroy()
 
-    def test_detach_forgets_tab_before_float(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detach_leaves_tab_selected(self) -> None:
         root = tk.Tk()
         nb = ClosableNotebook(root)
         frame = ttk.Frame(nb)
-        dock = DockableDiagramWindow(frame)
-        frame._dock_window = dock
         nb.add(frame, text="Docked")
         tab_id = nb.tabs()[0]
-
-        called = {"float": False}
-
-        def spy_float(width, height, x, y, title):  # noqa: ANN001 - test helper
-            # Tab should be removed from the original notebook before floating
-            assert tab_id not in nb.tabs()
-            called["float"] = True
-
-        monkeypatch.setattr(dock, "float", spy_float)
-        nb._detach_tab(tab_id, 5, 5)
-        assert called["float"]
-        for w in list(nb._floating_windows):
-            w.destroy()
+        nb._detach_tab(tab_id, 0, 0)
+        assert nb.select() == tab_id
+        assert nb.tabs() == (tab_id,)
         root.destroy()

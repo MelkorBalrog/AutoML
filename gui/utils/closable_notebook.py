@@ -18,12 +18,12 @@
 
 from __future__ import annotations
 
-"""Custom ttk.Notebook widget with detachable tabs.
+"""Custom ttk.Notebook widget with fixed, non-detachable tabs.
 
 The widget behaves like a regular :class:`ttk.Notebook` but displays a close
-button on the left of each tab. Tabs can also be dragged out of the notebook to
-create a new floating window. Dragging a tab from a floating window back onto a
-notebook re-attaches it to that notebook.
+button on the left of each tab. Tab dragging is limited to notebook reordering;
+detachment into floating windows is intentionally disabled to keep the user
+interface constrained to a single workspace.
 """
 
 
@@ -37,10 +37,6 @@ try:  # pragma: no cover - support direct module execution
     from .tk_utils import cancel_after_events
 except Exception:  # pragma: no cover - legacy path
     from tk_utils import cancel_after_events
-try:  # pragma: no cover - support direct module execution
-    from .widget_transfer_manager import WidgetTransferManager
-except Exception:  # pragma: no cover - legacy path
-    from widget_transfer_manager import WidgetTransferManager
 
 logger = logging.getLogger(__name__)
 
@@ -418,9 +414,10 @@ class ClosableNotebook(ttk.Notebook):
             return
         target = self._target_notebook(event.x_root, event.y_root)
         if target is None:
-            # No notebook could be resolved under the pointer; detach to a
-            # floating window instead of raising ``TclError`` or ``KeyError``.
-            self._detach_tab(tab_id, event.x_root, event.y_root)
+            try:
+                self.select(tab_id)
+            except tk.TclError:
+                pass
             return
         if target is self:
             # Dropping back onto the originating notebook requires no action.
@@ -890,66 +887,15 @@ class ClosableNotebook(ttk.Notebook):
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
         child = self.nametowidget(tab_id)
-        from gui.utils.dockable_diagram_window import (
-            DockableDiagramWindow as DDW,
-        )
-        dock = getattr(child, "_dock_window", None)
-        self.update_idletasks()
-        width = self.winfo_width() or 200
-        height = self.winfo_height() or 200
-        if isinstance(dock, DDW):
-            self._floating_windows.append(dock.win)
-
-            def _on_destroy(_e, w=dock.win) -> None:
-                try:
-                    self._cancel_after_events(w)
-                except Exception:
-                    pass
-                if w in self._floating_windows:
-                    self._floating_windows.remove(w)
-
-            dock.win.bind("<Destroy>", _on_destroy, add="+")
-            title = self.tab(child, "text")
-            # Cancel callbacks tied to the tab before moving it to the
-            # floating notebook so no ``after`` events fire on a widget that
-            # has been detached from its original parent.
+        try:
             self._cancel_after_events(child)
-            # Remove the tab from this notebook before floating to avoid
-            # reparenting errors when adding the content frame to the new
-            # notebook hosted by the floating window.
-            self.forget(child)
-            dock.float(width, height, x, y, title)
-            ClosableNotebook._tab_hosts.pop(child, None)
-            return
-        from .detached_window import DetachedWindow
-
-        dw = DetachedWindow(self._app_root, width, height, x, y)
-        self._floating_windows.append(dw.win)
-
-        def _on_destroy(_e, w=dw.win) -> None:
-            try:
-                self._cancel_after_events(w)
-            except Exception:
-                pass
-            if w in self._floating_windows:
-                self._floating_windows.remove(w)
-
-        dw.win.bind("<Destroy>", _on_destroy, add="+")
-        manager = WidgetTransferManager()
+        except Exception:
+            pass
         try:
-            child = manager.detach_tab(self, tab_id, dw.nb)
+            self.select(tab_id)
         except tk.TclError:
-            logger.exception("Failed to detach tab %s", tab_id)
-            return
-        try:
-            title = self.tab(child, "text")
-        except Exception:
-            title = ""
-        try:
-            dw.add_moved_widget(child, title)
-        except Exception:
-            dw._ensure_toolbox(child)
-            dw._activate_hooks(child)
+            pass
+        logger.info("Tab detachment is disabled; keeping tab docked.")
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""

@@ -217,12 +217,6 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
                 return _DEF_WINDOW_PROC(hwnd, msg, wparam, lparam)
             raise RuntimeError("Win32 hooks are not available")
 
-        def _forward_to_original(self, hwnd, msg, wparam, lparam):  # noqa: ANN001
-            original = self._original
-            if original:
-                return _CALL_WINDOW_PROC(original, hwnd, msg, wparam, lparam)
-            return _DEF_WINDOW_PROC(hwnd, msg, wparam, lparam)
-
         def _procedure(self, hwnd, msg, wparam, lparam):  # noqa: ANN001
             if SHUTTING_DOWN:
                 return self._forward_to_original(hwnd, msg, wparam, lparam)
