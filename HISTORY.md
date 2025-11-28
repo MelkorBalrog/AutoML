@@ -47,8 +47,6 @@
 - Add regression coverage for docking or destroying floating windows during
   shutdown to guard against fatal errors.
 
-## 0.2.285 - 2025-09-21
-
 ## 0.2.284 - 2025-09-20
 
 - Uninstall Windows resize hooks during interpreter shutdown and register a

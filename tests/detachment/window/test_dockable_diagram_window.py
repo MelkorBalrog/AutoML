@@ -27,6 +27,7 @@ from tkinter import ttk
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.dockable_diagram_window import DockableDiagramWindow
 from gui.utils.tk_utils import reparent_widget
+from gui.utils import win32_hooks
 
 
 @pytest.mark.detachment
