@@ -28,7 +28,7 @@ from tkinter import ttk
 
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.dockable_diagram_window import DockableDiagramWindow
-from gui.utils.tk_utils import cancel_after_events
+from gui.utils.tk_utils import cancel_after_events, dispatch_to_ui, is_main_thread
 
 
 @dataclasses.dataclass
@@ -65,6 +65,9 @@ class DetachableTabWindow:
     def detach(self) -> None:
         """Create a window and move the tab content into it."""
 
+        if not is_main_thread():
+            dispatch_to_ui(self.root, self.detach)
+            return
         if not self.tab_widget or not self.origin_notebook:
             return
         if self._window and self._window.winfo_exists():
@@ -77,7 +80,7 @@ class DetachableTabWindow:
 
         self._window = tk.Toplevel(self.root)
         self._window.title(self.metadata.title)
-        self._window.protocol("WM_DELETE_WINDOW", self.dock_back)
+        self._window.protocol("WM_DELETE_WINDOW", self._dispatch_dock_back)
 
         toolbar = ttk.Frame(self._window)
         dock_btn = ttk.Button(toolbar, text="Dock", command=self.dock_back)
@@ -92,6 +95,9 @@ class DetachableTabWindow:
     def dock_back(self) -> None:
         """Return the tab to its originating notebook."""
 
+        if not is_main_thread():
+            dispatch_to_ui(self.root, self.dock_back)
+            return
         if not self.origin_notebook or not self.tab_widget:
             return
         index = self.metadata.index if self.metadata.index is not None else len(self.origin_notebook.tabs())
@@ -109,6 +115,9 @@ class DetachableTabWindow:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+    def _dispatch_dock_back(self) -> None:
+        dispatch_to_ui(self.root, self.dock_back)
+
     def _move_to_notebook(self, notebook: ttk.Notebook, index: int) -> None:
         dock = getattr(self.tab_widget, "_dock_window", None)
         if isinstance(dock, DockableDiagramWindow):

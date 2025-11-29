@@ -18,6 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.290 - 2025-09-26
+
+- Route detachment and docking callbacks through a Tk dispatcher that schedules
+  widget mutations on the UI thread, including WM_DELETE handlers, preventing
+  off-thread destruction and reparenting from causing crashes.
+
 ## 0.2.289 - 2025-09-25
 
 - Protect governance diagram toolboxes from memory cleanup by pinning the active
