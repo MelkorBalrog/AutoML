@@ -67,3 +67,44 @@ class TestDetachableTabWindow:
         assert wrapper.metadata.diagram_id == "diag-123"
         assert wrapper.metadata.title == "My Tab"
         root.destroy()
+
+    def test_resizer_tracks_notebook_and_tab(self, monkeypatch: pytest.MonkeyPatch):
+        root = tk.Tk()
+        nb, frame = self._build_tab(root)
+        metadata = DetachedTabMetadata(title="Resizable", diagram_id="d2", index=0)
+
+        class StubResizer:
+            def __init__(self, win, primary=None):  # noqa: ANN001 - stub signature
+                self.win = win
+                self.primary = primary
+                self.targets: list[tk.Widget] = []
+                self.shutdown_called = False
+
+            def set_primary_target(self, widget):  # noqa: ANN001 - stub signature
+                self.primary = widget
+
+            def add_target(self, widget):  # noqa: ANN001 - stub signature
+                self.targets.append(widget)
+
+            def shutdown(self):
+                self.shutdown_called = True
+
+        monkeypatch.setattr(
+            "gui.utils.detachable_tab_window.WindowResizeController", StubResizer
+        )
+
+        wrapper = DetachableTabWindow(root, frame, nb, metadata)
+        try:
+            wrapper.detach()
+
+            assert isinstance(wrapper._resizer, StubResizer)
+            assert wrapper._resizer.primary is wrapper._notebook
+            assert frame in wrapper._resizer.targets
+
+            resizer = wrapper._resizer
+            wrapper.dock_back()
+
+            assert resizer.shutdown_called
+            assert wrapper._resizer is None
+        finally:
+            root.destroy()

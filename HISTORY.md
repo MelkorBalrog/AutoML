@@ -1032,3 +1032,4 @@
 - 0.1.0 - Added Help menu and version tracking.
 - 0.2.26 - Guard detached window resize hooks during interpreter shutdown to avoid crashes.
 - 0.2.27 - Added snap-out/snap-back document tab windows with lifecycle safeguards.
+- 0.2.28 - Tie detachable tab windows to resize controllers so embedded content scales with host window size.

@@ -29,6 +29,7 @@ from tkinter import ttk
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.dockable_diagram_window import DockableDiagramWindow
 from gui.utils.tk_utils import cancel_after_events, dispatch_to_ui, is_main_thread
+from gui.utils.window_resizer import WindowResizeController
 
 
 @dataclasses.dataclass
@@ -58,6 +59,7 @@ class DetachableTabWindow:
         self.on_dock = on_dock
         self._window: tk.Toplevel | None = None
         self._notebook: ClosableNotebook | None = None
+        self._resizer: WindowResizeController | None = None
 
     # ------------------------------------------------------------------
     # Public API
@@ -90,6 +92,7 @@ class DetachableTabWindow:
 
         self._notebook = ClosableNotebook(self._window)
         self._notebook.pack(fill=tk.BOTH, expand=True)
+        self._install_resizer()
         self._move_to_notebook(self._notebook, 0)
 
     def dock_back(self) -> None:
@@ -104,6 +107,7 @@ class DetachableTabWindow:
         self._move_to_notebook(self.origin_notebook, index)
         if self._window is not None:
             cancel_after_events(self._window)
+            self._shutdown_resizer()
             try:
                 self._window.destroy()
             except Exception:
@@ -132,4 +136,27 @@ class DetachableTabWindow:
                 except tk.TclError:
                     return
             notebook.select(self.tab_widget)
+
+        if self._resizer is not None:
+            self._resizer.add_target(self.tab_widget)
+
+    def _install_resizer(self) -> None:
+        if self._window is None or self._notebook is None:
+            return
+        try:
+            self._resizer = WindowResizeController(self._window, self._notebook)
+        except Exception:
+            self._resizer = None
+        if self._resizer is not None:
+            self._resizer.set_primary_target(self._notebook)
+            self._resizer.add_target(self.tab_widget)
+
+    def _shutdown_resizer(self) -> None:
+        if self._resizer is None:
+            return
+        try:
+            self._resizer.shutdown()
+        except Exception:
+            pass
+        self._resizer = None
 
