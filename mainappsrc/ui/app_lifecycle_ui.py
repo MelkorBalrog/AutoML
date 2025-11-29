@@ -33,6 +33,7 @@ from tkinter import ttk
 
 from gui.utils import logger
 from gui.controls import messagebox
+from gui.utils.detachable_tab_window import DetachableTabWindow, DetachedTabMetadata
 from gui.utils.dockable_diagram_window import DockableDiagramWindow
 from gui.windows.architecture import (
     ActivityDiagramWindow,
@@ -66,6 +67,7 @@ class AppLifecycleUI:
         self._explorer_animating = False
         self._explorer_animation_id = None
         self._explorer_pending_action = None
+        self._detached_tab_windows: dict[ttk.Frame, DetachableTabWindow] = {}
 
     def __getattr__(self, name):  # pragma: no cover - simple delegation
         return getattr(self.app, name)
@@ -382,6 +384,7 @@ class AppLifecycleUI:
         if hasattr(self, "_tab_titles"):
             self._tab_titles.pop(tab_id, None)
         tab = self.doc_nb.nametowidget(tab_id)
+        self._detached_tab_windows.pop(tab, None)
         for mode, info in list(getattr(self, "analysis_tabs", {}).items()):
             if info["tab"] is tab:
                 del self.analysis_tabs[mode]
@@ -664,6 +667,74 @@ class AppLifecycleUI:
         if self._doc_tab_offset + self.MAX_VISIBLE_TABS < len(self._doc_all_tabs):
             self._doc_tab_offset += 1
             self._update_doc_tab_visibility()
+
+    def snap_out_selected_tab(self) -> None:
+        """Detach the currently selected document tab into a floating window."""
+
+        if not hasattr(self, "doc_nb"):
+            return
+        tab_id = self.doc_nb.select()
+        if not tab_id:
+            return
+        tab = self.doc_nb.nametowidget(tab_id)
+        if tab in self._detached_tab_windows:
+            window = self._detached_tab_windows[tab]
+            window.detach()
+            return
+        title = self._tab_titles.get(tab_id, self.doc_nb.tab(tab_id, "text"))
+        metadata = DetachedTabMetadata(
+            title=title,
+            diagram_id=self._diagram_id_for_tab(tab),
+            index=self.doc_nb.index(tab_id),
+        )
+        detachable = DetachableTabWindow(
+            self.root,
+            tab,
+            self.doc_nb,
+            metadata,
+            on_dock=self._on_tab_redocked,
+        )
+        self._detached_tab_windows[tab] = detachable
+        detachable.detach()
+        self._remove_doc_tab_from_tracking(tab_id)
+
+    def _remove_doc_tab_from_tracking(self, tab_id: str) -> None:
+        if hasattr(self, "_doc_all_tabs") and tab_id in self._doc_all_tabs:
+            self._doc_all_tabs.remove(tab_id)
+            self._doc_tab_offset = min(
+                self._doc_tab_offset,
+                max(0, len(self._doc_all_tabs) - self.MAX_VISIBLE_TABS),
+            )
+            self._update_doc_tab_visibility()
+
+    def _on_tab_redocked(self, tab: ttk.Frame) -> None:
+        tab_id = str(tab)
+        if tab in self._detached_tab_windows:
+            self._detached_tab_windows.pop(tab, None)
+        if hasattr(self, "_tab_titles"):
+            tab_text = getattr(tab, "title", None)
+            if tab_text is None and hasattr(self, "doc_nb"):
+                try:
+                    tab_text = self.doc_nb.tab(tab_id, "text")
+                except Exception:
+                    tab_text = None
+            if tab_text is not None:
+                self._tab_titles.setdefault(tab_id, tab_text)
+        if hasattr(self, "_doc_all_tabs"):
+            if tab_id not in self._doc_all_tabs:
+                self._doc_all_tabs.append(tab_id)
+            self._doc_tab_offset = max(0, len(self._doc_all_tabs) - self.MAX_VISIBLE_TABS)
+            self._update_doc_tab_visibility()
+        try:
+            self.doc_nb.select(tab_id)
+        except Exception:
+            pass
+
+    def _diagram_id_for_tab(self, tab: ttk.Frame) -> str | None:
+        for diag_id, widget in getattr(self, "diagram_tabs", {}).items():
+            if widget is tab:
+                return diag_id
+        return None
 
     def _new_tab(self, title: str) -> ttk.Frame:
         """Create or select a tab in the document notebook."""
