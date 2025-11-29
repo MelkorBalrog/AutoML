@@ -673,24 +673,10 @@ class AppLifecycleUI:
 
         if not hasattr(self, "doc_nb"):
             return
-        try:
-            if not self.doc_nb.winfo_exists():
-                return
-        except tk.TclError:
-            return
-
         tab_id = self.doc_nb.select()
         if not tab_id:
             return
-        try:
-            tab = self.doc_nb.nametowidget(tab_id)
-        except (KeyError, tk.TclError):
-            return
-        try:
-            if not tab.winfo_exists():
-                return
-        except tk.TclError:
-            return
+        tab = self.doc_nb.nametowidget(tab_id)
         if tab in self._detached_tab_windows:
             window = self._detached_tab_windows[tab]
             window.detach()
