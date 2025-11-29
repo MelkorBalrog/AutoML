@@ -1050,7 +1050,15 @@ class AutoMLApp(
             command=self.lifecycle_ui._select_next_tab,
             style="Nav.TButton",
         )
+        self._tab_detach_btn = ttk.Button(
+            self.doc_frame,
+            text="⤢",
+            width=3,
+            command=self.lifecycle_ui.snap_out_selected_tab,
+            style="Nav.TButton",
+        )
         self._tab_left_btn.pack(side=tk.LEFT, fill=tk.Y)
+        self._tab_detach_btn.pack(side=tk.RIGHT, fill=tk.Y)
         self._tab_right_btn.pack(side=tk.RIGHT, fill=tk.Y)
         self.doc_nb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.lifecycle_ui._update_doc_tab_visibility()
