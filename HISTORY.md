@@ -18,13 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.291 - 2025-09-27
-
-- Harden detachable document tab handling so missing or destroyed widgets no
-  longer raise Tkinter errors when triggering "Snap Out" actions.
-- Add regression tests covering missing notebook widget lookups and destroyed
-  tab content to ensure detachment remains safe during teardown.
-
 ## 0.2.290 - 2025-09-26
 
 - Add a shutdown flag and ``begin_shutdown`` helper to the thread manager so
