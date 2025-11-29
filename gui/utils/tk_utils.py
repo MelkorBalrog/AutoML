@@ -24,6 +24,27 @@ import ctypes
 import sys
 import tkinter as tk
 import typing as t
+from threading import current_thread, main_thread
+
+
+def is_main_thread() -> bool:
+    """Return ``True`` when executing on the Tk main thread."""
+
+    return current_thread() is main_thread()
+
+
+def dispatch_to_ui(root: tk.Misc | None, func: t.Callable[..., t.Any], *args: t.Any, **kwargs: t.Any) -> None:
+    """Schedule *func* on the Tk event loop if not already on the UI thread."""
+
+    if root is None or not callable(func):
+        return
+    if is_main_thread():
+        func(*args, **kwargs)
+        return
+    try:
+        root.after(0, lambda: func(*args, **kwargs))
+    except Exception:
+        pass
 
 
 def _update_widget_master(widget: tk.Widget, new_parent: tk.Widget) -> None:
