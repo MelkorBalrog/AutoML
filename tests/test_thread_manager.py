@@ -75,3 +75,40 @@ class TestThreadManager:
         assert any(
             "did not exit within" in record.message for record in caplog.records
         )
+
+    def test_no_restart_after_shutdown(self) -> None:
+        runs = {"count": 0}
+        started = threading.Event()
+
+        def worker() -> None:
+            runs["count"] += 1
+            started.set()
+
+        manager = ThreadManager(interval=0.05)
+        manager.register("transient", worker, daemon=True)
+        assert started.wait(timeout=1.0)
+        manager.begin_shutdown(timeout=0.5)
+        time.sleep(0.1)
+        assert runs["count"] == 1
+        manager.stop_all(timeout=0.5)
+
+    def test_dead_thread_sets_stop_event_instead_of_restart(self) -> None:
+        stop_event = threading.Event()
+        runs = {"count": 0}
+
+        def worker() -> None:
+            runs["count"] += 1
+
+        manager = ThreadManager(interval=0.05)
+        manager.register(
+            "with_stop_event",
+            worker,
+            daemon=True,
+            stop_event=stop_event,
+        )
+        time.sleep(0.1)
+        manager._check_threads()
+        time.sleep(0.1)
+        assert stop_event.is_set()
+        assert runs["count"] == 1
+        manager.stop_all(timeout=0.5)

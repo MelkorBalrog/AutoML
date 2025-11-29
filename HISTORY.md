@@ -18,6 +18,25 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.291 - 2025-09-27
+
+- Harden detachable document tab handling so missing or destroyed widgets no
+  longer raise Tkinter errors when triggering "Snap Out" actions.
+- Add regression tests covering missing notebook widget lookups and destroyed
+  tab content to ensure detachment remains safe during teardown.
+
+## 0.2.290 - 2025-09-26
+
+- Add a shutdown flag and ``begin_shutdown`` helper to the thread manager so
+  monitor restarts halt as soon as application exit begins and Tk callbacks do
+  not revive after the main loop ends.
+- Set thread stop events instead of respawning workers when they terminate
+  unexpectedly, and block new registrations during shutdown to avoid late
+  callback scheduling.
+- Extend thread monitor regression coverage to assert no restarts occur once
+  shutdown begins and that stop events are respected without spawning new
+  threads.
+
 ## 0.2.289 - 2025-09-25
 
 - Protect governance diagram toolboxes from memory cleanup by pinning the active
