@@ -76,7 +76,6 @@ class ThreadManager:
     def __init__(self, interval: float = 1.0) -> None:
         self._threads: Dict[str, _ThreadInfo] = {}
         self._lock = threading.Lock()
-        self._shutdown = threading.Event()
         self._monitor = ThreadMonitor(self, interval)
         self._monitor.start()
 
@@ -92,8 +91,6 @@ class ThreadManager:
         stop_event: Optional[threading.Event] = None,
     ) -> threading.Thread:
         """Register and start *target* as a monitored thread."""
-        if self._shutdown.is_set():
-            raise RuntimeError("ThreadManager is shutting down; registrations are blocked")
         if args is None:
             args = ()
         if kwargs is None:
@@ -114,8 +111,6 @@ class ThreadManager:
 
     def register_current(self, name: str) -> threading.Thread:
         """Register the currently running thread without starting a new one."""
-        if self._shutdown.is_set():
-            raise RuntimeError("ThreadManager is shutting down; registrations are blocked")
         thread = threading.current_thread()
         with self._lock:
             self._threads[name] = _ThreadInfo(
@@ -131,18 +126,10 @@ class ThreadManager:
 
     def _check_threads(self) -> None:
         with self._lock:
-            if self._shutdown.is_set():
-                return
-
             for name, info in list(self._threads.items()):
                 if not info.thread.is_alive():
                     if info.target is None:
                         continue
-                    if info.stop_event is not None:
-                        info.stop_event.set()
-                        continue
-                    if self._shutdown.is_set():
-                        return
                     thread = threading.Thread(
                         target=info.target,
                         args=info.args,
@@ -160,23 +147,16 @@ class ThreadManager:
                         info.stop_event,
                     )
 
-    def begin_shutdown(self, *, timeout: Optional[float] = None) -> None:
-        """Signal the monitor to stop and block restarts."""
+    def stop_all(self, *, timeout: Optional[float] = None) -> None:
+        """Stop monitoring, request shutdown, and wait for all threads to finish."""
 
         join_timeout = self._DEFAULT_JOIN_TIMEOUT if timeout is None else timeout
-        self._shutdown.set()
         self._monitor.stop()
         self._monitor.join(timeout=join_timeout)
         if self._monitor.is_alive():
             logger.warning(
                 "Thread monitor did not terminate within %.1f seconds", join_timeout
             )
-
-    def stop_all(self, *, timeout: Optional[float] = None) -> None:
-        """Stop monitoring, request shutdown, and wait for all threads to finish."""
-
-        join_timeout = self._DEFAULT_JOIN_TIMEOUT if timeout is None else timeout
-        self.begin_shutdown(timeout=join_timeout)
 
         with self._lock:
             threads = list(self._threads.items())
