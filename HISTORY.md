@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.295 - 2025-12-24
+
+- Sync detached tab window sizing immediately after cloning so docked content
+  renders inside the floating window without requiring manual resize.
+- Route resize controller shutdown to the Tk main thread to avoid Tcl async
+  handler teardown on background threads.
+
 ## 0.2.294 - 2025-12-24
 
 - Prevent Win32 resize hooks from running in detached tab windows to avoid

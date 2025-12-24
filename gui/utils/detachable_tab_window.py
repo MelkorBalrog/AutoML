@@ -99,6 +99,8 @@ class DetachableTabWindow:
         self._notebook.pack(fill=tk.BOTH, expand=True)
         self._install_resizer()
         self._clone_tab_into_notebook()
+        if self._resizer is not None:
+            self._resizer.sync_to_host()
 
     def dock_back(self) -> None:
         """Return the tab to its originating notebook."""

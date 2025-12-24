@@ -24,6 +24,7 @@ import tkinter as tk
 from tkinter import ttk
 import typing as t
 
+from gui.utils.tk_utils import dispatch_to_ui, is_main_thread
 from gui.utils.win32_hooks import create_window_size_hook
 
 
@@ -135,6 +136,9 @@ class WindowResizeController:
         """Release bindings and native hooks held by the controller."""
 
         finalizing = _python_is_finalizing()
+        if not finalizing and not is_main_thread():
+            dispatch_to_ui(self.win, self.shutdown)
+            return
 
         hook = self._win32_hook
         if hook is not None:
@@ -215,6 +219,20 @@ class WindowResizeController:
         event.height = height
         return t.cast(tk.Event, event)
 
+    def sync_to_host(self) -> None:
+        """Propagate the current host size to tracked widgets."""
+
+        try:
+            self.win.update_idletasks()
+        except Exception:
+            pass
+        width = self._dimension(self.win, "winfo_width")
+        height = self._dimension(self.win, "winfo_height")
+        if width <= 0 or height <= 0:
+            return
+        event = self._synthetic_event(width, height)
+        self._handle_configure(event)
+
     def _handle_configure(self, event: tk.Event) -> None:
         widget = getattr(event, "widget", None)
         if widget not in (None, self.win):
@@ -237,10 +255,14 @@ class WindowResizeController:
             self._apply_resize(target, width, height)
 
     @staticmethod
-    def _dimension(event: tk.Event, name: str) -> int:
+    def _dimension(obj: t.Any, name: str) -> int:
         try:
-            value = getattr(event, name)
+            attr = getattr(obj, name)
         except AttributeError:
+            return 0
+        try:
+            value = attr() if callable(attr) else attr
+        except Exception:
             return 0
         try:
             return int(value)
