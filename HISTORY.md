@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.297 - 2025-12-26
+
+- Reopen detached tab content by instantiating fresh widgets in the floating
+  window instead of cloning or transferring existing tab objects.
+- Use a pure-Python API bridge during pytest runs or when explicitly requested
+  to avoid native DLL calls that can destabilize the test process.
+
 ## 0.2.295 - 2025-12-24
 
 - Sync detached tab window sizing immediately after cloning so docked content
