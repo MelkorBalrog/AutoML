@@ -146,6 +146,7 @@ class DetachableTabWindow:
         self._activate_clone_hooks(clone)
         if self._resizer is not None:
             self._resizer.add_target(clone)
+            self._register_resize_targets(clone)
 
     def _clone_tab_contents(self) -> tk.Widget | None:
         if self._notebook is None:
@@ -204,6 +205,34 @@ class DetachableTabWindow:
             if callable(func):
                 try:
                     func()
+                except Exception:
+                    pass
+
+    def _register_resize_targets(self, root: tk.Widget) -> None:
+        if self._resizer is None:
+            return
+        targets: tuple[type[tk.Widget], ...] = (
+            tk.Frame,
+            ttk.Frame,
+            tk.LabelFrame,
+            ttk.LabelFrame,
+            tk.Canvas,
+            ttk.Notebook,
+            ClosableNotebook,
+        )
+        pending: list[tk.Widget] = [root]
+        visited: set[tk.Widget] = set()
+        while pending:
+            widget = pending.pop()
+            if widget in visited:
+                continue
+            visited.add(widget)
+            if isinstance(widget, targets):
+                self._resizer.add_target(widget)
+            children = getattr(widget, "winfo_children", None)
+            if callable(children):
+                try:
+                    pending.extend(children())
                 except Exception:
                     pass
 

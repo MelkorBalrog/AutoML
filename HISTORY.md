@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.292 - 2025-09-28
+
+- Register detached tab container trees with the window resize controller so
+  frames, canvases, and notebooks inherit host geometry updates when floating.
+- Trigger synthetic configure events for tracked canvases during host window
+  resizes, ensuring scrollregions stay current in detached views.
+
 ## 0.2.291 - 2025-09-27
 
 - Detach document tabs by cloning their widget trees into floating notebooks

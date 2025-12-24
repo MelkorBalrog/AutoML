@@ -329,6 +329,18 @@ class WindowResizeController:
                 widget.event_generate("<<HostWindowResized>>", when="tail")
             except Exception:
                 pass
+        if isinstance(widget, tk.Canvas):
+            try:
+                widget.event_generate(
+                    "<Configure>",
+                    when="tail",
+                    width=width,
+                    height=height,
+                    x=0,
+                    y=0,
+                )
+            except Exception:
+                pass
 
     def __del__(self) -> None:  # pragma: no cover - defensive cleanup
         if _python_is_finalizing():
