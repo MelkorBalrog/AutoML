@@ -43,6 +43,8 @@ class DetachedTabMetadata:
 class DetachableTabWindow:
     """Wrapper around ``tk.Toplevel`` for hosting detached notebook tabs."""
 
+    _DEFAULT_SIZE = (1200, 700)
+
     def __init__(
         self,
         root: tk.Misc,
@@ -85,6 +87,7 @@ class DetachableTabWindow:
         self._window = tk.Toplevel(self.root)
         self._window.title(self.metadata.title)
         self._window.protocol("WM_DELETE_WINDOW", self._dispatch_dock_back)
+        self._configure_initial_geometry()
 
         toolbar = ttk.Frame(self._window)
         dock_btn = ttk.Button(toolbar, text="Dock", command=self.dock_back)
@@ -96,6 +99,8 @@ class DetachableTabWindow:
         self._notebook.pack(fill=tk.BOTH, expand=True)
         self._install_resizer()
         self._clone_tab_into_notebook()
+        if self._resizer is not None:
+            self._resizer.sync_to_host()
 
     def dock_back(self) -> None:
         """Return the tab to its originating notebook."""
@@ -124,6 +129,28 @@ class DetachableTabWindow:
     # ------------------------------------------------------------------
     def _dispatch_dock_back(self) -> None:
         dispatch_to_ui(self.root, self.dock_back)
+
+    def _configure_initial_geometry(self) -> None:
+        if self._window is None:
+            return
+        width = height = 0
+        if self.origin_notebook is not None:
+            try:
+                self.origin_notebook.update_idletasks()
+                width = self.origin_notebook.winfo_width()
+                height = self.origin_notebook.winfo_height()
+            except tk.TclError:
+                width = height = 0
+        if width <= 1 or height <= 1:
+            width, height = self._DEFAULT_SIZE
+        else:
+            width = max(width, self._DEFAULT_SIZE[0])
+            height = max(height, self._DEFAULT_SIZE[1])
+        try:
+            self._window.geometry(f"{width}x{height}")
+            self._window.minsize(self._DEFAULT_SIZE[0], self._DEFAULT_SIZE[1])
+        except tk.TclError:
+            pass
 
     def _clone_tab_into_notebook(self) -> None:
         if self._notebook is None:
@@ -259,7 +286,11 @@ class DetachableTabWindow:
         if self._window is None or self._notebook is None:
             return
         try:
-            self._resizer = WindowResizeController(self._window, self._notebook)
+            self._resizer = WindowResizeController(
+                self._window,
+                self._notebook,
+                use_win32_hook=False,
+            )
         except Exception:
             self._resizer = None
         if self._resizer is not None:
