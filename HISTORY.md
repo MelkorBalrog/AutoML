@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.296 - 2025-12-25
+
+- Fall back to transferring tab widgets into detached windows when cloning or
+  rebuilding content fails, keeping detached tabs visible and sized correctly.
+- Register shutdown events for background watchdog and memory manager threads
+  so application exit no longer blocks on thread joins.
+
 ## 0.2.295 - 2025-12-24
 
 - Sync detached tab window sizing immediately after cloning so docked content
