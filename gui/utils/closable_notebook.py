@@ -534,6 +534,194 @@ class ClosableNotebook(ttk.Notebook):
             self.master.destroy()
         return True
 
+    def _ordered_children(self, widget: tk.Widget) -> list[tk.Widget]:
+        """Return widget children in stacking order when possible."""
+
+        try:
+            return list(widget.winfo_children())
+        except Exception:
+            return []
+
+    def _snapshot_layouts(
+        self,
+        widget: tk.Widget,
+        layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]],
+    ) -> None:
+        """Capture geometry manager details for *widget* and descendants."""
+
+        manager = ""
+        info: dict[str, t.Any] = {}
+        try:
+            manager = widget.winfo_manager()
+        except Exception:
+            manager = ""
+        try:
+            if manager == "pack":
+                info = widget.pack_info()
+            elif manager == "grid":
+                info = widget.grid_info()
+            elif manager == "place":
+                info = widget.place_info()
+        except Exception:
+            info = {}
+        layouts[widget] = (manager, info)
+        for child in self._ordered_children(widget):
+            self._snapshot_layouts(child, layouts)
+
+    def _clone_widget(
+        self,
+        widget: tk.Widget,
+        parent: tk.Widget,
+    ) -> tuple[
+        tk.Widget, dict[tk.Widget, tk.Widget], dict[tk.Widget, tuple[str, dict[str, t.Any]]]
+    ]:
+        """Clone *widget* into *parent* and return (clone, mapping, layouts)."""
+
+        mapping: dict[tk.Widget, tk.Widget] = {}
+        layouts: dict[tk.Widget, tuple[str, dict[str, t.Any]]] = {}
+        self._snapshot_layouts(widget, layouts)
+        clone = self._clone_widget_tree(widget, parent, mapping)
+        self._copy_widget_layout(widget, clone, mapping, layouts)
+        for orig, cloned in mapping.items():
+            self._copy_widget_bindings(orig, cloned, mapping)
+            self._reschedule_after_callbacks(orig, cloned, mapping)
+        self._reassign_widget_references(mapping)
+        return clone, mapping, layouts
+
+    def _clone_widget_tree(
+        self,
+        widget: tk.Widget,
+        parent: tk.Widget,
+        mapping: dict[tk.Widget, tk.Widget],
+    ) -> tk.Widget:
+        """Recursively clone *widget* and descendants into *parent*."""
+
+        clone = self._clone_widget_instance(widget, parent)
+        mapping[widget] = clone
+        for child in self._ordered_children(widget):
+            self._clone_widget_tree(child, clone, mapping)
+        return clone
+
+    def _clone_widget_instance(self, widget: tk.Widget, parent: tk.Widget) -> tk.Widget:
+        """Instantiate a cloned widget mirroring *widget* under *parent*."""
+
+        cls = widget.__class__
+        try:
+            clone = cls(parent)
+        except Exception as exc:
+            raise RuntimeError(f"Failed to clone widget {widget}") from exc
+        self._copy_widget_options(widget, clone)
+        self._copy_widget_state(widget, clone)
+        return clone
+
+    def _copy_widget_options(self, widget: tk.Widget, clone: tk.Widget) -> None:
+        """Copy configuration options from *widget* to *clone*."""
+
+        skip = {"class", "colormap", "container", "use", "visual"}
+        try:
+            config = widget.configure() or {}
+        except Exception:
+            config = {}
+        if isinstance(config, dict):
+            options: dict[str, t.Any] = {}
+            for opt in config.keys():
+                if opt in skip:
+                    continue
+                try:
+                    options[opt] = widget.cget(opt)
+                except Exception:
+                    continue
+            if options:
+                try:
+                    clone.configure(options)
+                except Exception:
+                    pass
+
+    def _copy_widget_state(self, widget: tk.Widget, clone: tk.Widget) -> None:
+        """Copy content state from *widget* to *clone* where applicable."""
+
+        if isinstance(widget, (tk.Entry, ttk.Entry)):
+            try:
+                clone.delete(0, tk.END)
+                clone.insert(0, widget.get())
+            except Exception:
+                pass
+        if isinstance(widget, tk.Text):
+            try:
+                clone.delete("1.0", tk.END)
+                clone.insert("1.0", widget.get("1.0", "end-1c"))
+            except Exception:
+                pass
+        if isinstance(widget, tk.Listbox):
+            try:
+                clone.delete(0, tk.END)
+                for item in widget.get(0, tk.END):
+                    clone.insert(tk.END, item)
+            except Exception:
+                pass
+        if isinstance(widget, ttk.Treeview):
+            self._clone_treeview(widget, clone)
+        if isinstance(widget, tk.Canvas):
+            self._clone_canvas_items(widget, clone)
+
+    def _clone_treeview(self, src: ttk.Treeview, dst: ttk.Treeview) -> None:
+        """Clone treeview columns and items from *src* to *dst*."""
+
+        try:
+            dst.configure(
+                columns=src.cget("columns"),
+                displaycolumns=src.cget("displaycolumns"),
+                show=src.cget("show"),
+            )
+        except Exception:
+            pass
+        for col in src.cget("columns") or ():
+            try:
+                dst.heading(col, **src.heading(col))
+            except Exception:
+                pass
+            try:
+                dst.column(col, **src.column(col))
+            except Exception:
+                pass
+        for item in src.get_children(""):
+            self._copy_tree_item(src, dst, item, "")
+
+    def _clone_canvas_items(self, src: tk.Canvas, dst: tk.Canvas) -> None:
+        """Clone canvas items from *src* to *dst*."""
+
+        for item in src.find_all():
+            try:
+                item_type = src.type(item)
+                coords = src.coords(item)
+                config = src.itemconfig(item)
+            except Exception:
+                continue
+            options = {k: v[-1] for k, v in config.items()} if config else {}
+            try:
+                tags = src.gettags(item)
+                if tags:
+                    options["tags"] = tags
+            except Exception:
+                pass
+            try:
+                if item_type == "line":
+                    dst.create_line(*coords, **options)
+                elif item_type == "rectangle":
+                    dst.create_rectangle(*coords, **options)
+                elif item_type == "oval":
+                    dst.create_oval(*coords, **options)
+                elif item_type == "text":
+                    dst.create_text(*coords, **options)
+                elif item_type == "polygon":
+                    dst.create_polygon(*coords, **options)
+                elif item_type == "image":
+                    dst.create_image(*coords, **options)
+                elif item_type == "window":
+                    dst.create_window(*coords, **options)
+            except Exception:
+                continue
+
 
     def _replace_widget_paths(
         self, script: str, mapping: dict[tk.Widget, tk.Widget]
