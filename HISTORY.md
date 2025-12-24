@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.293 - 2025-09-28
+
+- Prevent resize feedback loops in detached tab windows by skipping width/height
+  configuration on frame-like widgets, keeping floating windows responsive.
+
 ## 0.2.292 - 2025-09-28
 
 - Register detached tab container trees with the window resize controller so
