@@ -39,7 +39,13 @@ def _python_is_finalizing() -> bool:
 class WindowResizeController:
     """Propagate ``<Configure>`` events from a toplevel to tracked widgets."""
 
-    def __init__(self, win: tk.Misc, primary: tk.Widget | None = None) -> None:
+    def __init__(
+        self,
+        win: tk.Misc,
+        primary: tk.Widget | None = None,
+        *,
+        use_win32_hook: bool = True,
+    ) -> None:
         self.win = win
         self._primary: tk.Widget | None = None
         self._targets: list[tk.Widget] = []
@@ -48,6 +54,7 @@ class WindowResizeController:
         self._callback: t.Callable[[tk.Event], None] | None = None
         self._last_size: tuple[int, int] | None = None
         self._win32_hook = None
+        self._use_win32_hook = use_win32_hook
         if primary is not None:
             self.set_primary_target(primary)
         self._bind()
@@ -169,6 +176,8 @@ class WindowResizeController:
     # Windows integration
     # ------------------------------------------------------------------
     def _install_win32_hook(self) -> None:
+        if not self._use_win32_hook:
+            return
         if self._win32_hook is not None:
             return
         hook_factory = create_window_size_hook

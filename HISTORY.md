@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.294 - 2025-12-24
+
+- Prevent Win32 resize hooks from running in detached tab windows to avoid
+  background thread callbacks during teardown.
+- Ensure detached tab windows open at a usable size that matches the main
+  notebook dimensions with a sane minimum.
+
 ## 0.2.293 - 2025-09-28
 
 - Prevent resize feedback loops in detached tab windows by skipping width/height
