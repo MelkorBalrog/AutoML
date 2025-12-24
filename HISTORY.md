@@ -18,12 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.296 - 2025-12-25
+## 0.2.297 - 2025-12-26
 
-- Fall back to transferring tab widgets into detached windows when cloning or
-  rebuilding content fails, keeping detached tabs visible and sized correctly.
-- Register shutdown events for background watchdog and memory manager threads
-  so application exit no longer blocks on thread joins.
+- Reopen detached tab content by instantiating fresh widgets in the floating
+  window instead of cloning or transferring existing tab objects.
+- Use a pure-Python API bridge during pytest runs or when explicitly requested
+  to avoid native DLL calls that can destabilize the test process.
 
 ## 0.2.295 - 2025-12-24
 

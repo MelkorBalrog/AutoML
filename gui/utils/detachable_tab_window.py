@@ -30,6 +30,7 @@ from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.tk_utils import cancel_after_events, dispatch_to_ui, is_main_thread
 from gui.utils.widget_transfer_manager import WidgetTransferManager
 from gui.utils.window_resizer import WindowResizeController
+from gui.utils.detached_tab_reopener import DetachedTabReopener
 
 
 @dataclasses.dataclass
@@ -63,7 +64,6 @@ class DetachableTabWindow:
         self._notebook: ClosableNotebook | None = None
         self._resizer: WindowResizeController | None = None
         self._cloned_widget: tk.Widget | None = None
-        self._clone_mapping: dict[tk.Widget, tk.Widget] | None = None
         self._hidden_in_origin = False
         self._moved_tab = False
 
@@ -125,7 +125,6 @@ class DetachableTabWindow:
                 pass
             self._window = None
         self._cloned_widget = None
-        self._clone_mapping = None
         if callable(self.on_dock):
             self.on_dock(self.tab_widget)
 
@@ -160,9 +159,7 @@ class DetachableTabWindow:
     def _clone_tab_into_notebook(self) -> None:
         if self._notebook is None:
             return
-        clone = self._clone_tab_contents()
-        if clone is None:
-            clone = self._rebuild_tab_contents()
+        clone = self._reopen_tab_contents()
         if clone is None:
             if self._transfer_tab_contents():
                 return
@@ -182,77 +179,15 @@ class DetachableTabWindow:
             self._resizer.add_target(clone)
             self._register_resize_targets(clone)
 
-    def _transfer_tab_contents(self) -> bool:
-        if (
-            self._notebook is None
-            or self.origin_notebook is None
-            or self.tab_widget is None
-        ):
-            return False
-        try:
-            WidgetTransferManager().detach_tab(
-                self.origin_notebook, str(self.tab_widget), self._notebook
-            )
-        except tk.TclError:
-            return False
-        self._moved_tab = True
-        self._cloned_widget = self.tab_widget
-        self._activate_clone_hooks(self.tab_widget)
-        if self._resizer is not None:
-            self._resizer.add_target(self.tab_widget)
-            self._register_resize_targets(self.tab_widget)
-        return True
-
-    def _clone_tab_contents(self) -> tk.Widget | None:
+    def _reopen_tab_contents(self) -> tk.Widget | None:
         if self._notebook is None:
             return None
-        try:
-            clone, mapping, _layouts = self._notebook._clone_widget(
-                self.tab_widget, self._notebook
-            )
-        except Exception:
-            return None
-        self._clone_mapping = mapping
-        return clone
-
-    def _rebuild_tab_contents(self) -> tk.Widget | None:
-        if self._notebook is None:
-            return None
-        for attr in ("gsn_window", "arch_window"):
-            window = getattr(self.tab_widget, attr, None)
-            clone = self._rebuild_from_window(window)
-            if clone is not None:
-                return clone
-        try:
-            return self.tab_widget.__class__(self._notebook)
-        except Exception:
-            return None
-
-    def _rebuild_from_window(self, window: tk.Widget | None) -> tk.Widget | None:
-        if window is None:
-            return None
-        if self._notebook is None:
-            return None
-        cls = window.__class__
-        app = getattr(window, "app", None)
-        if hasattr(window, "diagram"):
-            try:
-                return cls(self._notebook, app, window.diagram)
-            except Exception:
-                return None
-        diagram_id = getattr(window, "diagram_id", None)
-        history = getattr(window, "diagram_history", None)
-        if diagram_id is not None:
-            try:
-                return cls(
-                    self._notebook,
-                    app,
-                    diagram_id=diagram_id,
-                    history=history,
-                )
-            except Exception:
-                return None
-        return None
+        reopener = DetachedTabReopener(
+            self.tab_widget,
+            self._notebook,
+            self.metadata.title,
+        )
+        return reopener.reopen()
 
     def _activate_clone_hooks(self, clone: tk.Widget) -> None:
         for name in ("_rebuild_toolboxes", "_activate_parent_phase", "_switch_toolbox"):

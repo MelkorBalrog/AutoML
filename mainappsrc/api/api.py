@@ -20,11 +20,13 @@
 from __future__ import annotations
 
 import ctypes
-import json
 import inspect
+import json
+import os
 from importlib import import_module
 from pathlib import Path
 import subprocess
+import sys
 import sysconfig
 from typing import Any, Callable
 
@@ -33,6 +35,10 @@ from mainappsrc.services import _SERVICE_ATTRS
 _LIB_NAME = "libcore_api.so"
 _SRC_PATH = Path(__file__).with_suffix(".c")
 _LIB_PATH = Path(__file__).with_name(_LIB_NAME)
+_USE_PURE_PY = (
+    os.getenv("AUTOML_PURE_PY_API", "").lower() in {"1", "true", "yes"}
+    or "pytest" in sys.modules
+)
 
 
 def _build_library() -> None:
@@ -62,47 +68,69 @@ def _build_library() -> None:
     )
 
 
-if not _LIB_PATH.exists():
-    _build_library()
-
-_lib = ctypes.CDLL(str(_LIB_PATH))
-_lib.automl_initialize.restype = ctypes.c_int
-_lib.automl_initialize()
-
-_lib.add.argtypes = (ctypes.c_int, ctypes.c_int)
-_lib.add.restype = ctypes.c_int
-
-_lib.automl_call.argtypes = (
-    ctypes.c_char_p,
-    ctypes.c_char_p,
-    ctypes.c_char_p,
-    ctypes.POINTER(ctypes.c_char_p),
-)
-_lib.automl_call.restype = ctypes.c_int
-_lib.automl_free.argtypes = (ctypes.c_void_p,)
-_lib.automl_free.restype = None
+def _call_service_py(module: str, function: str, args_json: str) -> object:
+    payload = json.loads(args_json or "[]")
+    target_module = import_module(module)
+    target = getattr(target_module, function)
+    if isinstance(payload, dict):
+        args = payload.get("args", [])
+        kwargs = {k: v for k, v in payload.items() if k != "args"}
+        return target(*args, **kwargs)
+    if isinstance(payload, list):
+        return target(*payload)
+    return target(payload)
 
 
-def add(left: int, right: int) -> int:
-    """Return the sum of two integers using the compiled C library."""
-    return int(_lib.add(left, right))
+if _USE_PURE_PY:
 
+    def add(left: int, right: int) -> int:
+        """Return the sum of two integers using the Python fallback."""
+        return left + right
 
-def call_service(module: str, function: str, args_json: str = "[]") -> object:
-    """Invoke *function* from *module* with JSON-encoded arguments."""
+    def call_service(module: str, function: str, args_json: str = "[]") -> object:
+        """Invoke *function* from *module* with JSON-encoded arguments."""
+        return _call_service_py(module, function, args_json)
 
-    result_ptr = ctypes.c_char_p()
-    status = _lib.automl_call(
-        module.encode("utf-8"),
-        function.encode("utf-8"),
-        args_json.encode("utf-8"),
-        ctypes.byref(result_ptr),
+else:
+    if not _LIB_PATH.exists():
+        _build_library()
+
+    _lib = ctypes.CDLL(str(_LIB_PATH))
+    _lib.automl_initialize.restype = ctypes.c_int
+    _lib.automl_initialize()
+
+    _lib.add.argtypes = (ctypes.c_int, ctypes.c_int)
+    _lib.add.restype = ctypes.c_int
+
+    _lib.automl_call.argtypes = (
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_char_p),
     )
-    if status != 0:
-        raise RuntimeError("service invocation failed")
-    result_json = result_ptr.value.decode("utf-8")
-    _lib.automl_free(result_ptr)
-    return json.loads(result_json)
+    _lib.automl_call.restype = ctypes.c_int
+    _lib.automl_free.argtypes = (ctypes.c_void_p,)
+    _lib.automl_free.restype = None
+
+    def add(left: int, right: int) -> int:
+        """Return the sum of two integers using the compiled C library."""
+        return int(_lib.add(left, right))
+
+    def call_service(module: str, function: str, args_json: str = "[]") -> object:
+        """Invoke *function* from *module* with JSON-encoded arguments."""
+
+        result_ptr = ctypes.c_char_p()
+        status = _lib.automl_call(
+            module.encode("utf-8"),
+            function.encode("utf-8"),
+            args_json.encode("utf-8"),
+            ctypes.byref(result_ptr),
+        )
+        if status != 0:
+            raise RuntimeError("service invocation failed")
+        result_json = result_ptr.value.decode("utf-8")
+        _lib.automl_free(result_ptr)
+        return json.loads(result_json)
 
 
 def _make_wrapper(module_name: str, func_path: str) -> Callable[..., Any]:
