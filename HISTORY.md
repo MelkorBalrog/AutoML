@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.298 - 2025-12-27
+
+- Reopen detached tab content by rebuilding a container frame and packing fresh
+  widgets so detached windows no longer appear empty.
+- Preserve rebuilt window references on the detached container for lifecycle
+  hooks and resize handling.
+
 ## 0.2.295 - 2025-12-24
 
 - Sync detached tab window sizing immediately after cloning so docked content

@@ -68,7 +68,12 @@ class MemoryManager:
         }
         self._thread = None
         if not disable_thread:
-            self._thread = thread_manager.register("memory_manager", self._monitor, daemon=True)
+            self._thread = thread_manager.register(
+                "memory_manager",
+                self._monitor,
+                daemon=True,
+                stop_event=self._stop_event,
+            )
 
     def lazy_load(self, key: str, loader: Callable[[], Any]) -> Any:
         """Return cached object for *key*, loading it if necessary."""
