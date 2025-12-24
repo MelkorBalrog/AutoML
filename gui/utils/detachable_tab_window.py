@@ -28,6 +28,7 @@ from tkinter import ttk
 
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.tk_utils import cancel_after_events, dispatch_to_ui, is_main_thread
+from gui.utils.widget_transfer_manager import WidgetTransferManager
 from gui.utils.window_resizer import WindowResizeController
 
 
@@ -64,6 +65,7 @@ class DetachableTabWindow:
         self._cloned_widget: tk.Widget | None = None
         self._clone_mapping: dict[tk.Widget, tk.Widget] | None = None
         self._hidden_in_origin = False
+        self._moved_tab = False
 
     # ------------------------------------------------------------------
     # Public API
@@ -110,7 +112,10 @@ class DetachableTabWindow:
             return
         if not self.origin_notebook or not self.tab_widget:
             return
-        self._restore_original_tab()
+        if self._moved_tab:
+            self._restore_moved_tab()
+        else:
+            self._restore_original_tab()
         if self._window is not None:
             cancel_after_events(self._window)
             self._shutdown_resizer()
@@ -159,6 +164,8 @@ class DetachableTabWindow:
         if clone is None:
             clone = self._rebuild_tab_contents()
         if clone is None:
+            if self._transfer_tab_contents():
+                return
             return
         self._cloned_widget = clone
         try:
@@ -174,6 +181,27 @@ class DetachableTabWindow:
         if self._resizer is not None:
             self._resizer.add_target(clone)
             self._register_resize_targets(clone)
+
+    def _transfer_tab_contents(self) -> bool:
+        if (
+            self._notebook is None
+            or self.origin_notebook is None
+            or self.tab_widget is None
+        ):
+            return False
+        try:
+            WidgetTransferManager().detach_tab(
+                self.origin_notebook, str(self.tab_widget), self._notebook
+            )
+        except tk.TclError:
+            return False
+        self._moved_tab = True
+        self._cloned_widget = self.tab_widget
+        self._activate_clone_hooks(self.tab_widget)
+        if self._resizer is not None:
+            self._resizer.add_target(self.tab_widget)
+            self._register_resize_targets(self.tab_widget)
+        return True
 
     def _clone_tab_contents(self) -> tk.Widget | None:
         if self._notebook is None:
@@ -281,6 +309,22 @@ class DetachableTabWindow:
         except tk.TclError:
             pass
         self._hidden_in_origin = False
+
+    def _restore_moved_tab(self) -> None:
+        if (
+            not self._moved_tab
+            or self._notebook is None
+            or self.origin_notebook is None
+            or self.tab_widget is None
+        ):
+            return
+        try:
+            WidgetTransferManager().detach_tab(
+                self._notebook, str(self.tab_widget), self.origin_notebook
+            )
+        except tk.TclError:
+            return
+        self._moved_tab = False
 
     def _install_resizer(self) -> None:
         if self._window is None or self._notebook is None:
