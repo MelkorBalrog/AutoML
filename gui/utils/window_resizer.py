@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import sys
 import tkinter as tk
+from tkinter import ttk
 import typing as t
 
 from gui.utils.win32_hooks import create_window_size_hook
@@ -248,8 +249,9 @@ class WindowResizeController:
         return True
 
     def _apply_resize(self, widget: tk.Widget, width: int, height: int) -> None:
-        self._configure_dimension(widget, "width", width)
-        self._configure_dimension(widget, "height", height)
+        if self._should_configure_dimension(widget):
+            self._configure_dimension(widget, "width", width)
+            self._configure_dimension(widget, "height", height)
         self._ensure_geometry(widget)
         updater = getattr(widget, "update_idletasks", None)
         if callable(updater):
@@ -265,6 +267,15 @@ class WindowResizeController:
             widget.configure(**{option: value})
         except Exception:
             pass
+
+    def _should_configure_dimension(self, widget: tk.Widget) -> bool:
+        if widget is self.win:
+            return False
+        if isinstance(widget, (tk.Tk, tk.Toplevel)):
+            return False
+        if isinstance(widget, (tk.Frame, ttk.Frame, ttk.Notebook)):
+            return False
+        return True
 
     def _ensure_geometry(self, widget: tk.Widget) -> None:
         manager = self._manager(widget)
