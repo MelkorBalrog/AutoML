@@ -28,6 +28,7 @@ from tkinter import ttk
 
 from gui.utils.closable_notebook import ClosableNotebook
 from gui.utils.tk_utils import cancel_after_events, dispatch_to_ui, is_main_thread
+from gui.utils.widget_transfer_manager import WidgetTransferManager
 from gui.utils.window_resizer import WindowResizeController
 from gui.utils.detached_tab_reopener import DetachedTabReopener
 
@@ -64,6 +65,7 @@ class DetachableTabWindow:
         self._resizer: WindowResizeController | None = None
         self._cloned_widget: tk.Widget | None = None
         self._hidden_in_origin = False
+        self._moved_tab = False
 
     # ------------------------------------------------------------------
     # Public API
@@ -110,7 +112,10 @@ class DetachableTabWindow:
             return
         if not self.origin_notebook or not self.tab_widget:
             return
-        self._restore_original_tab()
+        if self._moved_tab:
+            self._restore_moved_tab()
+        else:
+            self._restore_original_tab()
         if self._window is not None:
             cancel_after_events(self._window)
             self._shutdown_resizer()
@@ -156,6 +161,8 @@ class DetachableTabWindow:
             return
         clone = self._reopen_tab_contents()
         if clone is None:
+            if self._transfer_tab_contents():
+                return
             return
         self._cloned_widget = clone
         try:
@@ -238,6 +245,22 @@ class DetachableTabWindow:
         except tk.TclError:
             pass
         self._hidden_in_origin = False
+
+    def _restore_moved_tab(self) -> None:
+        if (
+            not self._moved_tab
+            or self._notebook is None
+            or self.origin_notebook is None
+            or self.tab_widget is None
+        ):
+            return
+        try:
+            WidgetTransferManager().detach_tab(
+                self._notebook, str(self.tab_widget), self.origin_notebook
+            )
+        except tk.TclError:
+            return
+        self._moved_tab = False
 
     def _install_resizer(self) -> None:
         if self._window is None or self._notebook is None:
