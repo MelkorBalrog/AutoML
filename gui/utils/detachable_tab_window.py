@@ -174,7 +174,8 @@ class DetachableTabWindow:
                 return
         self._notebook.select(clone)
         self._hide_original_tab()
-        self._activate_clone_hooks(clone)
+        content = getattr(clone, "_detached_content", None)
+        self._activate_clone_hooks(content if isinstance(content, tk.Widget) else clone)
         if self._resizer is not None:
             self._resizer.add_target(clone)
             self._register_resize_targets(clone)

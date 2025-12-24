@@ -42,58 +42,111 @@ class DetachedTabReopener:
     def reopen(self) -> tk.Widget | None:
         """Create a new tab widget with fresh contents."""
 
-        window = self._find_primary_window()
+        container = ttk.Frame(self.notebook)
+        window, attr_name = self._find_primary_window()
         if window is not None:
-            rebuilt = self._build_from_window(window)
+            rebuilt = self._build_from_window(window, container)
             if rebuilt is not None:
-                return rebuilt
-        return self._build_from_tab_class()
+                self._attach_reopened_window(container, rebuilt, attr_name)
+                return container
+        rebuilt = self._build_from_tab_class(container)
+        if rebuilt is not None:
+            self._attach_reopened_window(container, rebuilt, None)
+            return container
+        return None
 
-    def _find_primary_window(self) -> tk.Widget | None:
+    def _find_primary_window(self) -> tuple[tk.Widget | None, str | None]:
         for name in ("gsn_window", "arch_window"):
             window = getattr(self.tab_widget, name, None)
             if isinstance(window, tk.Widget):
-                return window
+                return window, name
         for attr, value in vars(self.tab_widget).items():
             if not attr.endswith(self._WINDOW_ATTR_SUFFIXES):
                 continue
             if isinstance(value, tk.Widget):
-                return value
+                return value, attr
         for name in dir(self.tab_widget):
             if not name.endswith(self._WINDOW_ATTR_SUFFIXES):
                 continue
             value = getattr(self.tab_widget, name, None)
             if isinstance(value, tk.Widget):
-                return value
-        return None
+                return value, name
+        window = self._find_child_window(self.tab_widget)
+        if window is not None:
+            return window, None
+        return None, None
 
-    def _build_from_tab_class(self) -> tk.Widget | None:
+    def _find_child_window(self, root: tk.Widget) -> tk.Widget | None:
         try:
-            widget = self.tab_widget.__class__(self.notebook)
+            children = root.winfo_children()
         except Exception:
             return None
+        for child in children:
+            if self._is_detached_window(child):
+                return child
+            found = self._find_child_window(child)
+            if found is not None:
+                return found
+        return None
+
+    def _is_detached_window(self, widget: tk.Widget) -> bool:
+        if getattr(widget, "app", None) is not None:
+            return True
+        if getattr(widget, "diagram", None) is not None:
+            return True
+        if getattr(widget, "diagram_id", None) is not None:
+            return True
+        return False
+
+    def _build_from_tab_class(self, container: ttk.Frame) -> tk.Widget | None:
+        try:
+            widget = self.tab_widget.__class__(container)
+        except Exception:
+            return None
+        if hasattr(widget, "pack"):
+            widget.pack(fill=tk.BOTH, expand=True)
         return widget
 
-    def _build_from_window(self, window: tk.Widget) -> tk.Widget | None:
+    def _build_from_window(self, window: tk.Widget, container: ttk.Frame) -> tk.Widget | None:
         cls = window.__class__
         app = getattr(window, "app", None)
         diagram = getattr(window, "diagram", None)
         diagram_id = getattr(window, "diagram_id", None)
         history = getattr(window, "diagram_history", None)
         if diagram is not None:
-            return self._safe_create(cls, self.notebook, app, diagram)
+            rebuilt = self._safe_create(cls, container, app, diagram)
+            return self._finalize_rebuild(rebuilt)
         if diagram_id is not None:
-            return self._safe_create(
+            rebuilt = self._safe_create(
                 cls,
-                self.notebook,
+                container,
                 app,
                 diagram_id=diagram_id,
                 history=history,
             )
-        return self._safe_create(cls, self.notebook, app)
+            return self._finalize_rebuild(rebuilt)
+        rebuilt = self._safe_create(cls, container, app)
+        return self._finalize_rebuild(rebuilt)
+
+    def _finalize_rebuild(self, rebuilt: tk.Widget | None) -> tk.Widget | None:
+        if rebuilt is None:
+            return None
+        if hasattr(rebuilt, "pack"):
+            rebuilt.pack(fill=tk.BOTH, expand=True)
+        return rebuilt
 
     def _safe_create(self, cls, container: tk.Widget, app, **kwargs) -> tk.Widget | None:
         try:
             return cls(container, app, **kwargs)
         except Exception:
             return None
+
+    def _attach_reopened_window(
+        self,
+        container: ttk.Frame,
+        rebuilt: tk.Widget,
+        attr_name: str | None,
+    ) -> None:
+        setattr(container, "_detached_content", rebuilt)
+        if attr_name:
+            setattr(container, attr_name, rebuilt)
