@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.291 - 2025-09-27
+
+- Detach document tabs by cloning their widget trees into floating notebooks
+  while keeping the original tabs hidden in the main window.
+- Add clone-building helpers to ``ClosableNotebook`` to copy widget layouts,
+  bindings, and canvas contents when cloning tabs for detached windows.
+
 ## 0.2.290 - 2025-09-26
 
 - Route detachment and docking callbacks through a Tk dispatcher that schedules

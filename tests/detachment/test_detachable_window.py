@@ -49,11 +49,13 @@ class TestDetachableTabWindow:
         wrapper = DetachableTabWindow(root, frame, nb, metadata)
 
         wrapper.detach()
-        assert frame.master is not nb
-        assert nb.tabs() == []
+        assert frame.master is nb
+        assert frame in [nb.nametowidget(t) for t in nb.tabs()]
+        assert nb.tab(frame, "state") == "hidden"
 
         wrapper.dock_back()
         assert frame.master is nb
+        assert nb.tab(frame, "state") == "normal"
         assert nb.tabs()
         root.destroy()
 
@@ -99,7 +101,7 @@ class TestDetachableTabWindow:
 
             assert isinstance(wrapper._resizer, StubResizer)
             assert wrapper._resizer.primary is wrapper._notebook
-            assert frame in wrapper._resizer.targets
+            assert wrapper._cloned_widget in wrapper._resizer.targets
 
             resizer = wrapper._resizer
             wrapper.dock_back()
