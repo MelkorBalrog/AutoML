@@ -18,12 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.298 - 2025-12-27
+## 0.2.297 - 2025-12-26
 
-- Reopen detached tab content by rebuilding a container frame and packing fresh
-  widgets so detached windows no longer appear empty.
-- Preserve rebuilt window references on the detached container for lifecycle
-  hooks and resize handling.
+- Reopen detached tab content by instantiating fresh widgets in the floating
+  window instead of cloning or transferring existing tab objects.
+- Use a pure-Python API bridge during pytest runs or when explicitly requested
+  to avoid native DLL calls that can destabilize the test process.
 
 ## 0.2.295 - 2025-12-24
 
