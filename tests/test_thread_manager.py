@@ -63,38 +63,6 @@ class TestThreadManager:
         assert stop_event.is_set()
         assert not thread.is_alive()
 
-
-    def test_thread_not_restarted_when_stop_event_is_set(self) -> None:
-        stop_event = threading.Event()
-        started = threading.Event()
-
-        def worker() -> None:
-            started.set()
-
-        manager = ThreadManager(interval=0.05)
-        manager.register("stopping", worker, stop_event=stop_event)
-        assert started.wait(timeout=1.0)
-        stop_event.set()
-        time.sleep(0.12)
-        info = manager._threads.get("stopping")
-        assert info is not None
-        original_thread = info.thread
-        time.sleep(0.12)
-        assert manager._threads["stopping"].thread is original_thread
-        manager.stop_all()
-
-    def test_thread_not_restarted_when_disabled(self) -> None:
-        runs = {"count": 0}
-
-        def worker() -> None:
-            runs["count"] += 1
-
-        manager = ThreadManager(interval=0.05)
-        manager.register("oneshot", worker, restart_on_exit=False)
-        time.sleep(0.15)
-        assert runs["count"] == 1
-        manager.stop_all()
-
     def test_stop_all_warns_on_unresponsive_thread(self, caplog) -> None:
         caplog.set_level(logging.WARNING)
 

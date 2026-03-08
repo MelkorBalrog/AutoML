@@ -179,30 +179,6 @@ class DetachableTabWindow:
             self._resizer.add_target(clone)
             self._register_resize_targets(clone)
 
-    def _transfer_tab_contents(self) -> bool:
-        """Move the original tab widget to the detached notebook as fallback."""
-
-        if self._notebook is None:
-            return False
-        try:
-            WidgetTransferManager().detach_tab(
-                self.origin_notebook,
-                str(self.tab_widget),
-                self._notebook,
-            )
-        except tk.TclError:
-            return False
-        self._moved_tab = True
-        self._cloned_widget = self.tab_widget
-        try:
-            self._notebook.select(self.tab_widget)
-        except tk.TclError:
-            pass
-        if self._resizer is not None:
-            self._resizer.add_target(self.tab_widget)
-            self._register_resize_targets(self.tab_widget)
-        return True
-
     def _reopen_tab_contents(self) -> tk.Widget | None:
         if self._notebook is None:
             return None
