@@ -24,7 +24,7 @@ from tkinter import filedialog
 
 try:
     from PIL import Image, ImageDraw, ImageFont
-except Exception:  # pragma: no cover - optional dependency
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
     Image = ImageDraw = ImageFont = None
 
 

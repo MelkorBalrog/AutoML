@@ -18,16 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.300 - 2026-03-08
-
-- Avoid splash-screen hard failures when Pillow import fails for any reason
-  (including native DLL load/access issues) by falling back to a Tk-only splash
-  rendering path.
-- Add launcher resilience so startup continues without the splash screen when
-  splash initialization raises an exception.
-- Broaden optional Pillow handling in diagram export to catch non-module import
-  failures and emit a clear dependency message instead of crashing.
-
 ## 0.2.299 - 2026-03-08
 
 - Remove the temporary local ``PIL`` shim package that shadowed Pillow and

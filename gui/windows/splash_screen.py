@@ -23,47 +23,10 @@ import math
 import random
 try:
     from PIL import Image, ImageDraw, ImageTk, ImageFont
-except Exception:  # pragma: no cover - optional dependency
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
     Image = ImageDraw = ImageTk = ImageFont = None
 
 from gui.utils.tk_utils import cancel_after_events
-
-
-class _FallbackImage:
-    """Small image-like helper used when Pillow is unavailable."""
-
-    def __init__(self, width: int, height: int) -> None:
-        self.width = width
-        self.height = height
-
-    def getpixel(self, point: tuple[int, int]):
-        x, y = point
-        if self.width <= 0 or self.height <= 0:
-            return (0, 0, 0, 255)
-        c_top = (0, 102, 153)
-        c_bottom = (0, 45, 95)
-        t = 0.65 * x / max(self.width, 1) + 0.35 * y / max(self.height, 1)
-        t = max(0.0, min(1.0, t))
-        r = int(c_top[0] * (1 - t) + c_bottom[0] * t)
-        g = int(c_top[1] * (1 - t) + c_bottom[1] * t)
-        b = int(c_top[2] * (1 - t) + c_bottom[2] * t)
-        return (r, g, b, 255)
-
-
-class _FallbackGearImage:
-    """Gear-like image helper mirroring expected ``getpixel`` values."""
-
-    def __init__(self, width: int, height: int) -> None:
-        self.width = width
-        self.height = height
-
-    def getpixel(self, point: tuple[int, int]):
-        x, y = point
-        cx = self.width // 2
-        cy = self.height // 2
-        if abs(x - cx) <= 1 and abs(y - cy) <= 1:
-            return (255, 255, 255, 128)
-        return (204, 255, 204, 128)
 
 
 class SplashScreen(tk.Toplevel):
@@ -84,9 +47,6 @@ class SplashScreen(tk.Toplevel):
                 "Pillow is required for the splash screen. Install with: pip install pillow"
             )
         super().__init__(master)
-        self._pillow_available = bool(
-            Image is not None and ImageDraw is not None and ImageTk is not None and ImageFont is not None
-        )
         self.duration = duration
         self.overrideredirect(True)
         self._on_close = on_close
@@ -240,14 +200,6 @@ class SplashScreen(tk.Toplevel):
         margin = 0.06
         rng = random.Random(42)
 
-        if not self._pillow_available:
-            self.canvas.create_rectangle(
-                0, 0, W, H, fill="#004c7f", outline="", tags="void_bg"
-            )
-            self._bg_pil = _FallbackImage(W, H)
-            self._bg_photo = None
-            return
-
         img = Image.new("RGBA", (W, H))
         for y in range(H):
             for x in range(W):
@@ -370,11 +322,9 @@ class SplashScreen(tk.Toplevel):
 
     def _generate_gear_image(
         self, *, teeth: int, inner: int, outer: int, steps: int = 25
-    ) -> object:
-        """Build a gear image with gradient when Pillow is available."""
+    ) -> Image.Image:
+        """Build a PIL image of a gear with a radial gradient."""
         size = outer * 2
-        if not self._pillow_available:
-            return _FallbackGearImage(size, size)
         img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img, "RGBA")
         center = size / 2
@@ -525,23 +475,10 @@ class SplashScreen(tk.Toplevel):
         self.canvas.delete("gear_glow")
         self.canvas.delete("gear_fill")
         angle_deg = self.angle * 2
+        rotated = self._gear_base.rotate(angle_deg, resample=Image.BICUBIC, expand=True)
+        self._gear_photo = ImageTk.PhotoImage(rotated)
         cx = cy = self.canvas_size / 2
-
-        if self._pillow_available:
-            rotated = self._gear_base.rotate(angle_deg, resample=Image.BICUBIC, expand=True)
-            self._gear_photo = ImageTk.PhotoImage(rotated)
-            self.canvas.create_image(cx, cy, image=self._gear_photo, tags="gear_fill")
-        else:
-            self._gear_photo = None
-            self.canvas.create_oval(
-                cx - self._gear_outer + 2,
-                cy - self._gear_outer + 2,
-                cx + self._gear_outer - 2,
-                cy + self._gear_outer - 2,
-                fill="#ccffcc",
-                outline="",
-                tags="gear_fill",
-            )
+        self.canvas.create_image(cx, cy, image=self._gear_photo, tags="gear_fill")
 
         pts = []
         angle_rad = math.radians(angle_deg)
