@@ -18,6 +18,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.298 - 2026-03-08
+
+- Fix detached-tab fallback behaviour by transferring the original tab widget
+  to the floating notebook when rebuilding content fails, preventing empty
+  undocked windows.
+- Harden thread supervision with explicit restart policies and stop-event aware
+  restart checks to prevent worker restart loops during shutdown.
+- Stop all managed background threads from the launcher shutdown path to avoid
+  late thread activity that could crash the app after running for some time.
+
 ## 0.2.297 - 2025-12-26
 
 - Reopen detached tab content by instantiating fresh widgets in the floating
