@@ -19,6 +19,7 @@
 import importlib
 import builtins
 import sys
+import types
 
 import tools.splash_launcher as splash_module
 
@@ -29,6 +30,33 @@ class TestSplashLauncher:
     def test_launcher_invokes_main(self, monkeypatch):
         dummy = importlib.import_module("tests.dummy_module")
         dummy.called["main"] = False
+
+        launcher = splash_module.SplashLauncher(module_name="tests.dummy_module")
+        launcher.launch()
+
+        assert dummy.called["main"] is True
+
+
+    def test_launcher_falls_back_when_splash_init_fails(self, monkeypatch):
+        dummy = importlib.import_module("tests.dummy_module")
+        dummy.called["main"] = False
+
+        class FakeRoot:
+            def withdraw(self):
+                return None
+
+            def destroy(self):
+                return None
+
+            def mainloop(self):
+                return None
+
+        monkeypatch.setattr(splash_module.tk, "Tk", lambda: FakeRoot())
+
+        broken_splash_module = types.SimpleNamespace(
+            SplashScreen=lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
+        )
+        monkeypatch.setitem(sys.modules, "gui.windows.splash_screen", broken_splash_module)
 
         launcher = splash_module.SplashLauncher(module_name="tests.dummy_module")
         launcher.launch()
