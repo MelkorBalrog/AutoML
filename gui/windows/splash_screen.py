@@ -79,6 +79,10 @@ class SplashScreen(tk.Toplevel):
         duration: int = 3000,
         on_close=None,
     ):
+        if Image is None or ImageDraw is None or ImageTk is None or ImageFont is None:
+            raise RuntimeError(
+                "Pillow is required for the splash screen. Install with: pip install pillow"
+            )
         super().__init__(master)
         self._pillow_available = bool(
             Image is not None and ImageDraw is not None and ImageTk is not None and ImageFont is not None
