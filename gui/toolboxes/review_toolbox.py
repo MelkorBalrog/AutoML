@@ -33,7 +33,7 @@ import json
 import time
 try:
     from PIL import Image, ImageTk
-except ModuleNotFoundError:  # pragma: no cover - pillow optional
+except Exception:  # pragma: no cover - pillow optional
     Image = ImageTk = None
 
 # Node types treated as gates when deriving component names

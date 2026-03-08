@@ -80,8 +80,11 @@ _submodule_map = {
 for old, new in _submodule_map.items():
     try:
         module = importlib.import_module(f".{new}", __name__)
-    except ModuleNotFoundError:
-        module = importlib.import_module(new)
+    except Exception:
+        try:
+            module = importlib.import_module(new)
+        except Exception:
+            continue
     sys.modules[f"{__name__}.{old}"] = module
 
 from .core.automl_core import AutoMLApp

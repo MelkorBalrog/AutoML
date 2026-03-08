@@ -98,16 +98,25 @@ class SplashLauncher:
         self._root.withdraw()
         # Defer splash import to avoid circular initialization during package
         # execution
-        from gui.windows.splash_screen import SplashScreen
-        self._splash = SplashScreen(
-            self._root,
-            version=VERSION,
-            author=AUTHOR,
-            email=AUTHOR_EMAIL,
-            linkedin=AUTHOR_LINKEDIN,
-            duration=0,
-            on_close=self._root.destroy,
-        )
+        try:
+            from gui.windows.splash_screen import SplashScreen
+            self._splash = SplashScreen(
+                self._root,
+                version=VERSION,
+                author=AUTHOR,
+                email=AUTHOR_EMAIL,
+                linkedin=AUTHOR_LINKEDIN,
+                duration=0,
+                on_close=self._root.destroy,
+            )
+        except Exception:
+            # If splash initialisation fails (e.g. image dependencies unavailable),
+            # continue startup without the splash screen.
+            self._root.destroy()
+            module = self.loader() if self.loader else importlib.import_module(self.module_name)
+            if module and hasattr(module, "main"):
+                module.main()
+            return
         threading.Thread(target=self._load_module, daemon=True).start()
         self._root.mainloop()
         if self._module and hasattr(self._module, "main"):
