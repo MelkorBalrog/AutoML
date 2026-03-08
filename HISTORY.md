@@ -18,15 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.301 - 2026-03-08
-
-- Harden startup imports against non-``ModuleNotFoundError`` dependency failures
-  (including binary extension load/access errors) by broadening optional Pillow
-  guards in review and core modules.
-- Make ``mainappsrc`` compatibility alias loading resilient: if optional
-  submodules fail to import, skip alias registration instead of aborting package
-  initialization.
-
 ## 0.2.300 - 2026-03-08
 
 - Avoid splash-screen hard failures when Pillow import fails for any reason
