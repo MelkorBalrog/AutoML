@@ -21,11 +21,7 @@ from __future__ import annotations
 """Diagram export utilities for :class:`AutoMLApp`."""
 
 from tkinter import filedialog
-
-try:
-    from PIL import Image, ImageDraw, ImageFont
-except ModuleNotFoundError:  # pragma: no cover - optional dependency
-    Image = ImageDraw = ImageFont = None
+from PIL import Image, ImageDraw, ImageFont
 
 
 class DiagramExportSubApp:
@@ -37,12 +33,6 @@ class DiagramExportSubApp:
     # ------------------------------------------------------------------
     def save_diagram_png(self) -> None:
         app = self.app
-        if Image is None or ImageDraw is None or ImageFont is None:
-            app.messagebox.showerror(
-                "Missing dependency",
-                "Pillow is required to export diagrams. Install with: pip install pillow",
-            )
-            return
         mb = app.messagebox
         margin = 50
         all_nodes = app.get_all_nodes(app.root_node)

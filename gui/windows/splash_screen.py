@@ -16,15 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 import tkinter as tk
 import math
 import random
-try:
-    from PIL import Image, ImageDraw, ImageTk, ImageFont
-except ModuleNotFoundError:  # pragma: no cover - optional dependency
-    Image = ImageDraw = ImageTk = ImageFont = None
+from PIL import Image, ImageDraw, ImageTk, ImageFont
 
 from gui.utils.tk_utils import cancel_after_events
 
@@ -42,10 +37,6 @@ class SplashScreen(tk.Toplevel):
         duration: int = 3000,
         on_close=None,
     ):
-        if Image is None or ImageDraw is None or ImageTk is None or ImageFont is None:
-            raise RuntimeError(
-                "Pillow is required for the splash screen. Install with: pip install pillow"
-            )
         super().__init__(master)
         self.duration = duration
         self.overrideredirect(True)
