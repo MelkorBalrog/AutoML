@@ -136,7 +136,7 @@ else:  # pragma: no cover - script context
 builtins.SafetyCaseTable = SafetyCaseTable
 try:
     from PIL import Image, ImageDraw, ImageFont
-except Exception:
+except ModuleNotFoundError:
     Image = ImageDraw = ImageFont = None
 import os
 import types
@@ -161,7 +161,7 @@ import importlib
 import pkgutil
 try:
     import PIL.Image as PILImage
-except Exception:
+except ModuleNotFoundError:
     PILImage = None
 try:
     from reportlab.platypus import LongTable
