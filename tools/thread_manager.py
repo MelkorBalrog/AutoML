@@ -45,6 +45,7 @@ class _ThreadInfo:
     thread: threading.Thread
     stop_callback: Optional[Callable[[], None]]
     stop_event: Optional[threading.Event]
+    restart_on_exit: bool
 
 
 class ThreadMonitor(threading.Thread):
@@ -89,6 +90,7 @@ class ThreadManager:
         daemon: bool = True,
         stop_callback: Optional[Callable[[], None]] = None,
         stop_event: Optional[threading.Event] = None,
+        restart_on_exit: bool = True,
     ) -> threading.Thread:
         """Register and start *target* as a monitored thread."""
         if args is None:
@@ -106,6 +108,7 @@ class ThreadManager:
                 thread,
                 stop_callback,
                 stop_event,
+                restart_on_exit,
             )
         return thread
 
@@ -114,7 +117,7 @@ class ThreadManager:
         thread = threading.current_thread()
         with self._lock:
             self._threads[name] = _ThreadInfo(
-                None, (), {}, thread.daemon, thread, None, None
+                None, (), {}, thread.daemon, thread, None, None, False
             )
         return thread
 
@@ -128,7 +131,9 @@ class ThreadManager:
         with self._lock:
             for name, info in list(self._threads.items()):
                 if not info.thread.is_alive():
-                    if info.target is None:
+                    if info.target is None or not info.restart_on_exit:
+                        continue
+                    if info.stop_event is not None and info.stop_event.is_set():
                         continue
                     thread = threading.Thread(
                         target=info.target,
@@ -145,6 +150,7 @@ class ThreadManager:
                         thread,
                         info.stop_callback,
                         info.stop_event,
+                        info.restart_on_exit,
                     )
 
     def stop_all(self, *, timeout: Optional[float] = None) -> None:

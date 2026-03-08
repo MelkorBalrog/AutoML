@@ -352,7 +352,7 @@ def main() -> None:
     try:
         module.main()
     finally:
-        thread_manager.unregister("main_app")
+        thread_manager.stop_all(timeout=1.0)
         memory_manager.cleanup()
         if _diagnostics_manager:
             _diagnostics_manager.stop()
