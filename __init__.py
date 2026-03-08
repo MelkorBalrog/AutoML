@@ -61,28 +61,33 @@ else:
         "SafetyAnalysis_FTA_FMEA",
     ]
 
-from .AutoML import (
-    parse_args,
-    ensure_packages,
-    ensure_ghostscript,
-    install_best,
-    start_watchdog_thread,
-    start_cleanup_thread,
-    manager_eater,
-    ThreadPoolExecutor,
-    _bootstrap,
-)
-
-__all__.extend(
-    [
-        "parse_args",
-        "ensure_packages",
-        "ensure_ghostscript",
-        "install_best",
-        "start_watchdog_thread",
-        "start_cleanup_thread",
-        "manager_eater",
-        "ThreadPoolExecutor",
-        "_bootstrap",
-    ]
-)
+try:  # pragma: no cover - optional heavy dependencies
+    from .AutoML import (
+        parse_args,
+        ensure_packages,
+        ensure_ghostscript,
+        install_best,
+        start_watchdog_thread,
+        start_cleanup_thread,
+        manager_eater,
+        ThreadPoolExecutor,
+        _bootstrap,
+    )
+except Exception:  # pragma: no cover - allow importing package without extras
+    parse_args = ensure_packages = ensure_ghostscript = install_best = None
+    start_watchdog_thread = start_cleanup_thread = manager_eater = None
+    ThreadPoolExecutor = _bootstrap = None
+else:
+    __all__.extend(
+        [
+            "parse_args",
+            "ensure_packages",
+            "ensure_ghostscript",
+            "install_best",
+            "start_watchdog_thread",
+            "start_cleanup_thread",
+            "manager_eater",
+            "ThreadPoolExecutor",
+            "_bootstrap",
+        ]
+    )
