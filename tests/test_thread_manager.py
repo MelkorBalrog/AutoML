@@ -75,3 +75,18 @@ class TestThreadManager:
         assert any(
             "did not exit within" in record.message for record in caplog.records
         )
+
+    def test_check_threads_skips_restart_when_stop_requested(self) -> None:
+        stop_event = threading.Event()
+        runs = {"count": 0}
+
+        def worker() -> None:
+            runs["count"] += 1
+
+        manager = ThreadManager(interval=0.05)
+        thread = manager.register("stoppable", worker, stop_event=stop_event)
+        thread.join(timeout=1.0)
+        stop_event.set()
+        manager._check_threads()
+        assert runs["count"] == 1
+        manager.stop_all()

@@ -80,20 +80,25 @@ class DetachedTabReopener:
         diagram = getattr(window, "diagram", None)
         diagram_id = getattr(window, "diagram_id", None)
         history = getattr(window, "diagram_history", None)
+        create_attempts: list[tuple[tuple, dict]] = []
         if diagram is not None:
-            return self._safe_create(cls, self.notebook, app, diagram)
+            create_attempts.append(((self.notebook, app, diagram), {}))
+            create_attempts.append(((self.notebook, diagram), {}))
         if diagram_id is not None:
-            return self._safe_create(
-                cls,
-                self.notebook,
-                app,
-                diagram_id=diagram_id,
-                history=history,
-            )
-        return self._safe_create(cls, self.notebook, app)
+            create_attempts.append(((self.notebook, app), {"diagram_id": diagram_id, "history": history}))
+            create_attempts.append(((self.notebook,), {"diagram_id": diagram_id, "history": history}))
+        create_attempts.extend([
+            ((self.notebook, app), {}),
+            ((self.notebook,), {}),
+        ])
+        for args, kwargs in create_attempts:
+            rebuilt = self._safe_create(cls, *args, **kwargs)
+            if rebuilt is not None:
+                return rebuilt
+        return None
 
-    def _safe_create(self, cls, container: tk.Widget, app, **kwargs) -> tk.Widget | None:
+    def _safe_create(self, cls, *args, **kwargs) -> tk.Widget | None:
         try:
-            return cls(container, app, **kwargs)
+            return cls(*args, **kwargs)
         except Exception:
             return None

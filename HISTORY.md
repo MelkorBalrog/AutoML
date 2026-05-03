@@ -18,6 +18,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.298 - 2026-05-03
+
+- Improve detached tab reopening by trying multiple constructor signatures for
+  diagram windows, preventing empty undocked windows when the primary
+  signature is incompatible.
+- Harden thread supervision to avoid restarting worker threads after their
+  stop event is set, reducing late-lifecycle restart crashes.
+
 ## 0.2.297 - 2025-12-26
 
 - Reopen detached tab content by instantiating fresh widgets in the floating
