@@ -33,6 +33,7 @@ import importlib
 import os
 import sys
 import threading
+from threading import current_thread, main_thread
 import time
 from typing import Any, Callable, Dict, Set
 
@@ -42,6 +43,19 @@ try:  # pragma: no cover - optional dependency
     import psutil
 except Exception:  # pragma: no cover - psutil may not be installed
     psutil = None
+
+
+def _destroy_if_safe(obj: Any) -> None:
+    """Destroy Tk objects only from the main thread to avoid Tcl async crashes."""
+    destroy = getattr(obj, "destroy", None)
+    if not callable(destroy):
+        return
+    if getattr(obj, "tk", None) is not None and current_thread() is not main_thread():
+        return
+    try:
+        destroy()
+    except Exception:
+        pass
 
 
 class MemoryManager:
@@ -103,12 +117,7 @@ class MemoryManager:
             for key in keys:
                 obj = self._cache.pop(key, None)
                 if obj is not None:
-                    destroy = getattr(obj, "destroy", None)
-                    if callable(destroy):
-                        try:
-                            destroy()
-                        except Exception:
-                            pass
+                    _destroy_if_safe(obj)
                     del obj
             proc_keys = [k for k in self._procs if k.startswith(prefix)]
             for key in proc_keys:
@@ -134,12 +143,7 @@ class MemoryManager:
             for key in inactive:
                 obj = self._cache.pop(key, None)
                 if obj is not None:
-                    destroy = getattr(obj, "destroy", None)
-                    if callable(destroy):
-                        try:
-                            destroy()
-                        except Exception:  # pragma: no cover - best effort cleanup
-                            pass
+                    _destroy_if_safe(obj)
                     del obj
 
             for key, proc in list(self._procs.items()):

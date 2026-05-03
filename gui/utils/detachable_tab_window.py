@@ -159,10 +159,10 @@ class DetachableTabWindow:
     def _clone_tab_into_notebook(self) -> None:
         if self._notebook is None:
             return
+        if self._transfer_tab_contents():
+            return
         clone = self._reopen_tab_contents()
         if clone is None:
-            if self._transfer_tab_contents():
-                return
             return
         self._cloned_widget = clone
         try:
@@ -178,6 +178,28 @@ class DetachableTabWindow:
         if self._resizer is not None:
             self._resizer.add_target(clone)
             self._register_resize_targets(clone)
+
+
+    def _transfer_tab_contents(self) -> bool:
+        if self._notebook is None:
+            return False
+        try:
+            moved = WidgetTransferManager().detach_tab(
+                self.origin_notebook, str(self.tab_widget), self._notebook
+            )
+        except tk.TclError:
+            return False
+        self.tab_widget = moved
+        self._moved_tab = True
+        self._hidden_in_origin = False
+        try:
+            self._notebook.select(moved)
+        except tk.TclError:
+            pass
+        if self._resizer is not None:
+            self._resizer.add_target(moved)
+            self._register_resize_targets(moved)
+        return True
 
     def _reopen_tab_contents(self) -> tk.Widget | None:
         if self._notebook is None:

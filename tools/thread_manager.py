@@ -130,6 +130,9 @@ class ThreadManager:
                 if not info.thread.is_alive():
                     if info.target is None:
                         continue
+                    if info.stop_event is not None and info.stop_event.is_set():
+                        self._threads.pop(name, None)
+                        continue
                     thread = threading.Thread(
                         target=info.target,
                         args=info.args,
