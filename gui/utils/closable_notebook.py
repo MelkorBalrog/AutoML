@@ -1076,13 +1076,155 @@ class ClosableNotebook(ttk.Notebook):
             self._raise_widgets(child, child)
 
 
-    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
-        """Detach *tab_id* into a floating window on the Tk UI task.
+    def _call_detach_builder(
+        self,
+        builder: t.Callable[..., tk.Widget | None],
+        target: "ClosableNotebook",
+        title: str,
+    ) -> tk.Widget | None:
+        """Invoke a detach builder while tolerating legacy signatures."""
 
-        The detached tab is moved, not cloned.  Moving the existing widget tree
-        preserves the complete tab layout, widget state, callbacks and object
-        identity while avoiding background threads and parallel UI mutation.
-        """
+        attempts = (
+            ((target,), {}),
+            ((target, title), {}),
+            ((), {"target": target, "title": title}),
+            ((), {"notebook": target, "title": title}),
+            ((), {}),
+        )
+        for args, kwargs in attempts:
+            try:
+                rebuilt = builder(*args, **kwargs)
+            except TypeError:
+                continue
+            except Exception:
+                logger.exception("Detached tab builder %s failed", builder)
+                return None
+            if isinstance(rebuilt, tk.Widget):
+                return rebuilt
+        return None
+
+    def _build_from_detach_metadata(
+        self, child: tk.Widget, target: "ClosableNotebook", title: str
+    ) -> tk.Widget | None:
+        """Rebuild detached content from metadata attached to the tab widget."""
+
+        callback = getattr(child, "_detach_reopen_callback", None)
+        if callable(callback):
+            rebuilt = self._call_detach_builder(callback, target, title)
+            if rebuilt is not None:
+                return rebuilt
+
+        metadata = getattr(child, "_detach_metadata", None)
+        if isinstance(metadata, dict):
+            for key in ("factory", "callback", "reopen_callback", "builder"):
+                builder = metadata.get(key)
+                if callable(builder):
+                    rebuilt = self._call_detach_builder(builder, target, title)
+                    if rebuilt is not None:
+                        return rebuilt
+            cls = metadata.get("class") or metadata.get("widget_class")
+            if isinstance(cls, type):
+                args = metadata.get("args", ())
+                kwargs = dict(metadata.get("kwargs", {}))
+                for candidate_args in ((target, *args), args):
+                    try:
+                        rebuilt = cls(*candidate_args, **kwargs)
+                    except Exception:
+                        continue
+                    if isinstance(rebuilt, tk.Widget):
+                        return rebuilt
+            window = metadata.get("window") or metadata.get("app_window")
+            if isinstance(window, tk.Widget):
+                setattr(child, "_detach_metadata_window", window)
+
+        for attr in ("app", "application", "window", "app_window"):
+            value = getattr(child, attr, None)
+            builder = getattr(value, "build_detached", None)
+            if callable(builder):
+                rebuilt = self._call_detach_builder(builder, target, title)
+                if rebuilt is not None:
+                    return rebuilt
+        return None
+
+    def _is_simple_clone_candidate(self, child: tk.Widget) -> bool:
+        """Return True when the generic clone fallback is suitable for *child*."""
+
+        simple_types = (
+            tk.Frame,
+            ttk.Frame,
+            tk.LabelFrame,
+            ttk.LabelFrame,
+            tk.Label,
+            ttk.Label,
+            tk.Button,
+            ttk.Button,
+            tk.Entry,
+            ttk.Entry,
+            tk.Text,
+            tk.Listbox,
+            tk.Canvas,
+            ttk.Treeview,
+            tk.Scrollbar,
+            ttk.Scrollbar,
+            ttk.Separator,
+        )
+        if not isinstance(child, simple_types):
+            return False
+        return not any(
+            callable(getattr(desc, name, None))
+            for desc in self._traverse_widgets(child)
+            for name in ("_detach_factory", "build_detached")
+        )
+
+    def _build_detached_tab_content(
+        self, child: tk.Widget, target: "ClosableNotebook", title: str
+    ) -> tk.Widget | None:
+        """Build fresh content for a detached tab without moving *child*."""
+
+        for name in ("_detach_factory", "build_detached"):
+            builder = getattr(child, name, None)
+            if callable(builder):
+                rebuilt = self._call_detach_builder(builder, target, title)
+                if rebuilt is not None:
+                    return rebuilt
+
+        rebuilt = self._build_from_detach_metadata(child, target, title)
+        if rebuilt is not None:
+            return rebuilt
+
+        try:
+            from gui.utils.detached_tab_reopener import DetachedTabReopener
+        except Exception:  # pragma: no cover - legacy direct imports
+            from detached_tab_reopener import DetachedTabReopener
+
+        rebuilt = DetachedTabReopener(child, target, title).reopen()
+        if rebuilt is not None:
+            return rebuilt
+
+        if self._is_simple_clone_candidate(child):
+            try:
+                clone, _mapping, _layouts = self._clone_widget(child, target)
+            except Exception:
+                logger.exception(
+                    "Generic clone fallback failed for detached tab %s", child
+                )
+                return None
+            return clone
+        return None
+
+    def _should_transfer_legacy_tab(self, child: tk.Widget) -> bool:
+        """Whether *child* explicitly requires legacy move-based detachment."""
+
+        if getattr(child, "_use_widget_transfer_manager_detach", False):
+            return True
+        try:
+            from gui.utils.dockable_diagram_window import DockableDiagramWindow as DDW
+        except Exception:  # pragma: no cover - legacy direct imports
+            from dockable_diagram_window import DockableDiagramWindow as DDW
+        return isinstance(getattr(child, "_dock_window", None), DDW)
+
+    def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
+        """Detach *tab_id* into a floating window with freshly rebuilt content."""
 
         try:
             if isinstance(tab_id, int):
@@ -1095,11 +1237,6 @@ class ClosableNotebook(ttk.Notebook):
             title = self.tab(tab_id, "text") or "Detached"
         except tk.TclError:
             return
-
-        try:
-            self._cancel_after_events(child)
-        except Exception:
-            pass
 
         try:
             self.select(tab_id)
@@ -1123,18 +1260,35 @@ class ClosableNotebook(ttk.Notebook):
         target = ClosableNotebook(win)
         target.pack(fill="both", expand=True)
         self._floating_windows.append(win)
+        hosted_child: tk.Widget | None = None
 
         def _forget_window(_event: tk.Event | None = None) -> None:
             if win in self._floating_windows:
                 self._floating_windows.remove(win)
+            if hosted_child is not None:
+                ClosableNotebook._tab_hosts.pop(hosted_child, None)
             ClosableNotebook._tab_hosts.pop(child, None)
 
         win.bind("<Destroy>", _forget_window, add="+")
 
         try:
-            from gui.utils.widget_transfer_manager import WidgetTransferManager
+            if self._should_transfer_legacy_tab(child):
+                from gui.utils.widget_transfer_manager import WidgetTransferManager
 
-            WidgetTransferManager().detach_tab(self, str(child), target)
+                hosted_child = WidgetTransferManager().detach_tab(
+                    self, str(child), target
+                )
+            else:
+                hosted_child = self._build_detached_tab_content(child, target, title)
+                if hosted_child is None:
+                    raise RuntimeError(f"No detached content builder for {child}")
+                target.add(hosted_child, text=title)
+                try:
+                    self._cancel_after_events(child)
+                except Exception:
+                    pass
+                self.forget(tab_id)
+                self._safe_destroy(child)
         except Exception as exc:
             _forget_window()
             try:
@@ -1148,10 +1302,10 @@ class ClosableNotebook(ttk.Notebook):
                 pass
             return
 
-        ClosableNotebook._tab_hosts[child] = win
+        ClosableNotebook._tab_hosts[hosted_child] = win
         try:
-            target.select(child)
-            child.update_idletasks()
+            target.select(hosted_child)
+            hosted_child.update_idletasks()
             target.update_idletasks()
             win.deiconify()
             win.lift()
