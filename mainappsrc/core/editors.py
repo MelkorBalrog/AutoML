@@ -91,12 +91,16 @@ class Editors:
         if isinstance(parent, ttk.Notebook):
             container = ttk.Frame(parent)
 
-        ttk.Label(container, text="Item Description:").pack(anchor="w")
+        container.grid_rowconfigure(1, weight=1)
+        container.grid_rowconfigure(3, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        ttk.Label(container, text="Item Description:").grid(row=0, column=0, sticky="w")
         desc_text = tk.Text(container, height=8, wrap="word")
-        desc_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        ttk.Label(container, text="Assumptions:").pack(anchor="w")
+        desc_text.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+        ttk.Label(container, text="Assumptions:").grid(row=2, column=0, sticky="w")
         assum_text = tk.Text(container, height=8, wrap="word")
-        assum_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        assum_text.grid(row=3, column=0, sticky="nsew", padx=5, pady=5)
         desc_text.insert("1.0", app.item_definition.get("description", ""))
         assum_text.insert("1.0", app.item_definition.get("assumptions", ""))
 
@@ -104,7 +108,9 @@ class Editors:
             app.item_definition["description"] = desc_text.get("1.0", "end").strip()
             app.item_definition["assumptions"] = assum_text.get("1.0", "end").strip()
 
-        ttk.Button(container, text="Save", command=save).pack(anchor="e", padx=5, pady=5)
+        save_btn = ttk.Button(container, text="Save", command=save, width=10)
+        save_btn._fixed_size = True
+        save_btn.grid(row=4, column=0, sticky="e", padx=5, pady=5)
         if container is getattr(app, "_item_def_tab", None):
             app._item_desc_text = desc_text
             app._item_assum_text = assum_text
