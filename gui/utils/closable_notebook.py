@@ -201,6 +201,12 @@ class ClosableNotebook(ttk.Notebook):
                 pass
         self._floating_windows.clear()
 
+    @property
+    def floating_windows(self) -> list[tk.Toplevel]:
+        """Return the floating windows created by tab detachment."""
+
+        return self._floating_windows
+
     # ------------------------------------------------------------------
     # Backwards compatible helpers
     # ------------------------------------------------------------------
@@ -414,10 +420,7 @@ class ClosableNotebook(ttk.Notebook):
             return
         target = self._target_notebook(event.x_root, event.y_root)
         if target is None:
-            try:
-                self.select(tab_id)
-            except tk.TclError:
-                pass
+            self._detach_tab(tab_id, event.x_root, event.y_root)
             return
         if target is self:
             # Dropping back onto the originating notebook requires no action.
@@ -1074,16 +1077,86 @@ class ClosableNotebook(ttk.Notebook):
 
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
-        child = self.nametowidget(tab_id)
+        """Detach *tab_id* into a floating window on the Tk UI task.
+
+        The detached tab is moved, not cloned.  Moving the existing widget tree
+        preserves the complete tab layout, widget state, callbacks and object
+        identity while avoiding background threads and parallel UI mutation.
+        """
+
+        try:
+            if isinstance(tab_id, int):
+                tab_id = self.tabs()[tab_id]
+        except (IndexError, tk.TclError):
+            return
+
+        try:
+            child = self.nametowidget(tab_id)
+            title = self.tab(tab_id, "text") or "Detached"
+        except tk.TclError:
+            return
+
         try:
             self._cancel_after_events(child)
         except Exception:
             pass
+
         try:
             self.select(tab_id)
         except tk.TclError:
             pass
-        logger.info("Tab detachment is disabled; keeping tab docked.")
+
+        root = self._app_root
+        try:
+            if not root.winfo_exists():
+                root = self.winfo_toplevel()
+        except tk.TclError:
+            root = self.winfo_toplevel()
+
+        win = tk.Toplevel(root)
+        win.title(title)
+        try:
+            win.geometry(f"+{max(int(x), 0)}+{max(int(y), 0)}")
+        except (TypeError, ValueError, tk.TclError):
+            pass
+
+        target = ClosableNotebook(win)
+        target.pack(fill="both", expand=True)
+        self._floating_windows.append(win)
+
+        def _forget_window(_event: tk.Event | None = None) -> None:
+            if win in self._floating_windows:
+                self._floating_windows.remove(win)
+            ClosableNotebook._tab_hosts.pop(child, None)
+
+        win.bind("<Destroy>", _forget_window, add="+")
+
+        try:
+            from gui.utils.widget_transfer_manager import WidgetTransferManager
+
+            WidgetTransferManager().detach_tab(self, str(child), target)
+        except Exception as exc:
+            _forget_window()
+            try:
+                win.destroy()
+            except Exception:
+                pass
+            logger.error("Failed to detach tab %s: %s", child, exc)
+            try:
+                self.select(child)
+            except tk.TclError:
+                pass
+            return
+
+        ClosableNotebook._tab_hosts[child] = win
+        try:
+            target.select(child)
+            child.update_idletasks()
+            target.update_idletasks()
+            win.deiconify()
+            win.lift()
+        except tk.TclError:
+            pass
 
     def rewrite_option_references(self, mapping: dict[tk.Widget, tk.Widget]) -> None:
         """Rewrite widget configuration options to point at cloned widgets."""
