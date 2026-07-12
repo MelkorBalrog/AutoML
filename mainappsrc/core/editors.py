@@ -65,7 +65,16 @@ class Editors:
     # ------------------------------------------------------------------
     # Item definition
     # ------------------------------------------------------------------
-    def show_item_definition_editor(self):  # pragma: no cover - UI code
+    def _build_item_definition_editor(
+        self, parent: tk.Widget
+    ) -> tk.Widget:  # pragma: no cover - UI code
+        """Build the item definition editor inside *parent*.
+
+        The returned widget owns its text fields and save callback so detached
+        copies can save their own contents without depending on the singleton
+        text-widget attributes used by the docked/original tab.
+        """
+
         app = self.app
         """Open editor for item description and assumptions."""
         if hasattr(app, "_item_def_tab") and app._item_def_tab.winfo_exists():
@@ -949,5 +958,3 @@ class Editors:
             win.protocol("WM_DELETE_WINDOW", on_close)
         else:
             win.bind("<Destroy>", lambda e: on_close() if e.widget is win else None)
-
-

@@ -1246,16 +1246,118 @@ class ClosableNotebook(ttk.Notebook):
     def _should_transfer_legacy_tab(self, child: tk.Widget) -> bool:
         """Whether *child* explicitly requires legacy move-based detachment."""
 
-        if getattr(child, "_use_widget_transfer_manager_detach", False):
-            return True
+    def _detach_debug_metadata(self, child: tk.Widget) -> dict[str, t.Any]:
+        """Return detach-related attributes useful when logging failures."""
+
+        names = (
+            "_detach_factory",
+            "build_detached",
+            "_detach_reopen_callback",
+            "_detach_metadata",
+            "_use_widget_transfer_manager_detach",
+            "_dock_window",
+        )
+        details: dict[str, t.Any] = {}
+        for name in names:
+            try:
+                value = getattr(child, name, None)
+            except Exception as exc:
+                details[name] = f"<error reading attribute: {exc!r}>"
+                continue
+            if value is None:
+                continue
+            if callable(value):
+                details[name] = repr(value)
+            elif isinstance(value, dict):
+                details[name] = {key: repr(val) for key, val in value.items()}
+            else:
+                details[name] = repr(value)
+        return details
+
+    def _detached_content_visible(self, widget: tk.Widget) -> bool:
+        """Return True when detached content appears visible or meaningful."""
+
+        try:
+            if not widget.winfo_exists():
+                return False
+        except Exception:
+            return False
+
+        try:
+            if isinstance(widget, tk.Text) and widget.get("1.0", "end-1c").strip():
+                return True
+        except Exception:
+            pass
+        try:
+            if isinstance(widget, (tk.Label, ttk.Label, tk.Button, ttk.Button)):
+                if str(widget.cget("text")).strip():
+                    return True
+        except Exception:
+            pass
+        try:
+            if isinstance(widget, (tk.Entry, ttk.Entry)) and widget.get().strip():
+                return True
+        except Exception:
+            pass
+        try:
+            if isinstance(widget, tk.Listbox) and widget.size() > 0:
+                return True
+        except Exception:
+            pass
+        try:
+            if isinstance(widget, tk.Canvas) and widget.find_all():
+                return True
+        except Exception:
+            pass
+        try:
+            if isinstance(widget, ttk.Treeview):
+                columns = widget.cget("columns") or ()
+                if widget.get_children("") or columns:
+                    return True
+        except Exception:
+            pass
+
+        mapped_descendant = False
+        for child in self._ordered_children(widget):
+            try:
+                if child.winfo_ismapped():
+                    mapped_descendant = True
+            except Exception:
+                pass
+            if self._detached_content_visible(child):
+                return True
+        if isinstance(widget, (tk.Frame, ttk.Frame, tk.LabelFrame, ttk.LabelFrame)):
+            return mapped_descendant
+        try:
+            return bool(widget.winfo_ismapped() and self._ordered_children(widget))
+        except Exception:
+            return False
+
+    def _legacy_transfer_dock(self, child: tk.Widget) -> t.Any | None:
+        """Return a validated dockable owner for legacy move-based detachment.
+
+        ``WidgetTransferManager.detach_tab`` moves an existing widget instead
+        of rebuilding it, so it is intentionally restricted to dockable legacy
+        tabs where the owner exposes a known-safe ``dock`` path.  Complex
+        application document tabs, including Item Definition tabs, should fall
+        through to the reconstruction/factory path.
+        """
+
         try:
             from gui.utils.dockable_diagram_window import DockableDiagramWindow as DDW
         except Exception:  # pragma: no cover - legacy direct imports
             from dockable_diagram_window import DockableDiagramWindow as DDW
-        return isinstance(getattr(child, "_dock_window", None), DDW)
+        dock = getattr(child, "_dock_window", None)
+        if not isinstance(dock, DDW):
+            return None
+        if getattr(dock, "content_frame", None) is not child:
+            return None
+        if not callable(getattr(dock, "dock", None)):
+            return None
+        return dock
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
-        """Detach *tab_id* into a floating window with freshly rebuilt content."""
+        """Detach *tab_id* transactionally into a floating window."""
 
         try:
             if isinstance(tab_id, int):
@@ -1269,6 +1371,13 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             return
 
+        child_path = str(child)
+        try:
+            child_class = child.winfo_class()
+        except tk.TclError:
+            child_class = type(child).__name__
+        detach_metadata = self._detach_debug_metadata(child)
+
         try:
             self.select(tab_id)
         except tk.TclError:
@@ -1281,36 +1390,37 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             root = self.winfo_toplevel()
 
-        win = tk.Toplevel(root)
-        win.title(title)
-        try:
-            win.geometry(f"+{max(int(x), 0)}+{max(int(y), 0)}")
-        except (TypeError, ValueError, tk.TclError):
-            pass
-
-        target = ClosableNotebook(win)
-        target.pack(fill="both", expand=True)
-        self._floating_windows.append(win)
+        win: tk.Toplevel | None = None
+        target: ClosableNotebook | None = None
         hosted_child: tk.Widget | None = None
+        moved_legacy_child = False
 
-        def _forget_window(_event: tk.Event | None = None) -> None:
-            if win in self._floating_windows:
-                self._floating_windows.remove(win)
+        def _cleanup_failed_window() -> None:
+            if win is not None:
+                if win in self._floating_windows:
+                    self._floating_windows.remove(win)
+                try:
+                    self._cancel_after_events(win)
+                except Exception:
+                    pass
+                try:
+                    win.destroy()
+                except Exception:
+                    pass
             if hosted_child is not None:
                 ClosableNotebook._tab_hosts.pop(hosted_child, None)
             ClosableNotebook._tab_hosts.pop(child, None)
 
-        win.bind("<Destroy>", _forget_window, add="+")
-
         try:
             if self._should_transfer_legacy_tab(child):
                 hosted_child = WidgetTransferManager().detach_tab(
-                    self, str(child), target
+                    self, tab_id, target
                 )
+                moved_legacy_child = True
             else:
                 hosted_child = self._build_detached_tab_content(child, target, title)
                 if hosted_child is None:
-                    raise RuntimeError(f"No detached content builder for {child}")
+                    raise RuntimeError(f"No detached content builder for {child_path}")
                 target.add(hosted_child, text=title)
                 target.select(hosted_child)
                 win.update_idletasks()
@@ -1327,21 +1437,60 @@ class ClosableNotebook(ttk.Notebook):
         except Exception as exc:
             _forget_window()
             try:
-                win.destroy()
-            except Exception:
-                pass
-            logger.error("Failed to detach tab %s: %s", child, exc)
+                selected_widget = target.nametowidget(selected)
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Detached notebook selected unknown tab {selected!r}"
+                ) from exc
+            if selected_widget is not hosted_child:
+                raise RuntimeError(
+                    f"Detached notebook selected {selected_widget}, expected {hosted_child}"
+                )
+            if not self._detached_content_visible(hosted_child):
+                raise RuntimeError(
+                    f"Detached content {hosted_child} has no visible descendants or meaningful content"
+                )
+        except Exception as exc:
+            _cleanup_failed_window()
             try:
-                self.select(child)
+                if str(tab_id) in self.tabs():
+                    self.select(tab_id)
             except tk.TclError:
                 pass
+            logger.exception(
+                "Failed to detach tab transactionally: title=%r original_path=%s "
+                "original_class=%s detach_metadata=%r exception=%r",
+                title,
+                child_path,
+                child_class,
+                detach_metadata,
+                exc,
+            )
             return
+
+        if not moved_legacy_child:
+            try:
+                self.forget(tab_id)
+            except tk.TclError as exc:
+                _cleanup_failed_window()
+                try:
+                    self.select(tab_id)
+                except tk.TclError:
+                    pass
+                logger.exception(
+                    "Failed to mark detached tab after verification: title=%r "
+                    "original_path=%s original_class=%s detach_metadata=%r exception=%r",
+                    title,
+                    child_path,
+                    child_class,
+                    detach_metadata,
+                    exc,
+                )
+                return
+            self._safe_destroy(child)
 
         ClosableNotebook._tab_hosts[hosted_child] = win
         try:
-            target.select(hosted_child)
-            hosted_child.update_idletasks()
-            target.update_idletasks()
             win.deiconify()
             win.lift()
         except tk.TclError:
