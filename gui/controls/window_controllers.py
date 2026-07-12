@@ -91,18 +91,29 @@ class WindowControllers:
             self.app.diagram_tabs.pop(diag.diag_id, None)
         tab = self.app._new_tab(self.app._format_diag_title(diag))
         self.app.diagram_tabs[diag.diag_id] = tab
-        if diag.diag_type == "Use Case Diagram":
-            UseCaseDiagramWindow(tab, self.app, diagram_id=diag.diag_id)
-        elif diag.diag_type == "Activity Diagram":
-            ActivityDiagramWindow(tab, self.app, diagram_id=diag.diag_id)
-        elif diag.diag_type == "Governance Diagram":
-            GovernanceDiagramWindow(tab, self.app, diagram_id=diag.diag_id)
-        elif diag.diag_type == "Block Diagram":
-            BlockDiagramWindow(tab, self.app, diagram_id=diag.diag_id)
-        elif diag.diag_type == "Internal Block Diagram":
-            InternalBlockDiagramWindow(tab, self.app, diagram_id=diag.diag_id)
-        elif diag.diag_type == "Control Flow Diagram":
-            ControlFlowDiagramWindow(tab, self.app, diagram_id=diag.diag_id)
+
+        def _build_architecture_tab(parent, _title=None):
+            container = parent
+            if isinstance(parent, ttk.Notebook):
+                container = ttk.Frame(parent)
+            self.app.diagram_tabs[diag.diag_id] = container
+            if diag.diag_type == "Use Case Diagram":
+                UseCaseDiagramWindow(container, self.app, diagram_id=diag.diag_id)
+            elif diag.diag_type == "Activity Diagram":
+                ActivityDiagramWindow(container, self.app, diagram_id=diag.diag_id)
+            elif diag.diag_type == "Governance Diagram":
+                GovernanceDiagramWindow(container, self.app, diagram_id=diag.diag_id)
+            elif diag.diag_type == "Block Diagram":
+                BlockDiagramWindow(container, self.app, diagram_id=diag.diag_id)
+            elif diag.diag_type == "Internal Block Diagram":
+                InternalBlockDiagramWindow(container, self.app, diagram_id=diag.diag_id)
+            elif diag.diag_type == "Control Flow Diagram":
+                ControlFlowDiagramWindow(container, self.app, diagram_id=diag.diag_id)
+            container._detach_factory = _build_architecture_tab
+            return container
+
+        tab._detach_factory = _build_architecture_tab
+        _build_architecture_tab(tab)
         self.app.refresh_all()
 
     def open_page_diagram(self, node, push_history: bool = True) -> None:
