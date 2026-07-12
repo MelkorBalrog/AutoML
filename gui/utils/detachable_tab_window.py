@@ -21,16 +21,19 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 import tkinter as tk
 import typing as t
 
 from tkinter import ttk
 
 from gui.utils.closable_notebook import ClosableNotebook
-from gui.utils.tk_utils import cancel_after_events, dispatch_to_ui, is_main_thread
-from gui.utils.widget_transfer_manager import WidgetTransferManager
+from gui.utils.tk_utils import cancel_after_events, is_main_thread
 from gui.utils.window_resizer import WindowResizeController
 from gui.utils.detached_tab_reopener import DetachedTabReopener
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
@@ -66,6 +69,7 @@ class DetachableTabWindow:
         self._cloned_widget: tk.Widget | None = None
         self._hidden_in_origin = False
         self._moved_tab = False
+        self.detached_successfully = False
 
     # ------------------------------------------------------------------
     # Public API
@@ -74,7 +78,7 @@ class DetachableTabWindow:
         """Create a window and move the tab content into it."""
 
         if not is_main_thread():
-            dispatch_to_ui(self.root, self.detach)
+            logger.error("Refusing to detach tab %s outside the Tk main thread", self.metadata.title)
             return
         if not self.tab_widget or not self.origin_notebook:
             return
@@ -100,7 +104,15 @@ class DetachableTabWindow:
         self._notebook = ClosableNotebook(self._window)
         self._notebook.pack(fill=tk.BOTH, expand=True)
         self._install_resizer()
-        self._clone_tab_into_notebook()
+        if not self._clone_tab_into_notebook():
+            self._shutdown_resizer()
+            try:
+                self._window.destroy()
+            except Exception:
+                pass
+            self._window = None
+            return
+        self.detached_successfully = True
         if self._resizer is not None:
             self._resizer.sync_to_host()
 
@@ -108,7 +120,7 @@ class DetachableTabWindow:
         """Return the tab to its originating notebook."""
 
         if not is_main_thread():
-            dispatch_to_ui(self.root, self.dock_back)
+            logger.error("Refusing to dock tab %s outside the Tk main thread", self.metadata.title)
             return
         if not self.origin_notebook or not self.tab_widget:
             return
@@ -125,6 +137,7 @@ class DetachableTabWindow:
                 pass
             self._window = None
         self._cloned_widget = None
+        self.detached_successfully = False
         if callable(self.on_dock):
             self.on_dock(self.tab_widget)
 
@@ -132,7 +145,7 @@ class DetachableTabWindow:
     # Internal helpers
     # ------------------------------------------------------------------
     def _dispatch_dock_back(self) -> None:
-        dispatch_to_ui(self.root, self.dock_back)
+        self.dock_back()
 
     def _configure_initial_geometry(self) -> None:
         if self._window is None:
@@ -156,14 +169,13 @@ class DetachableTabWindow:
         except tk.TclError:
             pass
 
-    def _clone_tab_into_notebook(self) -> None:
+    def _clone_tab_into_notebook(self) -> bool:
         if self._notebook is None:
-            return
-        if self._transfer_tab_contents():
-            return
+            return False
         clone = self._reopen_tab_contents()
         if clone is None:
-            return
+            logger.error("Unable to rebuild detached tab %s", self.metadata.title)
+            return False
         self._cloned_widget = clone
         try:
             self._notebook.insert(0, clone, text=self.metadata.title)
@@ -171,39 +183,81 @@ class DetachableTabWindow:
             try:
                 self._notebook.add(clone, text=self.metadata.title)
             except tk.TclError:
-                return
+                return False
         self._notebook.select(clone)
+        self._notebook.update_idletasks()
+        clone.update_idletasks()
+        if not self._detached_content_visible(clone):
+            logger.error("Rebuilt detached tab %s is blank", self.metadata.title)
+            return False
         self._hide_original_tab()
         self._activate_clone_hooks(clone)
         if self._resizer is not None:
             self._resizer.add_target(clone)
             self._register_resize_targets(clone)
-
-
-    def _transfer_tab_contents(self) -> bool:
-        if self._notebook is None:
-            return False
-        try:
-            moved = WidgetTransferManager().detach_tab(
-                self.origin_notebook, str(self.tab_widget), self._notebook
-            )
-        except tk.TclError:
-            return False
-        self.tab_widget = moved
-        self._moved_tab = True
-        self._hidden_in_origin = False
-        try:
-            self._notebook.select(moved)
-        except tk.TclError:
-            pass
-        if self._resizer is not None:
-            self._resizer.add_target(moved)
-            self._register_resize_targets(moved)
         return True
+
+    def _detached_content_visible(self, widget: tk.Widget) -> bool:
+        """Return True when rebuilt detached content contains visible UI."""
+
+        try:
+            widget.update_idletasks()
+        except Exception:
+            pass
+        pending = [widget]
+        visited: set[tk.Widget] = set()
+        while pending:
+            current = pending.pop()
+            if current in visited:
+                continue
+            visited.add(current)
+            try:
+                if isinstance(current, (tk.Text, tk.Canvas, ttk.Treeview)):
+                    return True
+                if isinstance(current, (tk.Label, ttk.Label, tk.Button, ttk.Button)):
+                    if str(current.cget("text") or "").strip():
+                        return True
+            except Exception:
+                pass
+            try:
+                pending.extend(current.winfo_children())
+            except Exception:
+                pass
+        return False
+
+    def _call_detach_builder(
+        self, builder: t.Callable[..., tk.Widget | None]
+    ) -> tk.Widget | None:
+        if self._notebook is None:
+            return None
+        attempts = (
+            ((self._notebook,), {}),
+            ((self._notebook, self.metadata.title), {}),
+            ((), {"target": self._notebook, "title": self.metadata.title}),
+            ((), {"notebook": self._notebook, "title": self.metadata.title}),
+            ((), {}),
+        )
+        for args, kwargs in attempts:
+            try:
+                rebuilt = builder(*args, **kwargs)
+            except TypeError:
+                continue
+            except Exception:
+                logger.exception("Detached tab builder failed for %s", self.metadata.title)
+                return None
+            if isinstance(rebuilt, tk.Widget):
+                return rebuilt
+        return None
 
     def _reopen_tab_contents(self) -> tk.Widget | None:
         if self._notebook is None:
             return None
+        for name in ("_detach_factory", "build_detached"):
+            builder = getattr(self.tab_widget, name, None)
+            if callable(builder):
+                rebuilt = self._call_detach_builder(builder)
+                if rebuilt is not None:
+                    return rebuilt
         reopener = DetachedTabReopener(
             self.tab_widget,
             self._notebook,
@@ -268,19 +322,6 @@ class DetachableTabWindow:
         self._hidden_in_origin = False
 
     def _restore_moved_tab(self) -> None:
-        if (
-            not self._moved_tab
-            or self._notebook is None
-            or self.origin_notebook is None
-            or self.tab_widget is None
-        ):
-            return
-        try:
-            WidgetTransferManager().detach_tab(
-                self._notebook, str(self.tab_widget), self.origin_notebook
-            )
-        except tk.TclError:
-            return
         self._moved_tab = False
 
     def _install_resizer(self) -> None:

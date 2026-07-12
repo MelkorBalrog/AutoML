@@ -72,21 +72,35 @@ class Editors:
             app.doc_nb.select(app._item_def_tab)
             return
         app._item_def_tab = app.lifecycle_ui._new_tab("Item Definition")
-        win = app._item_def_tab
-        ttk.Label(win, text="Item Description:").pack(anchor="w")
-        app._item_desc_text = tk.Text(win, height=8, wrap="word")
-        app._item_desc_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        ttk.Label(win, text="Assumptions:").pack(anchor="w")
-        app._item_assum_text = tk.Text(win, height=8, wrap="word")
-        app._item_assum_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        app._item_desc_text.insert("1.0", app.item_definition.get("description", ""))
-        app._item_assum_text.insert("1.0", app.item_definition.get("assumptions", ""))
+        app._item_def_tab._detach_factory = self._build_item_definition_editor
+        self._build_item_definition_editor(app._item_def_tab)
+
+    def _build_item_definition_editor(self, parent: tk.Widget) -> tk.Widget:
+        """Build the item definition form in *parent* for docked or detached tabs."""
+
+        app = self.app
+        container = parent
+        if isinstance(parent, ttk.Notebook):
+            container = ttk.Frame(parent)
+        ttk.Label(container, text="Item Description:").pack(anchor="w")
+        desc_text = tk.Text(container, height=8, wrap="word")
+        desc_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        ttk.Label(container, text="Assumptions:").pack(anchor="w")
+        assum_text = tk.Text(container, height=8, wrap="word")
+        assum_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        desc_text.insert("1.0", app.item_definition.get("description", ""))
+        assum_text.insert("1.0", app.item_definition.get("assumptions", ""))
 
         def save() -> None:
-            app.item_definition["description"] = app._item_desc_text.get("1.0", "end").strip()
-            app.item_definition["assumptions"] = app._item_assum_text.get("1.0", "end").strip()
+            app.item_definition["description"] = desc_text.get("1.0", "end").strip()
+            app.item_definition["assumptions"] = assum_text.get("1.0", "end").strip()
 
-        ttk.Button(win, text="Save", command=save).pack(anchor="e", padx=5, pady=5)
+        ttk.Button(container, text="Save", command=save).pack(anchor="e", padx=5, pady=5)
+        if container is getattr(app, "_item_def_tab", None):
+            app._item_desc_text = desc_text
+            app._item_assum_text = assum_text
+        container._detach_factory = self._build_item_definition_editor
+        return container
 
     # ------------------------------------------------------------------
     # Safety concept

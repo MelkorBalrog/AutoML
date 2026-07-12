@@ -694,8 +694,10 @@ class AppLifecycleUI:
             metadata,
             on_dock=self._on_tab_redocked,
         )
-        self._detached_tab_windows[tab] = detachable
         detachable.detach()
+        if not getattr(detachable, "detached_successfully", False):
+            return
+        self._detached_tab_windows[tab] = detachable
         self._remove_doc_tab_from_tracking(tab_id)
 
     def _remove_doc_tab_from_tracking(self, tab_id: str) -> None:
