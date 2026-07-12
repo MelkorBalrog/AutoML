@@ -65,6 +65,40 @@ class Editors:
     # ------------------------------------------------------------------
     # Item definition
     # ------------------------------------------------------------------
+    def _build_item_definition_editor(
+        self, parent: tk.Widget
+    ) -> tk.Widget:  # pragma: no cover - UI code
+        """Build the item definition editor inside *parent*.
+
+        The returned widget owns its text fields and save callback so detached
+        copies can save their own contents without depending on the singleton
+        text-widget attributes used by the docked/original tab.
+        """
+
+        app = self.app
+        win = ttk.Frame(parent)
+        win.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(win, text="Item Description:").pack(anchor="w")
+        desc_text = tk.Text(win, height=8, wrap="word")
+        desc_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        ttk.Label(win, text="Assumptions:").pack(anchor="w")
+        assum_text = tk.Text(win, height=8, wrap="word")
+        assum_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        desc_text.insert("1.0", app.item_definition.get("description", ""))
+        assum_text.insert("1.0", app.item_definition.get("assumptions", ""))
+
+        if parent is getattr(app, "_item_def_tab", None):
+            app._item_desc_text = desc_text
+            app._item_assum_text = assum_text
+
+        def save() -> None:
+            app.item_definition["description"] = desc_text.get("1.0", "end").strip()
+            app.item_definition["assumptions"] = assum_text.get("1.0", "end").strip()
+
+        ttk.Button(win, text="Save", command=save).pack(anchor="e", padx=5, pady=5)
+        return win
+
     def show_item_definition_editor(self):  # pragma: no cover - UI code
         app = self.app
         """Open editor for item description and assumptions."""
@@ -72,21 +106,10 @@ class Editors:
             app.doc_nb.select(app._item_def_tab)
             return
         app._item_def_tab = app.lifecycle_ui._new_tab("Item Definition")
-        win = app._item_def_tab
-        ttk.Label(win, text="Item Description:").pack(anchor="w")
-        app._item_desc_text = tk.Text(win, height=8, wrap="word")
-        app._item_desc_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        ttk.Label(win, text="Assumptions:").pack(anchor="w")
-        app._item_assum_text = tk.Text(win, height=8, wrap="word")
-        app._item_assum_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        app._item_desc_text.insert("1.0", app.item_definition.get("description", ""))
-        app._item_assum_text.insert("1.0", app.item_definition.get("assumptions", ""))
-
-        def save() -> None:
-            app.item_definition["description"] = app._item_desc_text.get("1.0", "end").strip()
-            app.item_definition["assumptions"] = app._item_assum_text.get("1.0", "end").strip()
-
-        ttk.Button(win, text="Save", command=save).pack(anchor="e", padx=5, pady=5)
+        app._item_def_tab._detach_factory = (
+            lambda parent: self._build_item_definition_editor(parent)
+        )
+        self._build_item_definition_editor(app._item_def_tab)
 
     # ------------------------------------------------------------------
     # Safety concept
@@ -935,5 +958,3 @@ class Editors:
             win.protocol("WM_DELETE_WINDOW", on_close)
         else:
             win.bind("<Destroy>", lambda e: on_close() if e.widget is win else None)
-
-
