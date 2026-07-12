@@ -280,6 +280,8 @@ class WindowResizeController:
         return True
 
     def _apply_resize(self, widget: tk.Widget, width: int, height: int) -> None:
+        if self._is_fixed_size_widget(widget):
+            return
         if self._should_configure_dimension(widget):
             self._configure_dimension(widget, "width", width)
             self._configure_dimension(widget, "height", height)
@@ -299,8 +301,13 @@ class WindowResizeController:
         except Exception:
             pass
 
+    def _is_fixed_size_widget(self, widget: tk.Widget) -> bool:
+        return bool(getattr(widget, "_fixed_size", False)) or type(widget).__name__ == "CapsuleButton"
+
     def _should_configure_dimension(self, widget: tk.Widget) -> bool:
         if widget is self.win:
+            return False
+        if self._is_fixed_size_widget(widget):
             return False
         if isinstance(widget, (tk.Tk, tk.Toplevel)):
             return False
@@ -311,6 +318,8 @@ class WindowResizeController:
     def _ensure_geometry(self, widget: tk.Widget) -> None:
         manager = self._manager(widget)
         if manager == "pack":
+            if widget is not self._primary:
+                return
             try:
                 widget.pack_configure(expand=True, fill="both")
             except Exception:
