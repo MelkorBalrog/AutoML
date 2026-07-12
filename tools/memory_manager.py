@@ -30,14 +30,8 @@ import atexit
 import ctypes
 import gc
 import importlib
-import os
 import sys
-import threading
-from threading import current_thread, main_thread
-import time
 from typing import Any, Callable, Dict, Set
-
-from .thread_manager import manager as thread_manager
 
 try:  # pragma: no cover - optional dependency
     import psutil
@@ -46,11 +40,9 @@ except Exception:  # pragma: no cover - psutil may not be installed
 
 
 def _destroy_if_safe(obj: Any) -> None:
-    """Destroy Tk objects only from the main thread to avoid Tcl async crashes."""
+    """Destroy Tk objects from the sequential cleanup path."""
     destroy = getattr(obj, "destroy", None)
     if not callable(destroy):
-        return
-    if getattr(obj, "tk", None) is not None and current_thread() is not main_thread():
         return
     try:
         destroy()
@@ -63,104 +55,84 @@ class MemoryManager:
 
     Objects are loaded on demand via :meth:`lazy_load`.  Keys can be marked as
     active with :meth:`mark_active`; any remaining cached objects and processes
-    are discarded by :meth:`cleanup`.  A background thread periodically checks
-    memory pressure and invokes :meth:`cleanup` to free unused resources.
+    are discarded by explicit :meth:`cleanup` calls on the caller's thread.
     """
 
     def __init__(self, interval: float = 60.0, max_usage_percent: float = 70.0) -> None:
         self._cache: Dict[str, Any] = {}
         self._active: Set[str] = set()
         self._procs: Dict[str, Any] = {}
-        self._lock = threading.Lock()
         self._interval = interval
         self._max_usage = max_usage_percent
-        self._stop_event = threading.Event()
-        disable_thread = os.getenv("AUTOML_DISABLE_MEMORY_MANAGER", "").lower() in {
-            "1",
-            "true",
-            "yes",
-        }
-        self._thread = None
-        if not disable_thread:
-            self._thread = thread_manager.register(
-                "memory_manager",
-                self._monitor,
-                daemon=True,
-                stop_event=self._stop_event,
-            )
+        # Cleanup is intentionally caller-driven and sequential.
 
     def lazy_load(self, key: str, loader: Callable[[], Any]) -> Any:
         """Return cached object for *key*, loading it if necessary."""
-        with self._lock:
-            if key not in self._cache:
-                self._cache[key] = loader()
-            self._active.add(key)
-            return self._cache[key]
+        if key not in self._cache:
+            self._cache[key] = loader()
+        self._active.add(key)
+        return self._cache[key]
 
     def mark_active(self, key: str) -> None:
         """Mark *key* as currently needed."""
-        with self._lock:
-            self._active.add(key)
+        self._active.add(key)
 
     def register_process(self, key: str, proc: Any) -> None:
         """Register a subprocess keyed by *key* for later cleanup."""
         if psutil is not None and not isinstance(proc, psutil.Process):
             proc = psutil.Process(proc.pid)
-        with self._lock:
-            self._procs[key] = proc
-            self._active.add(key)
+        self._procs[key] = proc
+        self._active.add(key)
 
     def discard_prefix(self, prefix: str) -> None:
         """Remove cached entries and processes starting with *prefix*."""
-        with self._lock:
-            keys = [k for k in self._cache if k.startswith(prefix)]
-            for key in keys:
-                obj = self._cache.pop(key, None)
-                if obj is not None:
-                    _destroy_if_safe(obj)
-                    del obj
-            proc_keys = [k for k in self._procs if k.startswith(prefix)]
-            for key in proc_keys:
-                proc = self._procs.pop(key, None)
-                if proc is not None:
-                    try:
-                        if psutil is not None:
-                            if proc.is_running():
-                                proc.terminate()
-                                proc.wait(timeout=1)
-                        else:
+        keys = [k for k in self._cache if k.startswith(prefix)]
+        for key in keys:
+            obj = self._cache.pop(key, None)
+            if obj is not None:
+                _destroy_if_safe(obj)
+                del obj
+        proc_keys = [k for k in self._procs if k.startswith(prefix)]
+        for key in proc_keys:
+            proc = self._procs.pop(key, None)
+            if proc is not None:
+                try:
+                    if psutil is not None:
+                        if proc.is_running():
                             proc.terminate()
-                            proc.wait(1)
-                    except Exception:
-                        pass
-            self._active = {k for k in self._active if not k.startswith(prefix)}
+                            proc.wait(timeout=1)
+                    else:
+                        proc.terminate()
+                        proc.wait(1)
+                except Exception:
+                    pass
+        self._active = {k for k in self._active if not k.startswith(prefix)}
         self._trim_memory()
 
     def cleanup(self) -> None:
         """Drop inactive cached objects and terminate unused processes."""
-        with self._lock:
-            inactive = set(self._cache) - self._active
-            for key in inactive:
-                obj = self._cache.pop(key, None)
-                if obj is not None:
-                    _destroy_if_safe(obj)
-                    del obj
+        inactive = set(self._cache) - self._active
+        for key in inactive:
+            obj = self._cache.pop(key, None)
+            if obj is not None:
+                _destroy_if_safe(obj)
+                del obj
 
-            for key, proc in list(self._procs.items()):
-                if key not in self._active:
-                    try:
-                        if psutil is not None:
-                            if proc.is_running():
-                                proc.terminate()
-                                proc.wait(timeout=1)
-                        else:
+        for key, proc in list(self._procs.items()):
+            if key not in self._active:
+                try:
+                    if psutil is not None:
+                        if proc.is_running():
                             proc.terminate()
-                            proc.wait(1)
-                    except Exception:
-                        pass
-                    finally:
-                        self._procs.pop(key, None)
-            self._active.clear()
+                            proc.wait(timeout=1)
+                    else:
+                        proc.terminate()
+                        proc.wait(1)
+                except Exception:
+                    pass
+                finally:
+                    self._procs.pop(key, None)
+        self._active.clear()
         self._trim_memory()
 
     def _memory_percent(self) -> float:
@@ -179,19 +151,9 @@ class MemoryManager:
             except Exception:  # pragma: no cover - optional
                 pass
 
-    def _monitor(self) -> None:
-        """Background thread monitoring memory usage."""
-        while not self._stop_event.is_set():
-            time.sleep(self._interval)
-            if self._memory_percent() > self._max_usage:
-                self.cleanup()
-
     def shutdown(self) -> None:
-        """Stop the monitoring thread."""
-        self._stop_event.set()
-        thread = thread_manager.unregister("memory_manager") if self._thread else None
-        if thread and thread.is_alive():
-            thread.join(timeout=1)
+        """Clean up inactive resources without starting or joining threads."""
+        self.cleanup()
 
 
 def lazy_import(name: str) -> Any:

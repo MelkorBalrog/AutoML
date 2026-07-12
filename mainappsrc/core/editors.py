@@ -65,32 +65,32 @@ class Editors:
     # ------------------------------------------------------------------
     # Item definition
     # ------------------------------------------------------------------
-    def _build_item_definition_editor(
-        self, parent: tk.Widget
-    ) -> tk.Widget:  # pragma: no cover - UI code
-        """Build the item definition editor inside *parent*.
-
-        The returned widget owns its text fields and save callback so detached
-        copies can save their own contents without depending on the singleton
-        text-widget attributes used by the docked/original tab.
-        """
+    def show_item_definition_editor(self):  # pragma: no cover - UI code
+        """Open the docked Item Definition editor tab."""
 
         app = self.app
-        """Open editor for item description and assumptions."""
         if hasattr(app, "_item_def_tab") and app._item_def_tab.winfo_exists():
             app.doc_nb.select(app._item_def_tab)
-            return
+            return app._item_def_tab
         app._item_def_tab = app.lifecycle_ui._new_tab("Item Definition")
         app._item_def_tab._detach_factory = self._build_item_definition_editor
         self._build_item_definition_editor(app._item_def_tab)
+        return app._item_def_tab
 
     def _build_item_definition_editor(self, parent: tk.Widget) -> tk.Widget:
-        """Build the item definition form in *parent* for docked or detached tabs."""
+        """Build the item definition form in *parent*.
+
+        Detached tab windows pass a notebook as *parent*.  In that case, build
+        the editor inside a child frame so the caller can insert the populated
+        frame into the detached notebook instead of inserting the notebook into
+        itself.
+        """
 
         app = self.app
-        container = parent
+        container: tk.Widget = parent
         if isinstance(parent, ttk.Notebook):
             container = ttk.Frame(parent)
+
         ttk.Label(container, text="Item Description:").pack(anchor="w")
         desc_text = tk.Text(container, height=8, wrap="word")
         desc_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
