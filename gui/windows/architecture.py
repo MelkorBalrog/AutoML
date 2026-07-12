@@ -12430,6 +12430,27 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             if frame and hasattr(frame, "pack"):
                 frame.pack(fill=tk.X, padx=2, pady=2)
 
+    def _schedule_toolbox_preload(self) -> None:
+        choices = [
+            choice
+            for choice in getattr(self, "_frame_loaders", {})
+            if choice not in getattr(self, "_loaded_toolbox_frames", {})
+        ]
+
+        def _load_next() -> None:
+            if not choices:
+                return
+            self._ensure_toolbox_frame(choices.pop(0))
+            if choices and hasattr(self.toolbox, "after"):
+                self.toolbox.after(1, _load_next)
+            elif choices:
+                _load_next()
+
+        if choices and hasattr(self.toolbox, "after"):
+            self.toolbox.after(1, _load_next)
+        elif choices:
+            _load_next()
+
     def _cancel_toolbox_heartbeat(self) -> None:
         timer = getattr(self, "_toolbox_active_timer", None)
         if timer is not None and hasattr(self.toolbox, "after_cancel"):
