@@ -1215,6 +1215,37 @@ class ClosableNotebook(ttk.Notebook):
         return None
 
 
+    def _detached_content_visible(self, widget: tk.Widget) -> bool:
+        """Return True when rebuilt detached content has visible UI elements."""
+
+        try:
+            widget.update_idletasks()
+        except Exception:
+            pass
+        pending = [widget]
+        visited: set[tk.Widget] = set()
+        while pending:
+            current = pending.pop()
+            if current in visited:
+                continue
+            visited.add(current)
+            try:
+                if isinstance(current, (tk.Text, tk.Canvas, ttk.Treeview)):
+                    return True
+                if isinstance(current, (tk.Label, ttk.Label, tk.Button, ttk.Button)):
+                    if str(current.cget("text") or "").strip():
+                        return True
+            except Exception:
+                pass
+            try:
+                pending.extend(current.winfo_children())
+            except Exception:
+                pass
+        return False
+
+    def _should_transfer_legacy_tab(self, child: tk.Widget) -> bool:
+        """Whether *child* explicitly requires legacy move-based detachment."""
+
     def _detach_debug_metadata(self, child: tk.Widget) -> dict[str, t.Any]:
         """Return detach-related attributes useful when logging failures."""
 
@@ -1381,26 +1412,7 @@ class ClosableNotebook(ttk.Notebook):
             ClosableNotebook._tab_hosts.pop(child, None)
 
         try:
-            win = tk.Toplevel(root)
-            win.title(title)
-            try:
-                win.geometry(f"+{max(int(x), 0)}+{max(int(y), 0)}")
-            except (TypeError, ValueError, tk.TclError):
-                pass
-
-            target = ClosableNotebook(win)
-            target.pack(fill="both", expand=True)
-            self._floating_windows.append(win)
-
-            def _forget_window(_event: tk.Event | None = None) -> None:
-                if win in self._floating_windows:
-                    self._floating_windows.remove(win)
-                if hosted_child is not None:
-                    ClosableNotebook._tab_hosts.pop(hosted_child, None)
-
-            win.bind("<Destroy>", _forget_window, add="+")
-
-            if self._legacy_transfer_dock(child) is not None:
+            if self._should_transfer_legacy_tab(child):
                 hosted_child = WidgetTransferManager().detach_tab(
                     self, tab_id, target
                 )
@@ -1411,13 +1423,19 @@ class ClosableNotebook(ttk.Notebook):
                     raise RuntimeError(f"No detached content builder for {child_path}")
                 target.add(hosted_child, text=title)
                 target.select(hosted_child)
-            hosted_child.update_idletasks()
-            target.update_idletasks()
-            win.update_idletasks()
-
-            selected = target.select()
-            if not selected:
-                raise RuntimeError("Detached notebook has no selected tab")
+                win.update_idletasks()
+                target.update_idletasks()
+                hosted_child.update_idletasks()
+                if not self._detached_content_visible(hosted_child):
+                    raise RuntimeError(f"Detached content for {title!r} is blank")
+                try:
+                    self._cancel_after_events(child)
+                except Exception:
+                    pass
+                self.forget(tab_id)
+                self._safe_destroy(child)
+        except Exception as exc:
+            _forget_window()
             try:
                 selected_widget = target.nametowidget(selected)
             except Exception as exc:

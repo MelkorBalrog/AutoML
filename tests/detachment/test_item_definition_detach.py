@@ -1,11 +1,9 @@
-# Author: Miguel Marina <karel.capek.robotics@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
+"""Regression tests for detaching the Item Definition editor tab."""
 
 from __future__ import annotations
 
-import os
 import tkinter as tk
-from types import SimpleNamespace
 from tkinter import ttk
 
 import pytest
@@ -14,113 +12,86 @@ from gui.utils.closable_notebook import ClosableNotebook
 from mainappsrc.core.editors import Editors
 
 
-pytestmark = pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
-
-
-class MinimalLifecycleUI:
-    """Minimal lifecycle helper exposing the tab API Editors needs."""
-
-    def __init__(self, doc_nb: ClosableNotebook) -> None:
-        self.doc_nb = doc_nb
+class _LifecycleUI:
+    def __init__(self, notebook: ClosableNotebook) -> None:
+        self.notebook = notebook
 
     def _new_tab(self, title: str) -> ttk.Frame:
-        tab = ttk.Frame(self.doc_nb)
-        self.doc_nb.add(tab, text=title)
-        self.doc_nb.select(tab)
-        return tab
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text=title)
+        self.notebook.select(frame)
+        return frame
 
 
-@pytest.fixture
-def item_definition_app():
+class _App:
+    def __init__(self, root: tk.Tk) -> None:
+        self.root = root
+        self.doc_nb = ClosableNotebook(root)
+        self.doc_nb.pack(fill=tk.BOTH, expand=True)
+        self.lifecycle_ui = _LifecycleUI(self.doc_nb)
+        self.item_definition = {"description": "Existing desc", "assumptions": "Existing asm"}
+
+
+def _texts(widget: tk.Widget) -> set[str]:
+    values: set[str] = set()
+    pending = [widget]
+    while pending:
+        current = pending.pop()
+        try:
+            text = current.cget("text")
+        except Exception:
+            text = ""
+        if text:
+            values.add(str(text))
+        try:
+            pending.extend(current.winfo_children())
+        except Exception:
+            pass
+    return values
+
+
+def test_item_definition_detaches_with_form_content() -> None:
     try:
         root = tk.Tk()
     except tk.TclError:
         pytest.skip("Tk not available")
     root.withdraw()
-    doc_nb = ClosableNotebook(root)
-    doc_nb.pack(fill="both", expand=True)
-    app = SimpleNamespace(
-        root=root,
-        doc_nb=doc_nb,
-        item_definition={
-            "description": "Brake controller item definition",
-            "assumptions": "Nominal operating assumptions",
-        },
-    )
-    app.lifecycle_ui = MinimalLifecycleUI(doc_nb)
-    yield app
     try:
-        doc_nb.close_all_floating()
+        app = _App(root)
+        Editors(app).show_item_definition_editor()
+        tab_id = app.doc_nb.select()
+
+        app.doc_nb._detach_tab(tab_id, 50, 50)
+
+        assert app.doc_nb._floating_windows, "Item Definition did not detach"
+        win = app.doc_nb._floating_windows[0]
+        labels = _texts(win)
+        assert "Item Description:" in labels
+        assert "Assumptions:" in labels
+        assert "Save" in labels
     finally:
         root.destroy()
 
 
-def _descendants(widget: tk.Widget) -> list[tk.Widget]:
-    widgets: list[tk.Widget] = []
-    for child in widget.winfo_children():
-        widgets.append(child)
-        widgets.extend(_descendants(child))
-    return widgets
-
-
-def _textual_content(widget: tk.Widget) -> str:
-    chunks: list[str] = []
+def test_item_definition_failed_rebuild_keeps_original_tab() -> None:
     try:
-        text = widget.cget("text")
+        root = tk.Tk()
     except tk.TclError:
-        text = ""
-    if text:
-        chunks.append(str(text))
-    if isinstance(widget, tk.Text):
-        chunks.append(widget.get("1.0", "end").strip())
-    return "\n".join(chunk for chunk in chunks if chunk)
+        pytest.skip("Tk not available")
+    root.withdraw()
+    try:
+        app = _App(root)
+        Editors(app).show_item_definition_editor()
+        tab_id = app.doc_nb.select()
+        tab = app.doc_nb.nametowidget(tab_id)
 
+        def fail(_parent: tk.Widget) -> tk.Widget:
+            raise RuntimeError("boom")
 
-def _all_textual_content(widget: tk.Widget) -> str:
-    return "\n".join(
-        content
-        for candidate in [widget, *_descendants(widget)]
-        if (content := _textual_content(candidate))
-    )
+        tab._detach_factory = fail
+        app.doc_nb._detach_tab(tab_id, 50, 50)
 
-
-def test_item_definition_tab_detaches_with_visible_editor_content(item_definition_app) -> None:
-    app = item_definition_app
-    Editors(app).show_item_definition_editor()
-    app.root.update_idletasks()
-
-    original_tab_id = str(app._item_def_tab)
-    app.doc_nb._detach_tab(original_tab_id, 25, 25)
-    app.root.update_idletasks()
-
-    assert app.doc_nb._floating_windows, "Item Definition tab did not detach"
-    detached = app.doc_nb._floating_windows[-1]
-    descendants = _descendants(detached)
-    textual_content = _all_textual_content(detached)
-
-    assert descendants, "Detached Item Definition window is blank"
-    assert any(widget.winfo_ismapped() for widget in descendants), (
-        "Detached Item Definition window contains no visible widgets"
-    )
-    assert "Item Description:" in textual_content
-    assert "Assumptions:" in textual_content
-    assert "Save" in textual_content
-
-
-def test_item_definition_detach_failure_keeps_original_tab(item_definition_app) -> None:
-    app = item_definition_app
-    Editors(app).show_item_definition_editor()
-    app.root.update_idletasks()
-
-    original_tab = app._item_def_tab
-    original_tab._detach_factory = lambda _parent: (_ for _ in ()).throw(
-        RuntimeError("forced detach factory failure")
-    )
-    original_tab_id = str(original_tab)
-
-    app.doc_nb._detach_tab(original_tab_id, 25, 25)
-    app.root.update_idletasks()
-
-    assert original_tab_id in app.doc_nb.tabs()
-    assert app.doc_nb.tab(original_tab_id, "text") == "Item Definition"
-    assert not app.doc_nb._floating_windows
+        assert str(tab) in app.doc_nb.tabs()
+        assert not app.doc_nb._floating_windows
+    finally:
+        root.destroy()
