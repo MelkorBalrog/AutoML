@@ -34,7 +34,14 @@ if TYPE_CHECKING:  # pragma: no cover - type hints only
 
 
 class WidgetTransferManager:
-    """Move widgets between notebooks while preserving their state."""
+    """Legacy helper for moving known-safe widgets between notebooks.
+
+    ``detach_tab`` reparents an existing widget instead of rebuilding it.  That
+    is only safe for explicitly supported legacy/dockable widgets whose owners
+    know how to survive a notebook move.  Normal application document tabs
+    should use a reconstruction/factory based detach path instead so complex
+    widget state, callbacks, and ownership remain consistent.
+    """
 
     def detach_tab(
         self,
@@ -43,6 +50,10 @@ class WidgetTransferManager:
         target: "tk.Widget",
     ) -> tk.Widget:
         """Move *tab_id* from *source* notebook to *target* notebook.
+
+        This method is not the default document-tab detachment mechanism.  Use
+        it only when the caller has already validated that the widget is a
+        supported legacy/dockable tab that can safely be moved as-is.
 
         Parameters
         ----------
