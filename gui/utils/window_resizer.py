@@ -318,6 +318,8 @@ class WindowResizeController:
     def _ensure_geometry(self, widget: tk.Widget) -> None:
         manager = self._manager(widget)
         if manager == "pack":
+            if widget is not self._primary:
+                return
             try:
                 widget.pack_configure(expand=True, fill="both")
             except Exception:
