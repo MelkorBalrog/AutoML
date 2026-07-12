@@ -21,12 +21,9 @@ from __future__ import annotations
 import math
 import sys
 import json
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 import tkinter as tk
 import os, sys
-import threading
-import time
 base = os.path.dirname(__file__)
 if base not in sys.path:
     sys.path.append(base)
@@ -110,8 +107,7 @@ from mainappsrc.models.sysml.sysml_repository import SysMLRepository
 from ..managers.undo_manager import UndoRedoManager
 from analysis.scenario_description import template_phrases
 from mainappsrc.ui.app_lifecycle_ui import AppLifecycleUI
-from tools.crash_report_logger import install_best, watchdog_best
-from tools.thread_manager import manager as thread_manager
+from tools.crash_report_logger import install_best
 from gui.styles.editing_labels_styling import Editing_Labels_Styling
 import copy
 import tkinter.font as tkFont
@@ -3093,11 +3089,11 @@ class AutoMLApp(
 
 
 def load_user_data() -> tuple[dict, tuple[str, str]]:
-    """Load cached users and last user config concurrently."""
-    with ThreadPoolExecutor() as executor:
-        users_future = executor.submit(user_config_service.load_all_users)
-        config_future = executor.submit(user_config_service.load_user_config)
-        return users_future.result(), config_future.result()
+    """Load cached users and last user config sequentially on the main thread."""
+
+    users = user_config_service.load_all_users()
+    config = user_config_service.load_user_config()
+    return users, config
 
 
 def _shutdown_root(root: tk.Misc) -> None:
@@ -3152,29 +3148,9 @@ def _launch_app() -> None:
         _shutdown_root(root)
 
 
-def _watchdog_feeder(wd, stop_event, interval: float = 1.0) -> None:
-    while not stop_event.is_set():
-        time.sleep(interval)
-        try:
-            wd.feed()
-        except Exception:
-            break
-
-
 def main() -> None:
     install_best()
-    wd = watchdog_best(10.0)
-    stop_event = threading.Event()
-    thread_manager.register(
-        "watchdog",
-        _watchdog_feeder,
-        args=(wd, stop_event),
-        stop_event=stop_event,
-    )
-    try:
-        _launch_app()
-    finally:
-        thread_manager.stop_all()
+    _launch_app()
 
 if __name__ == "__main__":
     main()
