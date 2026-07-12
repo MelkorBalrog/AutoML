@@ -20,8 +20,11 @@
 
 from __future__ import annotations
 
+import logging
 import tkinter as tk
 from tkinter import ttk
+
+logger = logging.getLogger(__name__)
 
 
 class DetachedTabReopener:
@@ -68,11 +71,13 @@ class DetachedTabReopener:
         return None
 
     def _build_from_tab_class(self) -> tk.Widget | None:
-        try:
-            widget = self.tab_widget.__class__(self.notebook)
-        except Exception:
-            return None
-        return widget
+        cls = self.tab_widget.__class__
+        return self._safe_create(
+            cls,
+            self.notebook,
+            source="tab_class",
+            original_widget=self.tab_widget,
+        )
 
     def _build_from_window(self, window: tk.Widget) -> tk.Widget | None:
         cls = window.__class__
@@ -92,13 +97,54 @@ class DetachedTabReopener:
             ((self.notebook,), {}),
         ])
         for args, kwargs in create_attempts:
-            rebuilt = self._safe_create(cls, *args, **kwargs)
+            rebuilt = self._safe_create(
+                cls,
+                *args,
+                source="window",
+                original_widget=window,
+                **kwargs,
+            )
             if rebuilt is not None:
                 return rebuilt
         return None
 
-    def _safe_create(self, cls, *args, **kwargs) -> tk.Widget | None:
+    def _safe_create(
+        self,
+        cls,
+        *args,
+        source: str,
+        original_widget: tk.Widget,
+        **kwargs,
+    ) -> tk.Widget | None:
         try:
-            return cls(*args, **kwargs)
+            rebuilt = cls(*args, **kwargs)
         except Exception:
+            logger.exception(
+                "Detached tab reopener constructor failed: "
+                "source=%s title=%r original=%r original_class=%s "
+                "constructor=%s args=%r kwargs=%r",
+                source,
+                self.title,
+                original_widget,
+                type(original_widget).__name__,
+                cls,
+                args,
+                kwargs,
+            )
             return None
+        if not isinstance(rebuilt, tk.Widget):
+            logger.warning(
+                "Detached tab reopener constructor returned non-widget: "
+                "source=%s title=%r original=%r original_class=%s "
+                "constructor=%s args=%r kwargs=%r result=%r",
+                source,
+                self.title,
+                original_widget,
+                type(original_widget).__name__,
+                cls,
+                args,
+                kwargs,
+                rebuilt,
+            )
+            return None
+        return rebuilt

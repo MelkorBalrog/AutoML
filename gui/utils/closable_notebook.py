@@ -1413,6 +1413,7 @@ class ClosableNotebook(ttk.Notebook):
             if not self._detached_content_visible(hosted_child):
                 raise RuntimeError(
                     f"Detached content {hosted_child} has no visible descendants or meaningful content"
+                )
             if self._should_transfer_legacy_tab(child):
                 hosted_child = WidgetTransferManager().detach_tab(
                     self, str(child), target
