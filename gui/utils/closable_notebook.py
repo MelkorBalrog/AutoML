@@ -36,9 +36,11 @@ from tkinter import ttk
 try:  # pragma: no cover - support direct module execution
     from .tk_utils import cancel_after_events
     from .widget_transfer_manager import WidgetTransferManager
+    from .window_resizer import WindowResizeController
 except Exception:  # pragma: no cover - legacy path
     from tk_utils import cancel_after_events
     from widget_transfer_manager import WidgetTransferManager
+    from window_resizer import WindowResizeController
 
 logger = logging.getLogger(__name__)
 
@@ -1357,7 +1359,7 @@ class ClosableNotebook(ttk.Notebook):
         return dock
 
     def _detach_tab(self, tab_id: str, x: int, y: int) -> None:
-        """Detach *tab_id* transactionally into a floating window."""
+        """Detach *tab_id* transactionally into a resizable floating window."""
 
         try:
             if isinstance(tab_id, int):
@@ -1368,6 +1370,7 @@ class ClosableNotebook(ttk.Notebook):
         try:
             child = self.nametowidget(tab_id)
             title = self.tab(tab_id, "text") or "Detached"
+            original_index = self.index(tab_id)
         except tk.TclError:
             return
 
@@ -1377,11 +1380,6 @@ class ClosableNotebook(ttk.Notebook):
         except tk.TclError:
             child_class = type(child).__name__
         detach_metadata = self._detach_debug_metadata(child)
-
-        try:
-            self.select(tab_id)
-        except tk.TclError:
-            pass
 
         root = self._app_root
         try:
@@ -1393,9 +1391,11 @@ class ClosableNotebook(ttk.Notebook):
         win: tk.Toplevel | None = None
         target: ClosableNotebook | None = None
         hosted_child: tk.Widget | None = None
-        moved_legacy_child = False
+        resizer: WindowResizeController | None = None
 
         def _cleanup_failed_window() -> None:
+            if resizer is not None:
+                resizer.shutdown()
             if win is not None:
                 if win in self._floating_windows:
                     self._floating_windows.remove(win)
@@ -1411,45 +1411,106 @@ class ClosableNotebook(ttk.Notebook):
                 ClosableNotebook._tab_hosts.pop(hosted_child, None)
             ClosableNotebook._tab_hosts.pop(child, None)
 
+        def _track_resize_targets(widget: tk.Widget) -> None:
+            if resizer is None:
+                return
+            resizer.add_target(widget)
+            pending = [widget]
+            visited: set[tk.Widget] = set()
+            while pending:
+                current = pending.pop()
+                if current in visited:
+                    continue
+                visited.add(current)
+                resizer.add_target(current)
+                try:
+                    pending.extend(current.winfo_children())
+                except Exception:
+                    pass
+
+        def _dock_back() -> None:
+            nonlocal hosted_child
+            if win is None or target is None or hosted_child is None:
+                return
+            try:
+                title_now = target.tab(hosted_child, "text") or title
+            except tk.TclError:
+                title_now = title
+            builder_source = hosted_child
+            try:
+                target.forget(hosted_child)
+            except tk.TclError:
+                pass
+            rebuilt = self._build_detached_tab_content(builder_source, self, title_now)
+            if rebuilt is None:
+                rebuilt = ttk.Frame(self)
+            try:
+                self.insert(original_index, rebuilt, text=title_now)
+            except tk.TclError:
+                self.add(rebuilt, text=title_now)
+            try:
+                self.select(rebuilt)
+            except tk.TclError:
+                pass
+            ClosableNotebook._tab_hosts.pop(hosted_child, None)
+            hosted_child = None
+            if resizer is not None:
+                resizer.shutdown()
+            if win in self._floating_windows:
+                self._floating_windows.remove(win)
+            try:
+                self._cancel_after_events(win)
+            except Exception:
+                pass
+            try:
+                win.destroy()
+            except tk.TclError:
+                pass
+
         try:
+            win = tk.Toplevel(root)
+            win.withdraw()
+            win.title(title)
+            win.geometry("1200x700")
+            win.minsize(700, 450)
+            win.protocol("WM_DELETE_WINDOW", _dock_back)
+
+            toolbar = ttk.Frame(win)
+            toolbar.pack(side=tk.TOP, fill=tk.X)
+            ttk.Label(toolbar, text=title).pack(side=tk.LEFT, padx=8, pady=4)
+            dock_btn = ttk.Button(toolbar, text="Dock", command=_dock_back, width=10)
+            dock_btn._fixed_size = True
+            dock_btn.pack(side=tk.RIGHT, padx=4, pady=2)
+
+            target = ClosableNotebook(win)
+            target.pack(fill=tk.BOTH, expand=True)
+            resizer = WindowResizeController(win, target)
+
             if self._should_transfer_legacy_tab(child):
-                hosted_child = WidgetTransferManager().detach_tab(
-                    self, tab_id, target
-                )
-                moved_legacy_child = True
+                hosted_child = WidgetTransferManager().detach_tab(self, tab_id, target)
             else:
                 hosted_child = self._build_detached_tab_content(child, target, title)
                 if hosted_child is None:
                     raise RuntimeError(f"No detached content builder for {child_path}")
                 target.add(hosted_child, text=title)
                 target.select(hosted_child)
-                win.update_idletasks()
-                target.update_idletasks()
-                hosted_child.update_idletasks()
-                if not self._detached_content_visible(hosted_child):
-                    raise RuntimeError(f"Detached content for {title!r} is blank")
-                try:
-                    self._cancel_after_events(child)
-                except Exception:
-                    pass
-                self.forget(tab_id)
-                self._safe_destroy(child)
-        except Exception as exc:
-            _forget_window()
-            try:
-                selected_widget = target.nametowidget(selected)
-            except Exception as exc:
-                raise RuntimeError(
-                    f"Detached notebook selected unknown tab {selected!r}"
-                ) from exc
-            if selected_widget is not hosted_child:
-                raise RuntimeError(
-                    f"Detached notebook selected {selected_widget}, expected {hosted_child}"
-                )
+
+            win.update_idletasks()
+            target.update_idletasks()
+            hosted_child.update_idletasks()
             if not self._detached_content_visible(hosted_child):
-                raise RuntimeError(
-                    f"Detached content {hosted_child} has no visible descendants or meaningful content"
-                )
+                raise RuntimeError(f"Detached content for {title!r} is blank")
+
+            _track_resize_targets(hosted_child)
+            resizer.sync_to_host()
+            try:
+                self._cancel_after_events(child)
+            except Exception:
+                pass
+            if str(tab_id) in self.tabs():
+                self.forget(tab_id)
+            if hosted_child is not child:
+                self._safe_destroy(child)
         except Exception as exc:
             _cleanup_failed_window()
             try:
@@ -1468,28 +1529,8 @@ class ClosableNotebook(ttk.Notebook):
             )
             return
 
-        if not moved_legacy_child:
-            try:
-                self.forget(tab_id)
-            except tk.TclError as exc:
-                _cleanup_failed_window()
-                try:
-                    self.select(tab_id)
-                except tk.TclError:
-                    pass
-                logger.exception(
-                    "Failed to mark detached tab after verification: title=%r "
-                    "original_path=%s original_class=%s detach_metadata=%r exception=%r",
-                    title,
-                    child_path,
-                    child_class,
-                    detach_metadata,
-                    exc,
-                )
-                return
-            self._safe_destroy(child)
-
         ClosableNotebook._tab_hosts[hosted_child] = win
+        self._floating_windows.append(win)
         try:
             win.deiconify()
             win.lift()
