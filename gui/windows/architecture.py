@@ -12397,7 +12397,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             )
             self.toolbox_var.set(preferred)
         self._switch_toolbox()
-        self._schedule_toolbox_preload()
 
     def _ensure_toolbox_frame(self, choice: str):
         loaded = getattr(self, "_loaded_toolbox_frames", {})
