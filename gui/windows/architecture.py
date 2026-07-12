@@ -3722,6 +3722,7 @@ class SysMLDiagramWindow(tk.Frame):
         else:
             diagram = self.repo.create_diagram(title, name=title, diag_id=diagram_id)
         self.diagram_id = diagram.diag_id
+        self._install_detach_factory(master)
 
         relation_tools = list(relation_tools or [])
         self.relation_tools = relation_tools
@@ -3956,6 +3957,34 @@ class SysMLDiagramWindow(tk.Frame):
         self.update_property_view()
         if not isinstance(self.master, tk.Toplevel):
             self.pack(fill=tk.BOTH, expand=True)
+
+
+    def _install_detach_factory(self, host: tk.Widget) -> None:
+        if isinstance(host, tk.Toplevel):
+            return
+
+        def _build_detached_architecture(parent, _title=None):
+            container = parent
+            if isinstance(parent, ttk.Notebook):
+                container = ttk.Frame(parent)
+            if self.app is not None:
+                try:
+                    self.app.diagram_tabs[self.diagram_id] = container
+                except Exception:
+                    pass
+            self.__class__(
+                container,
+                self.app,
+                diagram_id=self.diagram_id,
+                history=list(getattr(self, "diagram_history", [])),
+            )
+            container._detach_factory = _build_detached_architecture
+            return container
+
+        try:
+            host._detach_factory = _build_detached_architecture
+        except Exception:
+            pass
 
     def _on_focus_in(self, event=None):
         if self.app:
@@ -12237,6 +12266,7 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
                     fr.destroy()
         self._toolbox_frames = {}
         self._frame_loaders: dict[str, Callable[[], object]] = {}
+        self._loaded_toolbox_frames: dict[str, object] = {}
         if hasattr(self.toolbox, "tk"):
             action_frame = ttk.Frame(self.toolbox)
             cmds = [
@@ -12361,35 +12391,36 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         self.toolbox_selector.configure(values=options)
         current = self.toolbox_var.get()
         if current not in options:
-            self.toolbox_var.set(options[0] if options else "")
-        # Defer the initial toolbox switch until the GUI event loop runs to
-        # avoid missing related element frames on first display.
-        if hasattr(self.toolbox, "after"):
-            self.toolbox.after(0, self._switch_toolbox)
-        else:  # pragma: no cover - non-tkinter fallback
-            self._switch_toolbox()
+            preferred = next(
+                (name for name in options if name not in {"Governance Core", "Safety & AI Lifecycle"}),
+                options[0] if options else "",
+            )
+            self.toolbox_var.set(preferred)
+        self._switch_toolbox()
+
+    def _ensure_toolbox_frame(self, choice: str):
+        loaded = getattr(self, "_loaded_toolbox_frames", {})
+        if choice in loaded:
+            return loaded[choice]
+        loader = getattr(self, "_frame_loaders", {}).get(choice)
+        if not loader:
+            return None
+        frame = loader()
+        loaded[choice] = frame
+        self._loaded_toolbox_frames = loaded
+        frames = self._toolbox_frames.setdefault(choice, [])
+        if frame not in frames:
+            frames.append(frame)
+        return frame
 
     def _switch_toolbox(self) -> None:
         choice = self.toolbox_var.get()
-        self._cancel_toolbox_heartbeat()
         for frames in self._toolbox_frames.values():
             for frame in frames:
                 if frame and hasattr(frame, "pack_forget"):
                     frame.pack_forget()
+        self._ensure_toolbox_frame(choice)
         frames = self._toolbox_frames.setdefault(choice, [])
-        diag_id = getattr(self, "diagram_id", "0")
-        prefix = getattr(self, "_toolbox_prefix", f"{diag_id}:{id(self)}:toolbox:")
-        self._toolbox_prefix = prefix
-        key = f"{prefix}{choice}"
-        loader = getattr(self, "_frame_loaders", {}).get(choice)
-        if loader:
-            frame = memory_manager.lazy_load(key, loader)
-            if frame not in frames:
-                frames.append(frame)
-        else:
-            memory_manager.mark_active(key)
-        self._active_toolbox_key = key
-        self._schedule_toolbox_heartbeat()
         frames[:] = [
             f
             for f in frames
@@ -12409,17 +12440,7 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         self._toolbox_active_timer = None
 
     def _schedule_toolbox_heartbeat(self) -> None:
-        key = getattr(self, "_active_toolbox_key", "")
-        if not key:
-            return
-        memory_manager.mark_active(key)
-        if hasattr(self.toolbox, "after"):
-            try:
-                self._toolbox_active_timer = self.toolbox.after(
-                    15000, self._schedule_toolbox_heartbeat
-                )
-            except Exception:  # pragma: no cover - safety for fake toolboxes
-                self._toolbox_active_timer = None
+        return
 
     class _SelectDialog(simpledialog.Dialog):  # pragma: no cover - requires tkinter
         def __init__(self, parent, title: str, options: list[str]):

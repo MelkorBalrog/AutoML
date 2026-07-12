@@ -137,6 +137,16 @@ class Open_Windows_Features:
             app._safety_exp_tab = app.lifecycle_ui._new_tab(
                 "Safety & Security Management Explorer"
             )
+        def _build_safety_management_explorer(parent, _title=None):
+            container = parent
+            if isinstance(parent, ttk.Notebook):
+                container = ttk.Frame(parent)
+            explorer = SafetyManagementExplorer(container, app, app.safety_mgmt_toolbox)
+            explorer.pack(fill=tk.BOTH, expand=True)
+            container._detach_factory = _build_safety_management_explorer
+            return container
+
+        app._safety_exp_tab._detach_factory = _build_safety_management_explorer
         app._safety_exp_window = SafetyManagementExplorer(
             app._safety_exp_tab, app, app.safety_mgmt_toolbox
         )
