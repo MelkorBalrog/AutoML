@@ -68,18 +68,12 @@ class TestSplashLauncherThreadOwnership:
         class FakeRoot:
             def __init__(self):
                 record("splash-root creation", self)
-                self.callback = None
 
             def withdraw(self):
                 record("splash withdrawal", self)
 
-            def after(self, delay, callback):
-                record("callback registration", self)
-                self.callback = callback
-
             def mainloop(self):
                 record("splash event loop", self)
-                self.callback()
 
             def destroy(self):
                 record("root destruction", self)
@@ -116,7 +110,6 @@ class TestSplashLauncherThreadOwnership:
 
         required = {
             "splash-root creation",
-            "callback registration",
             "splash closure",
             "root destruction",
             "application-root creation",

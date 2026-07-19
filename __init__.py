@@ -66,10 +66,9 @@ from .AutoML import (
     ensure_packages,
     ensure_ghostscript,
     install_best,
-    start_watchdog_thread,
-    start_cleanup_thread,
+    report_health,
+    model_loader,
     manager_eater,
-    ThreadPoolExecutor,
     _bootstrap,
 )
 
@@ -79,10 +78,9 @@ __all__.extend(
         "ensure_packages",
         "ensure_ghostscript",
         "install_best",
-        "start_watchdog_thread",
-        "start_cleanup_thread",
+        "report_health",
+        "model_loader",
         "manager_eater",
-        "ThreadPoolExecutor",
         "_bootstrap",
     ]
 )

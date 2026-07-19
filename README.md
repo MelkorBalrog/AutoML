@@ -18,11 +18,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-version: 0.2.267
+version: 0.2.301
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
-Reparent detached tabs across windows using native OS APIs so notebooks move
-widgets without cloning and avoid pending callback errors.
+AutoML now uses a single-thread project lifecycle. Dependency checks complete
+before GUI construction, and diagnostics and cleanup run synchronously at
+explicit application lifecycle points.
 # AutoML
 
 AutoML is an automotive modeling and analysis tool built around a SysML-based metamodel. It lets you describe items, operating scenarios, functions, structure and interfaces in a single environment.
@@ -1766,4 +1767,3 @@ Steps to reproduce:
 4. Use **Query** for `SlipperyRoad` to obtain approximately 0.305.
 
 This end-to-end flow links HAZOP findings to risk assessment ratings, fault trees, FMEDA metrics, reliability data and causal Bayesian network reasoning for a coherent safety & security case.
-

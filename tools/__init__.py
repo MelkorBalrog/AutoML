@@ -24,11 +24,11 @@ from .diagnostics_manager import (
     DiagnosticsManagerBase,
     EventDiagnosticsManager,
     PassiveDiagnosticsManager,
-    PollingDiagnosticsManager,
 )
-from .crash_report_logger import start_watchdog_thread, stop_watchdog_thread
-from .model_loader import start_cleanup_thread, stop_cleanup_thread
+from .crash_report_logger import HealthReport, SynchronousHealthReporter, report_health
+from .model_loader import LazyModelLoader, model_loader
 from .trash_eater import TrashEater, manager_eater
+from .worker_lifecycle import ProjectWorkerRegistry, project_workers
 
 __all__ = [
     "AsyncDiagnosticsManager",
@@ -36,11 +36,13 @@ __all__ = [
     "DiagnosticsManagerBase",
     "EventDiagnosticsManager",
     "PassiveDiagnosticsManager",
-    "PollingDiagnosticsManager",
-    "start_watchdog_thread",
-    "stop_watchdog_thread",
-    "start_cleanup_thread",
-    "stop_cleanup_thread",
+    "HealthReport",
+    "SynchronousHealthReporter",
+    "report_health",
+    "LazyModelLoader",
+    "model_loader",
     "TrashEater",
     "manager_eater",
+    "ProjectWorkerRegistry",
+    "project_workers",
 ]

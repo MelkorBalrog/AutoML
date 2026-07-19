@@ -18,18 +18,16 @@
 
 from __future__ import annotations
 
-"""Crash report logging utilities with multiple implementations."""
+"""Crash logging and synchronous application health reporting."""
 
 
 import datetime
 import logging
-import os
 import sys
-import threading
+import time
 import traceback
+from dataclasses import dataclass
 from pathlib import Path
-
-from tools.thread_manager import manager as thread_manager
 
 # Default directory for crash logs
 LOG_DIR = Path(__file__).resolve().parent
@@ -89,71 +87,37 @@ class CrashLoggerV4:
         return log_path
 
 
-class _LoopWatchdog:
-    """Watchdog that terminates the process if not regularly fed."""
+@dataclass(frozen=True)
+class HealthReport:
+    """Result captured synchronously at an explicit lifecycle point."""
 
-    def __init__(self, timeout: float, handler):
-        self.timeout = timeout
-        self.handler = handler
-        self._timer: threading.Timer | None = None
-
-    def _trigger(self) -> None:
-        exc = TimeoutError("Watchdog timeout")
-        self.handler(TimeoutError, exc, None)
-        os._exit(1)
-
-    def _reset(self) -> None:
-        if self._timer is not None:
-            self._timer.cancel()
-        self._timer = threading.Timer(self.timeout, self._trigger)
-        self._timer.daemon = True
-        self._timer.start()
-
-    def start(self) -> None:
-        self._reset()
-
-    def feed(self) -> None:
-        self._reset()
+    phase: str
+    healthy: bool
+    monotonic_time: float
+    detail: str = ""
 
 
-def watchdog_v1(timeout: float = 5.0, path: Path | str | None = None) -> _LoopWatchdog:
-    """Watchdog using :func:`crash_handler_v1` for logging."""
+class SynchronousHealthReporter:
+    """Record health without a timer, feeder, worker, or GUI callback."""
 
-    path_obj = Path(path) if path else None
-    wd = _LoopWatchdog(timeout, lambda et, e, tb: crash_handler_v1(et, e, tb, path_obj))
-    wd.start()
-    return wd
+    def __init__(self) -> None:
+        self.reports: list[HealthReport] = []
 
-
-def watchdog_v2(timeout: float = 5.0, path: Path | str | None = None) -> _LoopWatchdog:
-    """Watchdog using :func:`crash_handler_v2` for logging."""
-
-    path_obj = Path(path) if path else None
-    wd = _LoopWatchdog(timeout, lambda et, e, tb: crash_handler_v2(et, e, tb, path_obj))
-    wd.start()
-    return wd
+    def report(self, phase: str, *, healthy: bool, detail: str = "") -> HealthReport:
+        report = HealthReport(phase, healthy, time.monotonic(), detail)
+        self.reports.append(report)
+        if not healthy:
+            logging.error("Health check failed at %s: %s", phase, detail)
+        return report
 
 
-def watchdog_v3(timeout: float = 5.0, path: Path | str | None = None) -> _LoopWatchdog:
-    """Watchdog using :func:`crash_handler_v3` for logging."""
-
-    path_obj = Path(path) if path else None
-    wd = _LoopWatchdog(timeout, lambda et, e, tb: crash_handler_v3(et, e, tb, path_obj))
-    wd.start()
-    return wd
+health_reporter = SynchronousHealthReporter()
 
 
-def watchdog_v4(timeout: float = 5.0, directory: Path | str = LOG_DIR) -> _LoopWatchdog:
-    """Watchdog using :class:`CrashLoggerV4` for unique log files."""
+def report_health(phase: str, *, healthy: bool, detail: str = "") -> HealthReport:
+    """Report application health immediately on the caller's thread."""
 
-    logger = CrashLoggerV4(directory)
-    wd = _LoopWatchdog(timeout, logger)
-    wd.start()
-    return wd
-
-
-# The most complete watchdog implementation
-watchdog_best = watchdog_v4
+    return health_reporter.report(phase, healthy=healthy, detail=detail)
 
 
 def install_v1() -> None:
@@ -176,53 +140,19 @@ def install_v4(directory: Path | str = LOG_DIR) -> None:
 install_best = install_v4
 
 
-def start_watchdog_thread(
-    timeout: float = 5.0, interval: float = 1.0
-) -> tuple[threading.Event, threading.Thread]:
-    """Start a background thread feeding the crash watchdog."""
-
-    wd = watchdog_best(timeout)
-    stop_event = threading.Event()
-
-    def _feed() -> None:
-        while not stop_event.is_set():
-            wd.feed()
-            stop_event.wait(interval)
-
-    thread = thread_manager.register(
-        "crash_watchdog",
-        _feed,
-        daemon=True,
-        stop_event=stop_event,
-    )
-    return stop_event, thread
-
-
-def stop_watchdog_thread(stop_event: threading.Event) -> None:
-    """Stop the background watchdog feeding thread."""
-
-    stop_event.set()
-    thread = thread_manager.unregister("crash_watchdog")
-    if thread:
-        thread.join()
-
 __all__ = [
     "crash_handler_v1",
     "crash_handler_v2",
     "CrashLoggerV3",
     "crash_handler_v3",
     "CrashLoggerV4",
-    "_LoopWatchdog",
-    "watchdog_v1",
-    "watchdog_v2",
-    "watchdog_v3",
-    "watchdog_v4",
-    "watchdog_best",
+    "HealthReport",
+    "SynchronousHealthReporter",
+    "health_reporter",
+    "report_health",
     "install_v1",
     "install_v2",
     "install_v3",
     "install_v4",
     "install_best",
-    "start_watchdog_thread",
-    "stop_watchdog_thread",
 ]

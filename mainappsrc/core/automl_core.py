@@ -2838,6 +2838,9 @@ class AutoMLApp(
         # the user so their project files remain intact.
         # Ensure the Tk event loop terminates and all windows are destroyed
         self.root.quit()
+        from tools.worker_lifecycle import project_workers
+
+        project_workers.assert_stopped()
         self.root.destroy()
 
 
@@ -3103,6 +3106,9 @@ def _shutdown_root(root: tk.Misc) -> None:
         cancel_after_events(root)
     except Exception as exc:  # pragma: no cover - defensive shutdown path
         logger.warning("Failed to cancel Tk callbacks during shutdown: %s", exc)
+    from tools.worker_lifecycle import project_workers
+
+    project_workers.assert_stopped()
     with suppress(tk.TclError):
         root.destroy()
 

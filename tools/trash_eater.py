@@ -18,12 +18,9 @@
 
 from __future__ import annotations
 
-"""Background monitor that trims unused resources when memory is low."""
+"""Explicit resource cleanup at application lifecycle boundaries."""
 
-import threading
 from typing import Callable, Optional
-
-from .thread_manager import manager as thread_manager
 
 try:  # pragma: no cover - psutil may not be installed
     import psutil
@@ -34,14 +31,12 @@ from .memory_manager import manager as memory_manager
 
 
 class TrashEater:
-    """Monitor memory usage and trigger cleanup of idle resources.
+    """Evaluate memory pressure and clean resources synchronously.
 
     Parameters
     ----------
     threshold:
         Fractional memory usage (0.0 - 1.0) beyond which cleanup is triggered.
-    interval:
-        Seconds to wait between checks when running in background.
     usage_provider:
         Optional callable returning current memory usage fraction.  Defaults to
         :func:`psutil.virtual_memory` when available.
@@ -52,16 +47,12 @@ class TrashEater:
     def __init__(
         self,
         threshold: float = 0.75,
-        interval: float = 5.0,
         usage_provider: Optional[Callable[[], float]] = None,
         manager=memory_manager,
     ) -> None:
         self.threshold = threshold
-        self.interval = interval
         self.usage_provider = usage_provider or self._get_usage
         self.manager = manager
-        self._thread: Optional[threading.Thread] = None
-        self._stop = threading.Event()
 
     @staticmethod
     def _get_usage() -> float:
@@ -73,31 +64,16 @@ class TrashEater:
         except Exception:
             return 0.0
 
-    def check_once(self) -> None:
-        """Check usage once and clean up if above threshold."""
+    def cleanup(self, *, force: bool = True) -> None:
+        """Clean now, or only under pressure when ``force`` is false."""
         usage = self.usage_provider()
-        if usage >= self.threshold:
+        if force or usage >= self.threshold:
             self.manager.cleanup()
 
-    def _run(self) -> None:
-        while not self._stop.is_set():
-            self.check_once()
-            self._stop.wait(self.interval)
+    def check_once(self) -> None:
+        """Perform one explicit memory-pressure check."""
 
-    def start(self) -> None:
-        """Start background monitoring thread."""
-        if self._thread and self._thread.is_alive():
-            return
-        self._stop.clear()
-        self._thread = thread_manager.register("trash_eater", self._run, daemon=True)
-
-    def stop(self) -> None:
-        """Stop background monitoring thread."""
-        self._stop.set()
-        thread = thread_manager.unregister("trash_eater")
-        if thread:
-            thread.join()
-        self._thread = None
+        self.cleanup(force=False)
 
 
 # Shared default instance for convenience

@@ -17,7 +17,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-import time
 import sys
 from pathlib import Path
 
@@ -30,23 +29,7 @@ from tools.diagnostics_manager import (
     DiagnosticError,
     EventDiagnosticsManager,
     PassiveDiagnosticsManager,
-    PollingDiagnosticsManager,
 )
-
-
-def test_polling_manager_rejects_callable_interval() -> None:
-    with pytest.raises(TypeError):
-        PollingDiagnosticsManager(interval=time.sleep)
-
-
-def test_polling_manager_detects_failure() -> None:
-    manager = PollingDiagnosticsManager(interval=0.01)
-    manager.register_check("fail", lambda: False)
-    manager.start()
-    time.sleep(0.05)
-    manager.stop()
-    with pytest.raises(DiagnosticError):
-        manager.raise_errors()
 
 
 def test_event_manager_records_error() -> None:
@@ -109,22 +92,6 @@ def test_nonrecoverable_fault_mitigates_and_notifies() -> None:
     assert "degraded mode" in manager.notifications
 
 
-def test_polling_failed_recovery_triggers_mitigation() -> None:
-    manager = PollingDiagnosticsManager(interval=0.01)
-    manager.register_check(
-        "p1",
-        lambda: False,
-        recover=lambda: False,
-        mitigate=lambda: "fallback",
-        recoverable=True,
-    )
-    manager.start()
-    time.sleep(0.05)
-    manager.stop()
-    manager.raise_errors()  # mitigated
-    assert "fallback" in manager.notifications
-
-
 def test_event_failed_recovery_triggers_mitigation() -> None:
     manager = EventDiagnosticsManager()
     manager.register_check(
@@ -175,38 +142,18 @@ def test_async_failed_recovery_triggers_mitigation() -> None:
 
 
 class TestBootstrapDiagnosticsManager:
-    """Tests for diagnostics manager during application bootstrap."""
+    """Grouped startup diagnostics integration checks."""
 
-    def test_bootstrap_initialises_polling_manager(self, monkeypatch):
+    def test_bootstrap_initialises_event_manager(self, monkeypatch):
         import importlib
         import AutoML as automl
-        from tools.diagnostics_manager import PollingDiagnosticsManager
 
         monkeypatch.setattr(automl, "parse_args", lambda: None)
         monkeypatch.setattr(automl, "install_best", lambda: None)
-        monkeypatch.setattr(automl, "start_watchdog_thread", lambda: None)
-        monkeypatch.setattr(automl, "start_cleanup_thread", lambda: None)
+        monkeypatch.setattr(automl, "report_health", lambda *args, **kwargs: None)
         monkeypatch.setattr(automl, "ensure_packages", lambda: None)
         monkeypatch.setattr(automl, "ensure_ghostscript", lambda: None)
-        monkeypatch.setattr(automl.manager_eater, "start", lambda: None)
-
-        class DummyExecutor:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, exc_type, exc, tb):
-                return False
-
-            def submit(self, func, *args, **kwargs):
-                class DummyFuture:
-                    def result(self):
-                        return func(*args, **kwargs)
-
-                return DummyFuture()
-
-        monkeypatch.setattr(automl, "ThreadPoolExecutor", lambda: DummyExecutor())
-        monkeypatch.setattr(PollingDiagnosticsManager, "start", lambda self: None)
-
+        monkeypatch.setattr(automl.manager_eater, "cleanup", lambda: None)
         module = object()
         monkeypatch.setattr(importlib, "import_module", lambda name: module)
 
@@ -214,5 +161,4 @@ class TestBootstrapDiagnosticsManager:
         result = automl._bootstrap()
 
         assert result is module
-        assert isinstance(automl._diagnostics_manager, PollingDiagnosticsManager)
-        assert isinstance(automl._diagnostics_manager.interval, float)
+        assert isinstance(automl._diagnostics_manager, EventDiagnosticsManager)

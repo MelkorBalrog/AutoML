@@ -16,31 +16,37 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import time
-import automl as launcher
+import AutoML as launcher
 
 
-def test_ensure_packages_runs_in_parallel(monkeypatch):
-    fake_required = ["pkg1", "pkg2"]
-    monkeypatch.setattr(launcher, "REQUIRED_PACKAGES", fake_required)
+class TestSequentialDependencyStartup:
+    """Grouped checks for dependency work before GUI construction."""
 
-    def fake_import_module(name):
-        raise ImportError
+    def test_ensure_packages_runs_sequentially(self, monkeypatch):
+        fake_required = ["pkg1", "pkg2"]
+        monkeypatch.setattr(launcher, "REQUIRED_PACKAGES", fake_required)
+        monkeypatch.setattr(
+            launcher.importlib, "import_module", lambda name: (_ for _ in ()).throw(ImportError())
+        )
+        events = []
 
-    monkeypatch.setattr(launcher.importlib, "import_module", fake_import_module)
+        class FakeProc:
+            def __init__(self, command):
+                self.package = command[-1]
+                events.append(("start", self.package))
 
-    class FakeProc:
-        def __init__(self, *args, **kwargs):
-            pass
+            def wait(self):
+                events.append(("finish", self.package))
 
-        def wait(self):
-            time.sleep(0.2)
+        monkeypatch.setattr(launcher.subprocess, "Popen", lambda command: FakeProc(command))
+        monkeypatch.setattr(launcher.memory_manager, "register_process", lambda *a, **k: None)
+        monkeypatch.setattr(launcher.memory_manager, "cleanup", lambda: None)
 
-    monkeypatch.setattr(launcher.subprocess, "Popen", lambda *a, **k: FakeProc())
-    monkeypatch.setattr(launcher.memory_manager, "register_process", lambda *a, **k: None)
-    monkeypatch.setattr(launcher.memory_manager, "cleanup", lambda: None)
+        launcher.ensure_packages()
 
-    start = time.time()
-    launcher.ensure_packages()
-    elapsed = time.time() - start
-    assert elapsed < 0.35
+        assert events == [
+            ("start", "pkg1"),
+            ("finish", "pkg1"),
+            ("start", "pkg2"),
+            ("finish", "pkg2"),
+        ]
