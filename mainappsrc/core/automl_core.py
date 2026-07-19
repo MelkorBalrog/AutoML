@@ -21,7 +21,6 @@ from __future__ import annotations
 import math
 import sys
 import json
-from contextlib import suppress
 import tkinter as tk
 import os, sys
 base = os.path.dirname(__file__)
@@ -36,7 +35,6 @@ from gui.dialogs.dialog_utils import askstring_fixed
 from gui.controls import messagebox
 from gui.utils import logger, add_treeview_scrollbars
 from gui.controls.button_utils import enable_listbox_hover_highlight
-from gui.utils.tk_utils import cancel_after_events
 from gui.utils.tooltip import ToolTip
 from gui.styles.style_manager import StyleManager
 from gui.toolboxes.review_toolbox import ReviewData, ReviewParticipant, ReviewComment
@@ -62,6 +60,7 @@ from .event_handlers import EventHandlersMixin
 from .persistence_wrappers import PersistenceWrappersMixin
 from .service_init_mixin import ServiceInitMixin
 from .page_diagram import PageDiagram
+from .application_lifecycle import ApplicationLifecycleController
 from gui.utils.node_utils import resolve_original as resolve_node_original
 from mainappsrc.services import (
     AppInitializationService,
@@ -359,6 +358,11 @@ class AutoMLApp(
     def __init__(self, root):
         AutoMLApp._instance = self
         self.root = root
+        controller = getattr(root, "_automl_lifecycle_controller", None)
+        if controller is None:
+            controller = ApplicationLifecycleController(root)
+            root._automl_lifecycle_controller = controller
+        controller.attach(self)
         self.services = SERVICE_MODULES
         self.ui_service = UISetupService(self, root)
         self.ui_service.initialize(root)
@@ -2826,22 +2830,22 @@ class AutoMLApp(
         """Remove all undo and redo history."""
         self.undo_manager.clear_history()
     def confirm_close(self):
-        """Prompt to save if there are unsaved changes before closing."""
+        """Confirm an unsaved project decision, then request shutdown."""
         if self.has_unsaved_changes():
             result = messagebox.askyesnocancel("Unsaved Changes", "Save changes before exiting?")
             if result is None:
-                return
+                return False
             if result:
                 self.save_model()
-        # Previously, any loaded model paths were deleted on close, which could
-        # remove user data. Avoid deleting files that were explicitly opened by
-        # the user so their project files remain intact.
-        # Ensure the Tk event loop terminates and all windows are destroyed
-        self.root.quit()
-        from tools.worker_lifecycle import project_workers
+        return self.shutdown()
 
-        project_workers.assert_stopped()
-        self.root.destroy()
+    def shutdown(self):
+        """Delegate the sole application shutdown sequence to its controller."""
+        controller = self.__dict__.get("lifecycle_controller")
+        if controller is None:
+            controller = ApplicationLifecycleController(self.root)
+            controller.attach(self)
+        return controller.shutdown()
 
 
     def export_model_data(self, include_versions=True):
@@ -3099,26 +3103,14 @@ def load_user_data() -> tuple[dict, tuple[str, str]]:
     return users, config
 
 
-def _shutdown_root(root: tk.Misc) -> None:
-    """Cancel pending callbacks and destroy *root* safely."""
+def _initialize_and_run(root, lifecycle) -> None:
+    """Initialize the application and enter its event loop."""
 
-    try:
-        cancel_after_events(root)
-    except Exception as exc:  # pragma: no cover - defensive shutdown path
-        logger.warning("Failed to cancel Tk callbacks during shutdown: %s", exc)
-    from tools.worker_lifecycle import project_workers
-
-    project_workers.assert_stopped()
-    with suppress(tk.TclError):
-        root.destroy()
-
-
-def _launch_app() -> None:
-    root = tk.Tk()
     root.minsize(1200, 700)
     enable_listbox_hover_highlight(root)
     root.withdraw()
     users, (last_name, last_email) = load_user_data()
+    name, email = last_name, last_email
     if users:
         dlg = UserSelectDialog(root, users, last_name)
         if dlg.result:
@@ -3147,11 +3139,18 @@ def _launch_app() -> None:
             root.attributes("-zoomed", True)
         except tk.TclError:
             pass
-    app = AutoMLApp(root)
+    AutoMLApp(root)
+    root.mainloop()
+
+
+def _launch_app() -> None:
+    root = tk.Tk()
+    lifecycle = ApplicationLifecycleController(root)
+    root._automl_lifecycle_controller = lifecycle
     try:
-        root.mainloop()
+        _initialize_and_run(root, lifecycle)
     finally:
-        _shutdown_root(root)
+        lifecycle.shutdown()
 
 
 def main() -> None:

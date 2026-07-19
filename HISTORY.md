@@ -18,6 +18,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.302 - 2026-07-19
+
+- Centralize application teardown in an owner-thread lifecycle controller that
+  atomically rejects repeated shutdown and performs ordered callback, binding,
+  window, toolbox, diagram, Tcl-command, and project-reference cleanup.
+- Route confirmed window closure, direct shutdown, and launcher failure cleanup
+  through the same idempotent controller, making root quit and destruction
+  single-owner, exactly-once operations.
+
 ## 0.2.301 - 2026-07-19
 
 - Remove all project-created threads, timers, executors, worker queues, daemon
