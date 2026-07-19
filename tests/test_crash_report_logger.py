@@ -16,13 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
-import subprocess
 import sys
-import textwrap
 from pathlib import Path
-
-import pytest
 
 # Ensure repository root is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -32,10 +27,6 @@ from tools.crash_report_logger import (
     CrashLoggerV4,
     crash_handler_v1,
     crash_handler_v2,
-    watchdog_v1,
-    watchdog_v2,
-    watchdog_v3,
-    watchdog_v4,
 )
 
 
@@ -79,71 +70,13 @@ def test_crash_handler_v4(tmp_path):
     assert "Exception: crash" in files[0].read_text()
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+class TestSynchronousHealthReporting:
+    """Grouped checks for thread-free crash health reporting."""
 
+    def test_unhealthy_report_is_recorded(self):
+        from tools.crash_report_logger import SynchronousHealthReporter
 
-def _run_subprocess(code: str, *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
-    base_env = os.environ.copy()
-    base_env.update(env or {})
-    return subprocess.run(
-        [sys.executable, "-c", textwrap.dedent(code)],
-        timeout=5,
-        env=base_env,
-    )
-
-
-def test_watchdog_v1(tmp_path):
-    log = tmp_path / "wd1.log"
-    code = f"""
-    from tools.crash_report_logger import watchdog_v1
-    watchdog_v1(timeout=0.5, path=r"{log.as_posix()}")
-    import time
-    time.sleep(10)
-    """
-    proc = _run_subprocess(code, env={"PYTHONPATH": str(REPO_ROOT)})
-    assert proc.returncode == 1
-    assert log.exists()
-    assert "TimeoutError: Watchdog timeout" in log.read_text()
-
-
-def test_watchdog_v2(tmp_path):
-    log = tmp_path / "wd2.log"
-    code = f"""
-    from tools.crash_report_logger import watchdog_v2
-    watchdog_v2(timeout=0.5, path=r"{log.as_posix()}")
-    import time
-    time.sleep(10)
-    """
-    proc = _run_subprocess(code, env={"PYTHONPATH": str(REPO_ROOT)})
-    assert proc.returncode == 1
-    assert log.exists()
-    assert "TimeoutError: Watchdog timeout" in log.read_text()
-
-
-def test_watchdog_v3(tmp_path):
-    log = tmp_path / "wd3.log"
-    code = f"""
-    from tools.crash_report_logger import watchdog_v3
-    watchdog_v3(timeout=0.5, path=r"{log.as_posix()}")
-    import time
-    time.sleep(10)
-    """
-    proc = _run_subprocess(code, env={"PYTHONPATH": str(REPO_ROOT)})
-    assert proc.returncode == 1
-    assert log.exists()
-    assert "TimeoutError: Watchdog timeout" in log.read_text()
-
-
-def test_watchdog_v4(tmp_path):
-    directory = tmp_path / "logs"
-    code = f"""
-    from tools.crash_report_logger import watchdog_v4
-    watchdog_v4(timeout=0.5, directory=r"{directory.as_posix()}")
-    import time
-    time.sleep(10)
-    """
-    proc = _run_subprocess(code, env={"PYTHONPATH": str(REPO_ROOT)})
-    assert proc.returncode == 1
-    files = list(directory.glob("crash_*.log"))
-    assert files
-    assert "TimeoutError: Watchdog timeout" in files[0].read_text()
+        reporter = SynchronousHealthReporter()
+        report = reporter.report("shutdown", healthy=False, detail="failure")
+        assert report.healthy is False
+        assert reporter.reports == [report]

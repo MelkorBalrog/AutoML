@@ -18,6 +18,25 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.301 - 2026-07-19
+
+- Remove all project-created threads, timers, executors, worker queues, daemon
+  services, periodic polling, and automatic worker restart behavior from the
+  launcher and tools package.
+- Run dependency validation and installation sequentially before constructing
+  either GUI, and use event-driven diagnostics plus synchronous health reports.
+- Perform model, memory, and trash cleanup only at explicit startup, model
+  release, and shutdown lifecycle points; assert the project worker registry is
+  empty immediately before destroying a Tk root.
+- Retire the production thread manager and group regression coverage by
+  startup, diagnostics, model cleanup, crash reporting, trash cleanup, and
+  shutdown subsystems.
+- External libraries may internally use native worker threads (for example,
+  BLAS implementations used by numerical dependencies). AutoML neither owns
+  nor registers those workers, passes no Tk object to them, and exposes no path
+  by which they can invoke a GUI callback; disabling them is controlled by the
+  external library/runtime and is therefore outside the project lifecycle.
+
 ## 0.2.300 - 2026-07-19
 
 - Keep splash-root creation, startup module loading, callback registration,

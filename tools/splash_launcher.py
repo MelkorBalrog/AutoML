@@ -27,6 +27,8 @@ from pathlib import Path
 import threading
 import traceback
 import tkinter as tk
+
+from .worker_lifecycle import project_workers
 from types import ModuleType
 from typing import Callable, Optional
 
@@ -61,20 +63,15 @@ class SplashLauncher:
         launcher simply imports :mod:`module_name`.
     module_name:
         Name of the module to import when ``loader`` is not supplied.
-    post_delay:
-        Milliseconds to keep the splash screen visible after initialisation
-        completes.
     """
 
     def __init__(
         self,
         loader: Optional[Callable[[], ModuleType]] = None,
         module_name: str = "AutoML",
-        post_delay: int = 0,
     ) -> None:
         self.loader = loader
         self.module_name = module_name
-        self.post_delay = post_delay
         self._module: Optional[ModuleType] = None
         self._owner_thread_id: Optional[int] = None
         self._root_creation_site = ""
@@ -107,6 +104,7 @@ class SplashLauncher:
     def _destroy_root(self) -> None:
         """Destroy the splash Tcl interpreter from its owner thread."""
         self._assert_owner_thread("destroy splash root", self._root)
+        project_workers.assert_stopped()
         self._root.destroy()
 
     def _launch_headless(self) -> None:
@@ -143,8 +141,7 @@ class SplashLauncher:
         # Defer splash import to avoid circular initialization during package execution.
         self._create_splash()
         self._load_module()
-        self._assert_owner_thread("register splash-close callback", self._root)
-        self._root.after(self.post_delay, self._close_splash)
+        self._close_splash()
         self._assert_owner_thread("run splash event loop", self._root)
         self._root.mainloop()
         if self._module and hasattr(self._module, "main"):

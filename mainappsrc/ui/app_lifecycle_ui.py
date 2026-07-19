@@ -837,6 +837,8 @@ class AppLifecycleUI:
             "Model items, scenarios, functions, structure and interfaces.\n"
             "Perform systems safety analyses, including cybersecurity, per ISO 26262, "
             "ISO 21448, ISO 21434 and ISO 8800.\n\n"
+            "Single-thread lifecycle: diagnostics and cleanup run only at explicit "
+            "application events.\n\n"
             f"Version: {self.version}"
         )
         messagebox.showinfo("About AutoML", message)
@@ -849,4 +851,3 @@ class AppLifecycleUI:
             self.safety_mgmt_toolbox.register_created_work_product(analysis, name)
         finally:
             self.safety_mgmt_toolbox.active_module = current
-

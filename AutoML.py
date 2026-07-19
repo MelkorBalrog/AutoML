@@ -32,11 +32,8 @@ import shutil
 import subprocess
 import sys
 import types
-import threading
-from concurrent.futures import ThreadPoolExecutor  # compatibility export; not used at startup
 from pathlib import Path
 from tkinter import ttk
-from typing import Any
 
 # Ensure bundled executables can import sibling packages
 if getattr(sys, "frozen", False):
@@ -68,17 +65,12 @@ else:
     sys.modules["config.automl_constants"] = _automl_constants
 
 import tools  # noqa: F401  # ensure package is bundled
-from tools.crash_report_logger import (
-    install_best,
-    start_watchdog_thread,
-    stop_watchdog_thread,
-)
-from tools.thread_manager import manager as thread_manager
-from tools.diagnostics_manager import PollingDiagnosticsManager
+from tools.crash_report_logger import install_best, report_health
+from tools.diagnostics_manager import EventDiagnosticsManager
 from tools.memory_manager import manager as memory_manager
-from tools.model_loader import start_cleanup_thread, stop_cleanup_thread
-from tools.splash_launcher import SplashLauncher
+from tools.model_loader import model_loader
 from tools.trash_eater import manager_eater
+from tools.worker_lifecycle import project_workers
 from mainappsrc.version import VERSION
 from mainappsrc.core.automl_core import (
     AutoMLApp,
@@ -174,9 +166,7 @@ def _ghostscript_available() -> bool:
         return True
 
 
-_watchdog_stop: threading.Event | None = None
-_model_cleanup_stop: threading.Event | None = None
-_diagnostics_manager: PollingDiagnosticsManager | None = None
+_diagnostics_manager: EventDiagnosticsManager | None = None
 
 
 def parse_args() -> None:
@@ -294,7 +284,7 @@ def ensure_packages() -> None:
 
 
 def _bootstrap() -> object:
-    """Run startup checks while the splash screen is displayed.
+    """Run startup checks before constructing the GUI.
 
     Returns
     -------
@@ -304,16 +294,12 @@ def _bootstrap() -> object:
 
     import AutoML as automl
 
-    global _watchdog_stop, _model_cleanup_stop, _diagnostics_manager
+    global _diagnostics_manager
     automl.parse_args()
     automl.install_best()
-    _watchdog_stop = automl.start_watchdog_thread()
-    automl._watchdog_stop = _watchdog_stop
-    _diagnostics_manager = PollingDiagnosticsManager()
-    _diagnostics_manager.start()
+    automl.report_health("startup", healthy=True)
+    _diagnostics_manager = EventDiagnosticsManager()
     automl._diagnostics_manager = _diagnostics_manager
-    _model_cleanup_stop = automl.start_cleanup_thread()
-    automl._model_cleanup_stop = _model_cleanup_stop
     # Startup imports and initializers remain sequential because third-party
     # packages may create Tk objects or a default root as an import side effect.
     automl.ensure_packages()
@@ -326,38 +312,27 @@ def _bootstrap() -> object:
     for path in (str(mainappsrc_path), str(base_path)):
         if path not in sys.path:
             sys.path.insert(0, path)
-    automl.manager_eater.start()
+    # Cleanup is tied to this completed startup phase rather than a timer.
+    automl.manager_eater.cleanup()
     return importlib.import_module("mainappsrc.automl_core")
 
 
 def main() -> None:
     """Entry point used by both source and bundled executions."""
 
-    module_holder: dict[str, Any] = {}
-
-    def _loader() -> Any:
-        module_holder["module"] = _bootstrap()
-        return object()  # prevent SplashLauncher from invoking ``main``
-
-    SplashLauncher(loader=_loader, post_delay=5000).launch()
-
-    module = module_holder.get("module")
-    if module is None:  # pragma: no cover - defensive
-        return
-
-    thread_manager.register_current("main_app")
+    # All dependency checks and installation complete before any Tk root is
+    # constructed by the application module.
+    module = _bootstrap()
     try:
         module.main()
     finally:
-        thread_manager.unregister("main_app")
-        memory_manager.cleanup()
+        model_loader.cleanup()
+        manager_eater.cleanup()
         if _diagnostics_manager:
-            _diagnostics_manager.stop()
-        if _watchdog_stop:
-            stop_watchdog_thread(_watchdog_stop)
-        if _model_cleanup_stop:
-            stop_cleanup_thread(_model_cleanup_stop)
-        manager_eater.stop()
+            _diagnostics_manager.process_events()
+            _diagnostics_manager.raise_errors()
+        report_health("shutdown", healthy=True)
+        project_workers.assert_stopped()
 
 if __name__ == "__main__":
     main()
