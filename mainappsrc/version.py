@@ -18,6 +18,6 @@
 
 """Project version information."""
 
-VERSION = "0.2.282"
+VERSION = "0.2.300"
 
 __all__ = ["VERSION"]

@@ -18,6 +18,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.300 - 2026-07-19
+
+- Keep splash-root creation, startup module loading, callback registration,
+  splash closure, interpreter destruction, application-root creation, and both
+  GUI event loops on the single thread that owns the splash Tcl interpreter.
+- Add development diagnostics for centralized Tk operations with owner/current
+  thread identifiers, operation and widget details, and the root creation site.
+- Execute dependency checks and application bootstrap initialization
+  sequentially to prevent Tk-capable imports from running on startup workers.
+
 ## 0.2.299 - 2026-05-03
 
 - Prefer moving the original tab widget into detached windows so undocked tabs

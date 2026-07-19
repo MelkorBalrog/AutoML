@@ -19,6 +19,8 @@
 import importlib
 import builtins
 import sys
+import threading
+import types
 
 import tools.splash_launcher as splash_module
 
@@ -51,3 +53,96 @@ class TestSplashLauncher:
         importlib.reload(splash_module)
 
         assert splash_module.VERSION == "0.0.0"
+
+
+class TestSplashLauncherThreadOwnership:
+    """Group thread-affinity tests for every centralized Tk startup operation."""
+
+    def test_complete_gui_startup_uses_root_owner_thread(self, monkeypatch):
+        events = []
+        owner_thread = threading.get_ident()
+
+        def record(operation, identity):
+            events.append((operation, identity, threading.get_ident()))
+
+        class FakeRoot:
+            def __init__(self):
+                record("splash-root creation", self)
+                self.callback = None
+
+            def withdraw(self):
+                record("splash withdrawal", self)
+
+            def after(self, delay, callback):
+                record("callback registration", self)
+                self.callback = callback
+
+            def mainloop(self):
+                record("splash event loop", self)
+                self.callback()
+
+            def destroy(self):
+                record("root destruction", self)
+
+        class FakeSplash:
+            def __init__(self, root, **kwargs):
+                self.on_close = kwargs["on_close"]
+
+            def close(self):
+                record("splash closure", self)
+                self.on_close()
+
+        class FakeApplicationRoot:
+            def __init__(self):
+                record("application-root creation", self)
+
+            def mainloop(self):
+                record("application event loop", self)
+
+        application_module = types.ModuleType("thread_affinity_application")
+
+        def application_main():
+            application_root = FakeApplicationRoot()
+            application_root.mainloop()
+
+        application_module.main = application_main
+        splash_screen_module = types.ModuleType("gui.windows.splash_screen")
+        splash_screen_module.SplashScreen = FakeSplash
+        monkeypatch.setitem(sys.modules, "gui.windows.splash_screen", splash_screen_module)
+        monkeypatch.setattr(splash_module.tk, "Tk", FakeRoot)
+
+        launcher = splash_module.SplashLauncher(loader=lambda: application_module)
+        launcher.launch()
+
+        required = {
+            "splash-root creation",
+            "callback registration",
+            "splash closure",
+            "root destruction",
+            "application-root creation",
+            "splash event loop",
+            "application event loop",
+        }
+        observed = {operation for operation, _, _ in events}
+        assert required <= observed
+        assert {thread_id for _, _, thread_id in events} == {owner_thread}
+        assert launcher._owner_thread_id == owner_thread
+
+    def test_thread_assertion_reports_actionable_context(self):
+        launcher = splash_module.SplashLauncher()
+        launcher._owner_thread_id = -1
+        launcher._root_creation_site = "test creation site"
+        window = object()
+
+        try:
+            launcher._assert_owner_thread("test operation", window)
+        except AssertionError as error:
+            diagnostic = str(error)
+        else:  # pragma: no cover - assertion is enabled in development tests
+            raise AssertionError("thread-affinity assertion did not run")
+
+        assert f"current_thread={threading.get_ident()!r}" in diagnostic
+        assert "owner_thread=-1" in diagnostic
+        assert "operation='test operation'" in diagnostic
+        assert f"widget={window!r}" in diagnostic
+        assert "creation_site='test creation site'" in diagnostic

@@ -25,6 +25,7 @@ import importlib
 import sys
 from pathlib import Path
 import threading
+import traceback
 import tkinter as tk
 from types import ModuleType
 from typing import Callable, Optional
@@ -75,30 +76,49 @@ class SplashLauncher:
         self.module_name = module_name
         self.post_delay = post_delay
         self._module: Optional[ModuleType] = None
+        self._owner_thread_id: Optional[int] = None
+        self._root_creation_site = ""
 
     def _load_module(self) -> None:
-        """Initialise the application in a background thread."""
+        """Initialise the application on the splash interpreter's thread."""
+        self._assert_owner_thread("load application module", self._root)
         if self.loader:
             self._module = self.loader()
         else:
             self._module = importlib.import_module(self.module_name)
-        # Once loading is complete, close the splash screen on the main thread
-        self._root.after(self.post_delay, self._splash.close)
 
-    def launch(self) -> None:
-        """Display the splash screen and run the application's main function."""
-        try:
-            self._root = tk.Tk()
-        except tk.TclError:
-            # Headless environment; load module directly without splash
-            module = self.loader() if self.loader else importlib.import_module(self.module_name)
-            if module and hasattr(module, "main"):
-                module.main()
+    def _assert_owner_thread(self, operation: str, window: object) -> None:
+        """Assert in development builds that centralized Tk work is thread-safe."""
+        if not __debug__ or self._owner_thread_id is None:
             return
-        self._root.withdraw()
-        # Defer splash import to avoid circular initialization during package
-        # execution
+        current_thread_id = threading.get_ident()
+        assert current_thread_id == self._owner_thread_id, (
+            "Tk operation attempted outside the interpreter owner thread: "
+            f"current_thread={current_thread_id!r}, "
+            f"owner_thread={self._owner_thread_id!r}, operation={operation!r}, "
+            f"widget={window!r}, creation_site={self._root_creation_site!r}"
+        )
+
+    def _close_splash(self) -> None:
+        """Close the splash from its interpreter owner thread."""
+        self._assert_owner_thread("close splash", self._splash)
+        self._splash.close()
+
+    def _destroy_root(self) -> None:
+        """Destroy the splash Tcl interpreter from its owner thread."""
+        self._assert_owner_thread("destroy splash root", self._root)
+        self._root.destroy()
+
+    def _launch_headless(self) -> None:
+        """Load and launch without a splash when Tk cannot create a root."""
+        module = self.loader() if self.loader else importlib.import_module(self.module_name)
+        if module and hasattr(module, "main"):
+            module.main()
+
+    def _create_splash(self) -> None:
+        """Create the splash window and bind owner-thread destruction."""
         from gui.windows.splash_screen import SplashScreen
+
         self._splash = SplashScreen(
             self._root,
             version=VERSION,
@@ -106,9 +126,27 @@ class SplashLauncher:
             email=AUTHOR_EMAIL,
             linkedin=AUTHOR_LINKEDIN,
             duration=0,
-            on_close=self._root.destroy,
+            on_close=self._destroy_root,
         )
-        threading.Thread(target=self._load_module, daemon=True).start()
+
+    def launch(self) -> None:
+        """Display the splash screen and run the application's main function."""
+        try:
+            self._root = tk.Tk()
+        except tk.TclError:
+            self._launch_headless()
+            return
+        self._owner_thread_id = threading.get_ident()
+        self._root_creation_site = "".join(traceback.format_stack()[:-1])
+        self._assert_owner_thread("withdraw splash root", self._root)
+        self._root.withdraw()
+        # Defer splash import to avoid circular initialization during package execution.
+        self._create_splash()
+        self._load_module()
+        self._assert_owner_thread("register splash-close callback", self._root)
+        self._root.after(self.post_delay, self._close_splash)
+        self._assert_owner_thread("run splash event loop", self._root)
         self._root.mainloop()
         if self._module and hasattr(self._module, "main"):
+            self._assert_owner_thread("create application root and run event loop", self._root)
             self._module.main()
