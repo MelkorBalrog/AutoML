@@ -33,7 +33,7 @@ import subprocess
 import sys
 import types
 import threading
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor  # compatibility export; not used at startup
 from pathlib import Path
 from tkinter import ttk
 from typing import Any
@@ -288,8 +288,8 @@ def ensure_packages() -> None:
         memory_manager.register_process(pkg, proc)
         proc.wait()
 
-    with ThreadPoolExecutor() as executor:
-        executor.map(install, missing)
+    for package in missing:
+        install(package)
     memory_manager.cleanup()
 
 
@@ -314,13 +314,10 @@ def _bootstrap() -> object:
     automl._diagnostics_manager = _diagnostics_manager
     _model_cleanup_stop = automl.start_cleanup_thread()
     automl._model_cleanup_stop = _model_cleanup_stop
-    with automl.ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(automl.ensure_packages),
-            executor.submit(automl.ensure_ghostscript),
-        ]
-        for f in futures:
-            f.result()
+    # Startup imports and initializers remain sequential because third-party
+    # packages may create Tk objects or a default root as an import side effect.
+    automl.ensure_packages()
+    automl.ensure_ghostscript()
     base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
     # Insert both the launcher directory and the 'mainappsrc' module location to ensure
     # the project-specific AutoML module is discovered rather than any similarly
