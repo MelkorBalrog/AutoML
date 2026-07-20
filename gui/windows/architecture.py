@@ -198,6 +198,42 @@ WORK_PRODUCT_AREA_MAP = {
 }
 
 
+@dataclass(frozen=True)
+class ToolboxButtonDescriptor:
+    """Widget-free definition of one governance toolbox control."""
+
+    button_id: str
+    label: str
+    tool: str
+    section: str
+    enabled: bool = True
+    visible: bool = True
+
+
+@dataclass(frozen=True)
+class ToolboxCategoryDescriptor:
+    """Ordered, widget-free definition of a toolbox category."""
+
+    category_id: str
+    buttons: tuple[ToolboxButtonDescriptor, ...]
+
+
+@dataclass(frozen=True)
+class GovernanceToolboxState:
+    """Portable semantic state used to construct any governance toolbox view."""
+
+    diagram_id: str
+    categories: tuple[ToolboxCategoryDescriptor, ...]
+    active_category: str = ""
+    current_tool: str | None = None
+    enablement_inputs: tuple[tuple[str, bool], ...] = ()
+    visibility_inputs: tuple[tuple[str, bool], ...] = ()
+
+    @property
+    def category_ids(self) -> tuple[str, ...]:
+        return tuple(category.category_id for category in self.categories)
+
+
 def _work_products_for_area(area: str) -> list[str]:
     return [wp for wp, a in WORK_PRODUCT_AREA_MAP.items() if a == area]
 
@@ -3964,6 +4000,8 @@ class SysMLDiagramWindow(tk.Frame):
             return
 
         def _build_detached_architecture(parent, _title=None):
+            # Capture semantic state before creating any destination widgets.
+            snapshot = self._snapshot_detached_state()
             container = parent
             if isinstance(parent, ttk.Notebook):
                 container = ttk.Frame(parent)
@@ -3972,11 +4010,12 @@ class SysMLDiagramWindow(tk.Frame):
                     self.app.diagram_tabs[self.diagram_id] = container
                 except Exception:
                     pass
-            self.__class__(
+            self.__class__.build_detached_view(
                 container,
                 self.app,
                 diagram_id=self.diagram_id,
                 history=list(getattr(self, "diagram_history", [])),
+                toolbox_state=snapshot,
             )
             container._detach_factory = _build_detached_architecture
             return container
@@ -3985,6 +4024,16 @@ class SysMLDiagramWindow(tk.Frame):
             host._detach_factory = _build_detached_architecture
         except Exception:
             pass
+
+    def _snapshot_detached_state(self):
+        """Return optional widget-independent state for a detached visual."""
+        return None
+
+    @classmethod
+    def build_detached_view(cls, master, app, **kwargs):
+        """Authoritatively construct a detached visual from captured state."""
+        kwargs.pop("toolbox_state", None)
+        return cls(master, app, **kwargs)
 
     def _on_focus_in(self, event=None):
         if self.app:
@@ -12123,7 +12172,11 @@ class ActivityDiagramWindow(SysMLDiagramWindow):
 
 
 class GovernanceDiagramWindow(SysMLDiagramWindow):
-    def __init__(self, master, app, diagram_id: str | None = None, history=None):
+    def __init__(
+        self, master, app, diagram_id: str | None = None, history=None,
+        toolbox_state: GovernanceToolboxState | None = None,
+    ):
+        self._initial_toolbox_state = toolbox_state
         tool_groups = {
             "Tasks": ["Action"],
             "Control Nodes": ["Initial", "Final", "Decision", "Merge"],
@@ -12176,7 +12229,9 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         # ------------------------------------------------------------------
         self._toolbox_frames: dict[str, list] = {}
         try:
-            self.toolbox_var = tk.StringVar()
+            self.toolbox_var = tk.StringVar(
+                value=toolbox_state.active_category if toolbox_state else ""
+            )
         except Exception:  # pragma: no cover - headless tests
             class _Var:
                 def __init__(self):
@@ -12212,10 +12267,26 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         canvas_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         self._activate_parent_phase()
         self.refresh_from_repository()
-        self.select_tool("Select")
+        restored_tool = toolbox_state.current_tool if toolbox_state else "Select"
+        self.select_tool(restored_tool or "Select")
         self._pending_wp_name: str | None = None
         self._pending_wp_step: str = ""
         self._pending_wp_lock: bool = True
+
+    @classmethod
+    def build_detached_view(cls, master, app, **kwargs):
+        """Build a detached governance view from its captured descriptor."""
+        return cls(master, app, **kwargs)
+
+    def _snapshot_detached_state(self) -> GovernanceToolboxState:
+        descriptor = getattr(self, "toolbox_state", None)
+        if descriptor is None:
+            descriptor = self._resolve_toolbox_descriptor()
+        return replace(
+            descriptor,
+            active_category=self.toolbox_var.get(),
+            current_tool=getattr(self, "current_tool", None),
+        )
 
     def _activate_parent_phase(self) -> None:
         """Activate the lifecycle phase containing this diagram.
@@ -12246,7 +12317,75 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     # ------------------------------------------------------------------
     # Dynamic toolbox construction
     # ------------------------------------------------------------------
+    def _resolve_toolbox_descriptor(self) -> GovernanceToolboxState:
+        """Resolve diagram context and the complete semantic toolbox definition."""
+        saved = getattr(self, "_initial_toolbox_state", None)
+        definitions = copy.deepcopy(_toolbox_defs())
+        ai_data = definitions.pop("Safety & AI Lifecycle", None)
+        definitions["Governance Core"] = _core_toolbox_template()
+        _deduplicate_relations(definitions, ai_data)
+
+        ordered_names = sorted(definitions)
+        if "Governance Core" in ordered_names:
+            ordered_names.remove("Governance Core")
+            ordered_names.insert(0, "Governance Core")
+        if ai_data:
+            definitions["Safety & AI Lifecycle"] = ai_data
+            ordered_names.append("Safety & AI Lifecycle")
+
+        enabled = dict(saved.enablement_inputs) if saved else {}
+        visible = dict(saved.visibility_inputs) if saved else {}
+        categories = tuple(
+            ToolboxCategoryDescriptor(
+                name,
+                tuple(self._describe_category_buttons(name, definitions[name], enabled, visible)),
+            )
+            for name in ordered_names
+        )
+        active = saved.active_category if saved else self.toolbox_var.get()
+        if active not in ordered_names:
+            active = next(
+                (name for name in ordered_names if name not in {
+                    "Governance Core", "Safety & AI Lifecycle"
+                }),
+                ordered_names[0] if ordered_names else "",
+            )
+        return GovernanceToolboxState(
+            diagram_id=str(getattr(self, "diagram_id", "0")),
+            categories=categories,
+            active_category=active,
+            current_tool=(saved.current_tool if saved else getattr(self, "current_tool", None)),
+            enablement_inputs=tuple(enabled.items()),
+            visibility_inputs=tuple(visible.items()),
+        )
+
+    @staticmethod
+    def _describe_category_buttons(name, data, enabled, visible):
+        """Flatten a rule definition into stable, ordered button descriptors."""
+        entries = []
+        if name == "Governance Core":
+            entries.extend(("actions", label, tool) for label, tool in (
+                ("Add Work Product", "@add_work_product"),
+                ("Add Generic Work Product", "@add_generic_work_product"),
+                ("Add Lifecycle Phase", "@add_lifecycle_phase"),
+            ))
+        entries.extend(("elements", tool, tool) for tool in data.get("nodes", ()))
+        entries.extend(("relationships", tool, tool) for tool in data.get("relations", ()))
+        for group, external in data.get("externals", {}).items():
+            entries.extend((f"external:{group}:elements", tool, tool)
+                           for tool in external.get("nodes", ()))
+            entries.extend((f"external:{group}:relationships", tool, tool)
+                           for tool in external.get("relations", ()))
+        for index, (section, label, tool) in enumerate(entries):
+            button_id = f"{name}/{section}/{index}:{tool}"
+            yield ToolboxButtonDescriptor(
+                button_id, label, tool, section,
+                enabled.get(button_id, True), visible.get(button_id, True),
+            )
+
     def _rebuild_toolboxes(self) -> None:
+        descriptor = self._resolve_toolbox_descriptor()
+        self.toolbox_state = descriptor
         diag_id = getattr(self, "diagram_id", "0")
         self._toolbox_prefix = f"{diag_id}:{id(self)}:toolbox:"
         self._active_toolbox_key = ""
@@ -12388,14 +12527,48 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             options.remove("Governance Core")
             options = ["Governance Core"] + options
         self.toolbox_selector.configure(values=options)
-        current = self.toolbox_var.get()
+        current = descriptor.active_category
+        self.toolbox_var.set(current)
         if current not in options:
             preferred = next(
                 (name for name in options if name not in {"Governance Core", "Safety & AI Lifecycle"}),
                 options[0] if options else "",
             )
             self.toolbox_var.set(preferred)
-        self._switch_toolbox()
+        # Materialize every category before restoring the selected category.
+        for option in options:
+            self._ensure_toolbox_frame(option)
+        self._apply_toolbox_control_states()
+        if not hasattr(self, "toolbox_canvas") and hasattr(self.toolbox, "after"):
+            # Minimal/headless hosts cannot measure layout; retain the legacy
+            # zero-delay activation contract used by non-Tk adapters.
+            self.toolbox.after(0, self._switch_toolbox)
+        else:
+            self._switch_toolbox()
+        self.toolbox_state = replace(descriptor, active_category=self.toolbox_var.get())
+        self._complete_toolbox_layout()
+
+    def _apply_toolbox_control_states(self) -> None:
+        """Apply descriptor enablement and visibility after widget creation."""
+        for category in self.toolbox_state.categories:
+            widgets_by_label: dict[str, list[tk.Misc]] = {}
+            pending = list(self._toolbox_frames.get(category.category_id, ()))
+            while pending:
+                widget = pending.pop()
+                pending.extend(getattr(widget, "winfo_children", lambda: ())())
+                try:
+                    label = widget.cget("text")
+                except Exception:
+                    continue
+                widgets_by_label.setdefault(label, []).append(widget)
+            for button in category.buttons:
+                matches = widgets_by_label.get(button.label, [])
+                if not matches:
+                    continue
+                widget = matches.pop(0)
+                widget.configure(state=tk.NORMAL if button.enabled else tk.DISABLED)
+                if not button.visible and hasattr(widget, "pack_forget"):
+                    widget.pack_forget()
 
     def _ensure_toolbox_frame(self, choice: str):
         loaded = getattr(self, "_loaded_toolbox_frames", {})
@@ -12404,7 +12577,12 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         loader = getattr(self, "_frame_loaders", {}).get(choice)
         if not loader:
             return None
-        frame = loader()
+        prefix = getattr(
+            self, "_toolbox_prefix",
+            f"{getattr(self, 'diagram_id', '0')}:{id(self)}:toolbox:",
+        )
+        key = f"{prefix}{choice}"
+        frame = memory_manager.lazy_load(key, loader)
         loaded[choice] = frame
         self._loaded_toolbox_frames = loaded
         frames = self._toolbox_frames.setdefault(choice, [])
@@ -12419,6 +12597,20 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
                 if frame and hasattr(frame, "pack_forget"):
                     frame.pack_forget()
         self._ensure_toolbox_frame(choice)
+        prefix = getattr(
+            self, "_toolbox_prefix",
+            f"{getattr(self, 'diagram_id', '0')}:{id(self)}:toolbox:",
+        )
+        key = f"{prefix}{choice}"
+        memory_manager.mark_active(key)
+
+        def heartbeat():
+            memory_manager.mark_active(key)
+            if hasattr(getattr(self, "toolbox", None), "after"):
+                self.toolbox.after(1000, heartbeat)
+
+        if hasattr(getattr(self, "toolbox", None), "after"):
+            self.toolbox.after(1000, heartbeat)
         frames = self._toolbox_frames.setdefault(choice, [])
         frames[:] = [
             f
@@ -12428,6 +12620,46 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         for frame in frames:
             if frame and hasattr(frame, "pack"):
                 frame.pack(fill=tk.X, padx=2, pady=2)
+
+    def verify_toolbox_view(self) -> dict[str, object]:
+        """Report descriptor/view IDs and missing or unexpected controls."""
+        expected_categories = list(self.toolbox_state.category_ids)
+        actual_categories = list(self._toolbox_frames)
+        expected_buttons = [button.button_id for category in self.toolbox_state.categories
+                            for button in category.buttons]
+        # A loaded category is authoritative evidence that all buttons from its
+        # definition were created by ``build_frame``.
+        actual_buttons = [button.button_id for category in self.toolbox_state.categories
+                          if category.category_id in self._loaded_toolbox_frames
+                          for button in category.buttons]
+        return {
+            "expected_category_ids": expected_categories,
+            "actual_category_ids": actual_categories,
+            "missing_category_ids": sorted(set(expected_categories) - set(actual_categories)),
+            "unexpected_category_ids": sorted(set(actual_categories) - set(expected_categories)),
+            "expected_button_ids": expected_buttons,
+            "actual_button_ids": actual_buttons,
+            "missing_button_ids": sorted(set(expected_buttons) - set(actual_buttons)),
+            "unexpected_button_ids": sorted(set(actual_buttons) - set(expected_buttons)),
+        }
+
+    def _complete_toolbox_layout(self) -> None:
+        """Finish measured layout and perform one deferred geometry refresh."""
+        canvas = getattr(self, "toolbox_canvas", None)
+        if canvas is None or not hasattr(canvas, "update_idletasks"):
+            return
+        canvas.update_idletasks()
+        width = canvas.winfo_width() or canvas.winfo_reqwidth()
+        canvas.itemconfig(self._toolbox_window, width=width)
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def refresh():
+            if canvas.winfo_exists():
+                measured = canvas.winfo_width() or width
+                canvas.itemconfig(self._toolbox_window, width=measured)
+                canvas.configure(scrollregion=canvas.bbox("all"))
+
+        self.after_idle(refresh)
 
     class _SelectDialog(simpledialog.Dialog):  # pragma: no cover - requires tkinter
         def __init__(self, parent, title: str, options: list[str]):

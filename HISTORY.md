@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.309 - 2026-07-20
+
+- Add widget-independent governance toolbox descriptors and deterministic detached-view reconstruction that preserves the active category and selected tool.
+- Build and verify complete governance toolbox views before layout, apply control states, and finalize scroll geometry with one idle refresh.
+
 ## 0.2.308 - 2026-07-20
 
 - Restore the animated startup splash while preserving single-threaded Tk
