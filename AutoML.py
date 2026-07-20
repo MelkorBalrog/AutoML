@@ -69,6 +69,7 @@ from tools.crash_report_logger import install_best, report_health
 from tools.diagnostics_manager import EventDiagnosticsManager
 from tools.memory_manager import manager as memory_manager
 from tools.model_loader import model_loader
+from tools.splash_launcher import SplashLauncher
 from tools.trash_eater import manager_eater
 from tools.worker_lifecycle import project_workers
 from mainappsrc.version import VERSION
@@ -112,14 +113,18 @@ if False:  # pragma: no cover
     import AutoML  # noqa: F401
     Path(r"C:\\Program Files\\gs\\gs10.04.0\\bin\\gswin64c.exe")
 
-REQUIRED_PACKAGES = [
-    "pillow",
-    "openpyxl",
-    "networkx",
-    "matplotlib",
-    "reportlab",
-    "adjustText",
-]
+# Distribution names are not always valid Python import names.  In particular,
+# the ``pillow`` distribution exposes the ``PIL`` package.  Keeping both names
+# explicit prevents every launch from needlessly invoking pip for an already
+# installed dependency.
+REQUIRED_PACKAGES = {
+    "pillow": "PIL",
+    "openpyxl": "openpyxl",
+    "networkx": "networkx",
+    "matplotlib": "matplotlib",
+    "reportlab": "reportlab",
+    "adjustText": "adjustText",
+}
 
 GS_PATH = Path(r"C:\\Program Files\\gs\\gs10.04.0\\bin\\gswin64c.exe")
 
@@ -264,11 +269,13 @@ def ensure_packages() -> None:
         return
 
     missing = []
-    for pkg in REQUIRED_PACKAGES:
-        try:
-            importlib.import_module(pkg)
-        except ImportError:
-            missing.append(pkg)
+    for distribution, import_name in REQUIRED_PACKAGES.items():
+        # Discovery avoids executing third-party package initializers.  An
+        # installed package can raise ImportError while importing an optional
+        # dependency; treating that as "not installed" caused redundant pip
+        # output for adjustText on every launch.
+        if importlib.util.find_spec(import_name) is None:
+            missing.append(distribution)
 
     if not missing:
         return
@@ -320,11 +327,11 @@ def _bootstrap() -> object:
 def main() -> None:
     """Entry point used by both source and bundled executions."""
 
-    # All dependency checks and installation complete before any Tk root is
-    # constructed by the application module.
-    module = _bootstrap()
     try:
-        module.main()
+        # The splash and its animation share the main GUI thread.  Bootstrap is
+        # scheduled only after its event loop starts, and the application root
+        # is created after the splash interpreter closes.
+        SplashLauncher(loader=_bootstrap).launch()
     finally:
         model_loader.cleanup()
         manager_eater.cleanup()
