@@ -18,7 +18,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-version: 0.2.306
+version: 0.2.307
 Author: Miguel Marina <karel.capek.robotics@gmail.com> - [LinkedIn](https://www.linkedin.com/in/progman32/)
 
 AutoML now uses a single-thread project lifecycle. Dependency checks complete

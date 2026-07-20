@@ -23,7 +23,7 @@ class TestSequentialDependencyStartup:
     """Grouped checks for dependency work before GUI construction."""
 
     def test_ensure_packages_runs_sequentially(self, monkeypatch):
-        fake_required = ["pkg1", "pkg2"]
+        fake_required = {"pkg1": "import1", "pkg2": "import2"}
         monkeypatch.setattr(launcher, "REQUIRED_PACKAGES", fake_required)
         monkeypatch.setattr(
             launcher.importlib, "import_module", lambda name: (_ for _ in ()).throw(ImportError())
@@ -50,3 +50,25 @@ class TestSequentialDependencyStartup:
             ("start", "pkg2"),
             ("finish", "pkg2"),
         ]
+
+    def test_ensure_packages_uses_distribution_import_names(self, monkeypatch):
+        """Installed distributions must be checked through importable modules."""
+
+        monkeypatch.setattr(launcher, "REQUIRED_PACKAGES", {"pillow": "PIL"})
+        imported = []
+        installed = []
+        monkeypatch.setattr(
+            launcher.importlib,
+            "import_module",
+            lambda name: imported.append(name),
+        )
+        monkeypatch.setattr(
+            launcher.subprocess,
+            "Popen",
+            lambda command: installed.append(command) or None,
+        )
+
+        launcher.ensure_packages()
+
+        assert imported == ["PIL"]
+        assert installed == []
