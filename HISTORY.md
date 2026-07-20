@@ -18,6 +18,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.304 - 2026-07-20
+
+- Add an owner-thread Tk lifecycle registry with deduplicated, auditable APIs
+  for timers, idle work, local/global bindings, traces, protocols, and Tcl
+  commands, plus guarded callbacks and deterministic component disposal.
+- Migrate tooltip, detached-window, and resize-controller lifetimes so their
+  registrations are drained explicitly before widget destruction.
+
 ## 0.2.303 - 2026-07-19
 
 - Replace cross-parent Tk widget transfer with deterministic visual
