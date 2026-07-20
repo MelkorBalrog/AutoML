@@ -18,6 +18,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.306 - 2026-07-20
+
+- Add a grouped real-Tk diagram-host qualification suite covering owner-thread
+  enforcement, callback lifetime, toolbox reconstruction, popout lifetime,
+  shutdown ordering, and repeated startup/shutdown through the normal launcher.
+- Run every configured diagram through at least 100 focus, popout, varied-close,
+  and reintegration workflows per application lifetime while recording toolbox
+  and visual-host identities and rejecting Tcl or post-disposal diagnostics.
+- Qualification command: `xvfb-run -a python -m pytest -q -m gui_stress
+  tests/gui/stress`; pass requires three complete application lifetimes, 100
+  workflows per lifetime, a zero exit status, and none of the documented
+  forbidden diagnostics on stderr.
+
 ## 0.2.305 - 2026-07-20
 
 - Replace resize-controller destructor and Win32 hook destructor/atexit cleanup
