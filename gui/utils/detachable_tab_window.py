@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import threading
 import tkinter as tk
 import typing as t
 
@@ -70,10 +71,34 @@ class DetachableTabWindow:
         self._hidden_in_origin = False
         self._moved_tab = False
         self.detached_successfully = False
+        self.owner_thread_id = threading.get_ident()
+        self.disposed = False
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+    def dispose(self) -> None:
+        """Dispose the floating host explicitly before destroying its window."""
+        if threading.get_ident() != self.owner_thread_id:
+            raise RuntimeError("detached tab disposal must run on its Tk owner thread")
+        if self.disposed:
+            return
+        window = self._window
+        if window is not None:
+            cancel_after_events(window)
+        self._shutdown_resizer()
+        if window is not None:
+            window.destroy()
+        self._window = None
+        self._notebook = None
+        self._cloned_widget = None
+        self.tab_widget = None
+        self.origin_notebook = None
+        self.root = None
+        self.on_dock = None
+        self.detached_successfully = False
+        self.disposed = True
+
     def detach(self) -> None:
         """Create a window and move the tab content into it."""
 
@@ -344,7 +369,7 @@ class DetachableTabWindow:
         if self._resizer is None:
             return
         try:
-            self._resizer.shutdown()
+            self._resizer.dispose()
         except Exception:
             pass
         self._resizer = None

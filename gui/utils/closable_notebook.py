@@ -1348,7 +1348,7 @@ class ClosableNotebook(ttk.Notebook):
 
         def _cleanup_failed_window() -> None:
             if resizer is not None:
-                resizer.shutdown()
+                resizer.dispose()
             if win is not None:
                 if win in self._floating_windows:
                     self._floating_windows.remove(win)
@@ -1408,7 +1408,7 @@ class ClosableNotebook(ttk.Notebook):
             ClosableNotebook._tab_hosts.pop(hosted_child, None)
             hosted_child = None
             if resizer is not None:
-                resizer.shutdown()
+                resizer.dispose()
             if win in self._floating_windows:
                 self._floating_windows.remove(win)
             try:

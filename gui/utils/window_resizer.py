@@ -19,24 +19,13 @@
 
 from __future__ import annotations
 
-import sys
 import threading
 import tkinter as tk
 from tkinter import ttk
 import typing as t
 
-from gui.utils.tk_utils import dispatch_to_ui, is_main_thread
 from gui.utils.win32_hooks import create_window_size_hook
 from gui.utils.tk_lifecycle_registry import TkLifecycleRegistry
-
-
-def _python_is_finalizing() -> bool:
-    """Return ``True`` when the Python interpreter is shutting down."""
-
-    finalizing = getattr(sys, "is_finalizing", None)
-    if finalizing is None:
-        return False
-    return bool(finalizing())
 
 
 class WindowResizeController:
@@ -59,6 +48,8 @@ class WindowResizeController:
         self._win32_hook = None
         self._use_win32_hook = use_win32_hook
         self.active = True
+        self.disposed = False
+        self.owner_thread_id = threading.get_ident()
         toplevel = getattr(win, "winfo_toplevel", None)
         root = toplevel() if callable(toplevel) else win
         self.lifecycle = TkLifecycleRegistry(root, threading.get_ident())
@@ -136,39 +127,50 @@ class WindowResizeController:
     # ------------------------------------------------------------------
     # Shutdown helpers
     # ------------------------------------------------------------------
-    def shutdown(self) -> None:
-        """Release bindings and native hooks held by the controller."""
+    def dispose(self) -> None:
+        """Release every owned GUI resource on the Tk owner thread once."""
 
-        finalizing = _python_is_finalizing()
-        if not finalizing and not is_main_thread():
-            dispatch_to_ui(self.win, self.shutdown)
+        if threading.get_ident() != self.owner_thread_id:
+            raise RuntimeError("window resizer disposal must run on its Tk owner thread")
+        if self.disposed:
             return
 
         hook = self._win32_hook
         if hook is not None:
             try:
-                hook.uninstall()
+                release_hook = getattr(hook, "dispose", None)
+                if not callable(release_hook):
+                    release_hook = hook.uninstall
+                release_hook()
             except Exception:
                 pass
             self._win32_hook = None
 
-        if not finalizing:
-            self.lifecycle.dispose_component(self)
-            self.active = False
-            self._binding_id = None
-            self._destroy_binding_id = None
+        lifecycle = self.lifecycle
+        lifecycle.dispose_component(self)
+        self.active = False
+        self.disposed = True
+        self._binding_id = None
+        self._destroy_binding_id = None
 
         self._callback = None
         self._targets.clear()
         self._primary = None
         self._last_size = None
+        self.win = None
+        self.lifecycle = None
+
+    def shutdown(self) -> None:
+        """Compatibility alias for :meth:`dispose`."""
+
+        self.dispose()
 
     def _on_win_destroy(self, event: tk.Event) -> None:
         """Handle ``<Destroy>`` events from the tracked toplevel."""
 
         widget = getattr(event, "widget", None)
         if widget is self.win:
-            self.shutdown()
+            self.dispose()
 
     # ------------------------------------------------------------------
     # Windows integration
@@ -386,11 +388,3 @@ class WindowResizeController:
                 )
             except Exception:
                 pass
-
-    def __del__(self) -> None:  # pragma: no cover - defensive cleanup
-        if _python_is_finalizing():
-            return
-        try:
-            self.shutdown()
-        except Exception:
-            pass

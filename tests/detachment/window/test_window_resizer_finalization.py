@@ -16,39 +16,85 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Finalization safety for the window resize controller."""
+"""Grouped explicit-disposal and post-Tk garbage-collection regressions."""
 
 from __future__ import annotations
+
+import gc
+import weakref
 
 import gui.utils.window_resizer as window_resizer
 
 
 class _StubWindow:
     def __init__(self) -> None:
-        self.unbind_calls: list[tuple[tuple[str, str], dict[str, str]]] = []
+        self.operations: list[str] = []
 
-    def wm_resizable(self, *_args, **_kwargs) -> None:  # pragma: no cover - noop
-        return None
+    def winfo_toplevel(self):
+        return self
 
-    def bind(self, *args, **_kwargs) -> str:  # pragma: no cover - basic stub
-        return f"bind-{args[0]}"
+    def wm_resizable(self, *_args) -> None:
+        self.operations.append("resizable")
 
-    def unbind(self, *args, **kwargs) -> None:  # pragma: no cover - tracking only
-        self.unbind_calls.append((args, kwargs))
+    def bind(self, sequence, _callback, *_args) -> str:
+        self.operations.append(f"bind:{sequence}")
+        return f"bind-{sequence}"
 
-    def winfo_id(self) -> None:  # pragma: no cover - disable Win32 hook install
-        return None
+    def unbind(self, sequence, identifier) -> None:
+        self.operations.append(f"unbind:{sequence}:{identifier}")
+
+    def winfo_id(self) -> int:
+        return 42
+
+    def destroy(self) -> None:
+        self.operations.append("destroy")
 
 
-def test_shutdown_skips_finalizing(monkeypatch) -> None:
-    """Ensure shutdown avoids Tk/Win32 work during interpreter finalization."""
+class _StubHook:
+    def __init__(self) -> None:
+        self.dispose_calls = 0
 
-    win = _StubWindow()
-    monkeypatch.setattr(window_resizer, "_python_is_finalizing", lambda: False)
-    controller = window_resizer.WindowResizeController(win)
-    monkeypatch.setattr(window_resizer, "_python_is_finalizing", lambda: True)
+    def dispose(self) -> None:
+        self.dispose_calls += 1
 
-    controller.shutdown()
 
-    assert win.unbind_calls == []
+class TestExplicitResizeControllerDisposal:
+    """Idempotence and deterministic resource release."""
 
+    def test_dispose_unregisters_owned_resources_exactly_once(self, monkeypatch) -> None:
+        window = _StubWindow()
+        hook = _StubHook()
+        monkeypatch.setattr(window_resizer, "create_window_size_hook", lambda *_args: hook)
+        controller = window_resizer.WindowResizeController(window)
+
+        controller.dispose()
+        controller.dispose()
+
+        assert hook.dispose_calls == 1
+        assert sum(item.startswith("unbind:<Configure>") for item in window.operations) == 1
+        assert sum(item.startswith("unbind:<Destroy>") for item in window.operations) == 1
+        assert controller.disposed is True
+        assert controller.win is None
+        assert controller.tracked_widgets == ()
+
+
+class TestPostRootDestructionGarbageCollection:
+    """Garbage collection is deliberately free of Tk and native-hook work."""
+
+    def test_gc_after_root_destroy_performs_no_lifecycle_operation(self, monkeypatch) -> None:
+        window = _StubWindow()
+        hook = _StubHook()
+        monkeypatch.setattr(window_resizer, "create_window_size_hook", lambda *_args: hook)
+        controller = window_resizer.WindowResizeController(window)
+        controller.dispose()
+        window.destroy()
+        operation_count = len(window.operations)
+        hook_call_count = hook.dispose_calls
+        reference = weakref.ref(controller)
+
+        del controller
+        gc.collect()
+
+        assert reference() is None
+        assert len(window.operations) == operation_count
+        assert hook.dispose_calls == hook_call_count

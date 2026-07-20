@@ -78,6 +78,26 @@ class TestShutdownRequests:
         with pytest.raises(RuntimeError, match="shutdown has started"):
             lifecycle.require_running()
 
+    def test_detached_window_is_disposed_once_before_root_destruction(self):
+        root = FakeRoot()
+
+        class DetachedWindow:
+            calls = 0
+
+            def dispose(self):
+                assert "destroy" not in root.calls
+                self.calls += 1
+
+        window = DetachedWindow()
+        app = FakeApp()
+        app.lifecycle_ui._detached_tab_windows["tab"] = window
+        lifecycle = ApplicationLifecycleController(root)
+        lifecycle.attach(app)
+
+        assert lifecycle.shutdown() is True
+        assert lifecycle.shutdown() is False
+        assert window.calls == 1
+
 
 class TestOwnerThreadPolicy:
     """Every shutdown entry point is constrained to the Tk owner thread."""
