@@ -112,14 +112,18 @@ if False:  # pragma: no cover
     import AutoML  # noqa: F401
     Path(r"C:\\Program Files\\gs\\gs10.04.0\\bin\\gswin64c.exe")
 
-REQUIRED_PACKAGES = [
-    "pillow",
-    "openpyxl",
-    "networkx",
-    "matplotlib",
-    "reportlab",
-    "adjustText",
-]
+# Distribution names are not always valid Python import names.  In particular,
+# the ``pillow`` distribution exposes the ``PIL`` package.  Keeping both names
+# explicit prevents every launch from needlessly invoking pip for an already
+# installed dependency.
+REQUIRED_PACKAGES = {
+    "pillow": "PIL",
+    "openpyxl": "openpyxl",
+    "networkx": "networkx",
+    "matplotlib": "matplotlib",
+    "reportlab": "reportlab",
+    "adjustText": "adjustText",
+}
 
 GS_PATH = Path(r"C:\\Program Files\\gs\\gs10.04.0\\bin\\gswin64c.exe")
 
@@ -264,11 +268,11 @@ def ensure_packages() -> None:
         return
 
     missing = []
-    for pkg in REQUIRED_PACKAGES:
+    for distribution, import_name in REQUIRED_PACKAGES.items():
         try:
-            importlib.import_module(pkg)
+            importlib.import_module(import_name)
         except ImportError:
-            missing.append(pkg)
+            missing.append(distribution)
 
     if not missing:
         return
