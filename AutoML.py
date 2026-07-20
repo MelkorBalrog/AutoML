@@ -69,6 +69,7 @@ from tools.crash_report_logger import install_best, report_health
 from tools.diagnostics_manager import EventDiagnosticsManager
 from tools.memory_manager import manager as memory_manager
 from tools.model_loader import model_loader
+from tools.splash_launcher import SplashLauncher
 from tools.trash_eater import manager_eater
 from tools.worker_lifecycle import project_workers
 from mainappsrc.version import VERSION
@@ -269,9 +270,11 @@ def ensure_packages() -> None:
 
     missing = []
     for distribution, import_name in REQUIRED_PACKAGES.items():
-        try:
-            importlib.import_module(import_name)
-        except ImportError:
+        # Discovery avoids executing third-party package initializers.  An
+        # installed package can raise ImportError while importing an optional
+        # dependency; treating that as "not installed" caused redundant pip
+        # output for adjustText on every launch.
+        if importlib.util.find_spec(import_name) is None:
             missing.append(distribution)
 
     if not missing:
@@ -324,11 +327,11 @@ def _bootstrap() -> object:
 def main() -> None:
     """Entry point used by both source and bundled executions."""
 
-    # All dependency checks and installation complete before any Tk root is
-    # constructed by the application module.
-    module = _bootstrap()
     try:
-        module.main()
+        # The splash and its animation share the main GUI thread.  Bootstrap is
+        # scheduled only after its event loop starts, and the application root
+        # is created after the splash interpreter closes.
+        SplashLauncher(loader=_bootstrap).launch()
     finally:
         model_loader.cleanup()
         manager_eater.cleanup()

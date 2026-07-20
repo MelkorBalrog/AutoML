@@ -63,15 +63,24 @@ class SplashLauncher:
         launcher simply imports :mod:`module_name`.
     module_name:
         Name of the module to import when ``loader`` is not supplied.
+    startup_delay:
+        Milliseconds given to Tk to map and begin animating the splash before
+        synchronous startup work begins.
+    post_delay:
+        Milliseconds to keep animating after startup completes.
     """
 
     def __init__(
         self,
         loader: Optional[Callable[[], ModuleType]] = None,
         module_name: str = "AutoML",
+        startup_delay: int = 250,
+        post_delay: int = 1000,
     ) -> None:
         self.loader = loader
         self.module_name = module_name
+        self.startup_delay = startup_delay
+        self.post_delay = post_delay
         self._module: Optional[ModuleType] = None
         self._owner_thread_id: Optional[int] = None
         self._root_creation_site = ""
@@ -83,6 +92,13 @@ class SplashLauncher:
             self._module = self.loader()
         else:
             self._module = importlib.import_module(self.module_name)
+
+    def _complete_startup(self) -> None:
+        """Load synchronously, then leave time for the animation to be seen."""
+
+        self._assert_owner_thread("complete startup", self._root)
+        self._load_module()
+        self._root.after(self.post_delay, self._close_splash)
 
     def _assert_owner_thread(self, operation: str, window: object) -> None:
         """Assert in development builds that centralized Tk work is thread-safe."""
@@ -140,8 +156,10 @@ class SplashLauncher:
         self._root.withdraw()
         # Defer splash import to avoid circular initialization during package execution.
         self._create_splash()
-        self._load_module()
-        self._close_splash()
+        # Enter the event loop before startup work.  This lets Tk map and paint
+        # the splash and run its animation without moving any Tcl work to a
+        # background thread.
+        self._root.after(self.startup_delay, self._complete_startup)
         self._assert_owner_thread("run splash event loop", self._root)
         self._root.mainloop()
         if self._module and hasattr(self._module, "main"):

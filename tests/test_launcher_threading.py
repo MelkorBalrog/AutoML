@@ -26,7 +26,7 @@ class TestSequentialDependencyStartup:
         fake_required = {"pkg1": "import1", "pkg2": "import2"}
         monkeypatch.setattr(launcher, "REQUIRED_PACKAGES", fake_required)
         monkeypatch.setattr(
-            launcher.importlib, "import_module", lambda name: (_ for _ in ()).throw(ImportError())
+            launcher.importlib.util, "find_spec", lambda name: None
         )
         events = []
 
@@ -55,12 +55,12 @@ class TestSequentialDependencyStartup:
         """Installed distributions must be checked through importable modules."""
 
         monkeypatch.setattr(launcher, "REQUIRED_PACKAGES", {"pillow": "PIL"})
-        imported = []
+        discovered = []
         installed = []
         monkeypatch.setattr(
-            launcher.importlib,
-            "import_module",
-            lambda name: imported.append(name),
+            launcher.importlib.util,
+            "find_spec",
+            lambda name: discovered.append(name) or object(),
         )
         monkeypatch.setattr(
             launcher.subprocess,
@@ -70,5 +70,5 @@ class TestSequentialDependencyStartup:
 
         launcher.ensure_packages()
 
-        assert imported == ["PIL"]
+        assert discovered == ["PIL"]
         assert installed == []

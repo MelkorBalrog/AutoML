@@ -75,6 +75,11 @@ class TestSplashLauncherThreadOwnership:
             def mainloop(self):
                 record("splash event loop", self)
 
+            def after(self, delay, callback):
+                operation = "startup scheduled" if delay == 250 else f"close scheduled:{delay}"
+                events.append((operation, self, threading.get_ident()))
+                callback()
+
             def destroy(self):
                 record("root destruction", self)
 
@@ -115,11 +120,57 @@ class TestSplashLauncherThreadOwnership:
             "application-root creation",
             "splash event loop",
             "application event loop",
+            "startup scheduled",
+            "close scheduled:1000",
         }
         observed = {operation for operation, _, _ in events}
         assert required <= observed
         assert {thread_id for _, _, thread_id in events} == {owner_thread}
         assert launcher._owner_thread_id == owner_thread
+
+    def test_event_loop_starts_before_loader_and_delayed_close(self, monkeypatch):
+        """The splash must be drawable before synchronous startup begins."""
+
+        events = []
+
+        class FakeRoot:
+            def withdraw(self):
+                events.append("withdraw")
+
+            def after(self, delay, callback):
+                if delay == 250:
+                    events.append(("startup scheduled", delay))
+                    self.callback = callback
+                else:
+                    events.append(("close scheduled", delay))
+                    callback()
+
+            def mainloop(self):
+                events.append("mainloop")
+                self.callback()
+
+            def destroy(self):
+                events.append("destroy")
+
+        class FakeSplash:
+            def __init__(self, _root, **kwargs):
+                self.on_close = kwargs["on_close"]
+
+            def close(self):
+                events.append("close")
+                self.on_close()
+
+        application = types.SimpleNamespace(main=lambda: events.append("application"))
+        splash_screen_module = types.ModuleType("gui.windows.splash_screen")
+        splash_screen_module.SplashScreen = FakeSplash
+        monkeypatch.setitem(sys.modules, "gui.windows.splash_screen", splash_screen_module)
+        monkeypatch.setattr(splash_module.tk, "Tk", FakeRoot)
+
+        splash_module.SplashLauncher(loader=lambda: events.append("load") or application).launch()
+
+        assert events.index("mainloop") < events.index("load")
+        assert ("close scheduled", 1000) in events
+        assert events[-1] == "application"
 
     def test_thread_assertion_reports_actionable_context(self):
         launcher = splash_module.SplashLauncher()

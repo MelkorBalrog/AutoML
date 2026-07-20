@@ -18,6 +18,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.308 - 2026-07-20
+
+- Restore the animated startup splash while preserving single-threaded Tk
+  ownership: the splash event loop begins before bootstrap, receives time to
+  paint and animate, and closes deterministically before the application root.
+- Discover installed dependencies without executing their package initializers,
+  preventing optional-import failures from causing redundant pip installs.
+
 ## 0.2.307 - 2026-07-20
 
 - Check installed dependencies using their Python import names while retaining
