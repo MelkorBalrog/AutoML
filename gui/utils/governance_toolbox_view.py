@@ -55,6 +55,7 @@ class GovernanceToolboxView:
         self.context = context
         self.state = ToolboxViewLifecycle.CREATING
         self.frames: dict[str, tk.Widget] = {}
+        self.sections: dict[str, tk.Widget] = {}
         self.buttons: dict[str, tk.Widget] = {}
         self.images: dict[str, t.Any] = {}
         self._build()
@@ -67,6 +68,10 @@ class GovernanceToolboxView:
     @property
     def button_ids(self) -> tuple[str, ...]:
         return tuple(self.buttons)
+
+    @property
+    def section_ids(self) -> tuple[str, ...]:
+        return tuple(self.sections)
 
     def _command(self, identifier: str) -> t.Callable[[], None]:
         method = self.ACTIONS.get(identifier)
@@ -89,6 +94,7 @@ class GovernanceToolboxView:
                 section = ttk.LabelFrame(
                     frame, text=self._section_label(descriptor.label)
                 )
+                self.sections[descriptor.section_id] = section
                 section.pack(fill=tk.X, padx=2, pady=2)
                 for button in descriptor.buttons:
                     self._build_button(section, button)
@@ -140,13 +146,19 @@ class GovernanceToolboxView:
             if frame.winfo_exists():
                 frame.destroy()
         self.frames.clear()
+        self.sections.clear()
         self.buttons.clear()
         self.images.clear()
         self.state = ToolboxViewLifecycle.DISPOSED
 
 
-def build_governance_toolbox(
+def build_toolbox_from_definition(
     parent: tk.Misc, definition: t.Any, diagram_context: t.Any,
 ) -> GovernanceToolboxView:
-    """The sole builder for docked and detached governance toolboxes."""
+    """Authoritatively build every widget from one locked definition."""
     return GovernanceToolboxView(parent, definition, diagram_context)
+
+
+# Backward-compatible import name; all production construction uses the
+# authoritative operation above.
+build_governance_toolbox = build_toolbox_from_definition
