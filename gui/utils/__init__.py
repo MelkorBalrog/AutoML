@@ -31,6 +31,13 @@ from . import logger  # noqa: F401
 from .node_utils import resolve_original  # noqa: F401
 from .detached_window import DetachedWindow  # noqa: F401
 from .widget_transfer_manager import WidgetTransferManager  # noqa: F401
+from .dockable_diagram_window import (  # noqa: F401
+    DiagramContext,
+    DiagramVisual,
+    DiagramVisualState,
+    DockableDiagramWindow,
+    ToolboxDefinition,
+)
 
 # Treeview convenience helpers live in the top level ``gui`` package. Importing
 # them here preserves backward compatibility for modules that relied on
@@ -60,4 +67,9 @@ __all__ = [
     "resolve_original",
     "DetachedWindow",
     "WidgetTransferManager",
+    "DiagramContext",
+    "DiagramVisual",
+    "DiagramVisualState",
+    "DockableDiagramWindow",
+    "ToolboxDefinition",
 ]

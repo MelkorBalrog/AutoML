@@ -18,6 +18,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.303 - 2026-07-19
+
+- Replace cross-parent Tk widget transfer with deterministic visual
+  reconstruction under the destination notebook or toplevel.
+- Add widget-free diagram state and toolbox definitions plus explicit attach,
+  activate, deactivate, snapshot, and dispose lifecycle contracts.
+- Give every host an independently constructed visual and toolbox lifetime so
+  closing one floating host cannot affect another host's shared definition.
+- Preserve selection, zoom, scrolling, active toolbox, and extension state
+  across host transitions while cancelling callbacks before visual disposal.
+
 ## 0.2.302 - 2026-07-19
 
 - Centralize application teardown in an owner-thread lifecycle controller that

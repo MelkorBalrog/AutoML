@@ -16,126 +16,34 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Utilities for moving widgets between notebooks without cloning."""
+"""Host transition orchestration without cross-parent widget transfer."""
 
 from __future__ import annotations
 
 import tkinter as tk
+from tkinter import ttk
 
-try:  # pragma: no cover - support direct module execution
-    from .tk_utils import cancel_after_events, reparent_widget
-except Exception:  # pragma: no cover - legacy path
-    from tk_utils import cancel_after_events, reparent_widget
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:  # pragma: no cover - type hints only
-    from gui.utils.dockable_diagram_window import DockableDiagramWindow
+from .dockable_diagram_window import DockableDiagramWindow
 
 
 class WidgetTransferManager:
-    """Legacy helper for moving known-safe widgets between notebooks.
-
-    ``detach_tab`` reparents an existing widget instead of rebuilding it.  That
-    is only safe for explicitly supported legacy/dockable widgets whose owners
-    know how to survive a notebook move.  Normal application document tabs
-    should use a reconstruction/factory based detach path instead so complex
-    widget state, callbacks, and ownership remain consistent.
-    """
+    """Reconstruct managed visuals; never move a live Tk widget."""
 
     def detach_tab(
-        self,
-        source: "tk.Widget",
-        tab_id: str,
-        target: "tk.Widget",
+        self, source: ttk.Notebook, tab_id: str, target: ttk.Notebook
     ) -> tk.Widget:
-        """Move *tab_id* from *source* notebook to *target* notebook.
+        """Replace a managed source visual with a destination-owned visual."""
 
-        This method is not the default document-tab detachment mechanism.  Use
-        it only when the caller has already validated that the widget is a
-        supported legacy/dockable tab that can safely be moved as-is.
-
-        Parameters
-        ----------
-        source:
-            Notebook containing the tab to detach.
-        tab_id:
-            Widget path of the tab to move.
-        target:
-            Notebook receiving the tab.
-
-        Returns
-        -------
-        tk.Widget
-            The moved widget.
-        """
-
-        orig = source.nametowidget(tab_id)
-        text = source.tab(tab_id, "text")
-        cancel_after_events(orig)
-
-        try:  # defer import to avoid circular dependencies
-            from gui.utils.dockable_diagram_window import DockableDiagramWindow as DDW
-        except Exception:  # pragma: no cover - fallback for legacy paths
-            from dockable_diagram_window import DockableDiagramWindow as DDW
-
-        dock = getattr(orig, "_dock_window", None)
-        if isinstance(dock, DDW):
-            current_notebook = getattr(dock, "_notebook", None)
-            try:
-                if current_notebook is target:
-                    try:
-                        target.select(dock.content_frame)
-                    except tk.TclError:
-                        pass
-                    return orig
-                if current_notebook is source:
-                    try:
-                        source.forget(orig)
-                    except tk.TclError:
-                        pass
-                dock.dock(target, len(target.tabs()), text)
-                dock._notebook = target
-                try:
-                    target.select(dock.content_frame)
-                except tk.TclError:
-                    pass
-            except tk.TclError as exc:
-                try:
-                    dock.dock(source, len(source.tabs()), text)
-                    dock._notebook = source
-                    try:
-                        source.select(dock.content_frame)
-                    except tk.TclError:
-                        pass
-                except tk.TclError:
-                    pass
-                raise exc
-            return orig
-
-        source.forget(orig)
-        try:
-            target.add(orig, text=text)
-        except tk.TclError as exc:
-            source.add(orig, text=text)
-            source.select(orig)
-            raise exc
-
-        try:
-            reparent_widget(orig, target)
-            target.select(orig)
-        except tk.TclError as exc:
-            try:
-                target.forget(orig)
-            except tk.TclError:
-                pass
-            if orig.master is not source:
-                try:
-                    reparent_widget(orig, source)
-                except tk.TclError:
-                    pass
-            source.add(orig, text=text)
-            source.select(orig)
-            raise exc
-
-        return orig
+        original = source.nametowidget(tab_id)
+        title = source.tab(tab_id, "text")
+        dock = getattr(original, "_dock_window", None)
+        if not isinstance(dock, DockableDiagramWindow):
+            raise RuntimeError(
+                "cross-parent transfer is removed; provide a reconstruction lifecycle"
+            )
+        if dock.content_frame is not original:
+            raise RuntimeError("tab is not the active visual owned by its dock manager")
+        source.forget(original)
+        rebuilt = dock.attach(target, index=len(target.tabs()), title=title)
+        rebuilt._dock_window = dock
+        return rebuilt

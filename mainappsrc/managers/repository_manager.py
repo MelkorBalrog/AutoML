@@ -34,7 +34,6 @@ from gui.windows.architecture import (
     ControlFlowDiagramWindow,
     GovernanceDiagramWindow,
 )
-from gui.utils.dockable_diagram_window import DockableDiagramWindow
 
 
 class RepositoryManager:
@@ -150,11 +149,9 @@ class RepositoryManager:
             self.app._update_analysis_menus(diagram_mode)
             return
 
-        dock_window = DockableDiagramWindow(self.app.doc_nb)
-        canvas_tab = dock_window.content_frame
-        canvas_tab._dock_window = dock_window
+        canvas_tab = ttk.Frame(self.app.doc_nb)
         title = "FTA" if diagram_mode == "FTA" else diagram_mode
-        dock_window.dock(self.app.doc_nb, len(self.app.doc_nb.tabs()), title)
+        self.app.doc_nb.add(canvas_tab, text=title)
 
         canvas = tk.Canvas(canvas_tab, bg=StyleManager.get_instance().canvas_bg)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)

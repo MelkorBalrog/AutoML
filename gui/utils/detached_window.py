@@ -30,9 +30,8 @@ from .window_resizer import WindowResizeController
 class DetachedWindow:
     """Create a floating window embedding a :class:`ClosableNotebook`.
 
-    The window re-packs toolbars and toolboxes of the hosted widget and
-    reactivates lifecycle hooks so the detached diagram behaves like it does
-    within the main application.
+    Hosted visuals implement an explicit lifecycle.  No attributes are probed
+    and no selector bindings are installed by this host.
     """
 
     def __init__(
@@ -45,70 +44,45 @@ class DetachedWindow:
         self.nb = ClosableNotebook(self.win)
         self.nb.pack(expand=True, fill="both")
         self._resizer: WindowResizeController | None = None
-        try:
-            self._resizer = WindowResizeController(self.win, self.nb)
-        except Exception:
-            self._resizer = None
+        self._resizer = WindowResizeController(self.win, self.nb)
+        self._visuals: list[object] = []
         self.win.bind("<Destroy>", self._on_destroy)
 
     # ------------------------------------------------------------------
     # Window setup helpers
     # ------------------------------------------------------------------
-    def add(self, widget: tk.Widget, text: str) -> None:
-        """Add *widget* to the notebook and run activation hooks."""
+    def add(self, visual: object, text: str) -> tk.Widget:
+        """Attach an object implementing the explicit visual contract."""
+        from .dockable_diagram_window import DiagramContext, DiagramVisual
+
+        if not isinstance(visual, DiagramVisual):
+            raise TypeError("DetachedWindow.add requires a DiagramVisual")
+        context = getattr(visual, "context", None)
+        if not isinstance(context, DiagramContext):
+            raise TypeError("visual must expose its widget-free DiagramContext")
+        visual.attach(self.nb, context)
+        widget = visual.widget
+        if widget.master is not self.nb:
+            raise RuntimeError("visual was not constructed for the detached host")
         self.nb.add(widget, text=text)
-        self.add_moved_widget(widget, text)
-
-    def add_moved_widget(self, widget: tk.Widget, text: str) -> None:
-        """Accept an already-moved *widget* and trigger hooks."""
-        try:
-            self.nb.tab(widget, text=text)
-        except Exception:
-            pass
         self.nb.select(widget)
-        if self._resizer is not None:
-            self._resizer.add_target(widget)
-        self._ensure_toolbox(widget)
-        self._activate_hooks(widget)
-
-    def _ensure_toolbox(self, widget: tk.Widget) -> None:
-        """Ensure any toolbox frame is packed and functional."""
-        frame = getattr(widget, "toolbox", getattr(widget, "tools_frame", None))
-        if isinstance(frame, tk.Widget) and not frame.winfo_manager():
-            try:
-                frame.pack(side="left")
-            except Exception:
-                pass
-        selector = getattr(widget, "toolbox_selector", None)
-        switch = getattr(widget, "_switch_toolbox", None)
-        if isinstance(selector, ttk.Combobox) and callable(switch):
-            try:
-                selector.bind("<<ComboboxSelected>>", lambda _e: switch())
-            except Exception:
-                pass
-
-    def _activate_hooks(self, widget: tk.Widget) -> None:
-        """Invoke lifecycle hooks on *widget* if present."""
-        for name in ("_rebuild_toolboxes", "_activate_parent_phase", "_switch_toolbox"):
-            func = getattr(widget, name, None)
-            if callable(func):
-                try:
-                    func()
-                except Exception:
-                    pass
+        self._resizer.add_target(widget)
+        self._visuals.append(visual)
+        visual.activate()
+        return widget
 
     # ------------------------------------------------------------------
     # Cleanup
     # ------------------------------------------------------------------
     def _on_destroy(self, _event: tk.Event) -> None:  # pragma: no cover - GUI event
         """Cancel pending callbacks when the window is destroyed."""
-        try:
-            cancel_after_events(self.win)
-        except Exception:
-            pass
+        if _event.widget is not self.win:
+            return
+        cancel_after_events(self.win)
+        for visual in tuple(self._visuals):
+            visual.deactivate()
+            visual.dispose()
+        self._visuals.clear()
         if self._resizer is not None:
-            try:
-                self._resizer.shutdown()
-            except Exception:
-                pass
+            self._resizer.shutdown()
         self._resizer = None
