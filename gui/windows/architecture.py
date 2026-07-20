@@ -35,14 +35,6 @@ from pathlib import Path
 from dataclasses import dataclass, field, asdict, replace
 from typing import Dict, List, Tuple, Callable
 import warnings
-import logging
-
-from gui.diagram_toolbox_registry import (
-    DiagramToolboxDefinition,
-    governance_toolbox_definition,
-    register_toolbox_definition,
-    with_rules,
-)
 
 from mainappsrc.models.sysml.sysml_repository import SysMLRepository, SysMLDiagram, SysMLElement
 from gui.styles.style_manager import StyleManager
@@ -267,7 +259,6 @@ class GovernanceToolboxState:
     current_tool: str | None = None
     enablement_inputs: tuple[tuple[str, bool], ...] = ()
     visibility_inputs: tuple[tuple[str, bool], ...] = ()
-    locked_toolbox_definition: DiagramToolboxDefinition | None = None
 
     @property
     def category_ids(self) -> tuple[str, ...]:
@@ -12326,7 +12317,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             descriptor,
             active_category=self.toolbox_var.get(),
             current_tool=getattr(self, "current_tool", None),
-            locked_toolbox_definition=descriptor.locked_toolbox_definition,
         )
 
     def _activate_parent_phase(self) -> None:
@@ -12365,34 +12355,28 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     def _resolve_toolbox_descriptor(self) -> GovernanceToolboxState:
         """Resolve diagram context and the complete semantic toolbox definition."""
         saved = getattr(self, "_initial_toolbox_state", None)
-        enabled = dict(saved.enablement_inputs) if saved else {}
-        visible = dict(saved.visibility_inputs) if saved else {}
-        locked = saved.locked_toolbox_definition if saved else None
-        if locked is None:
-            definitions = copy.deepcopy(_toolbox_defs())
-            ai_data = definitions.pop("Safety & AI Lifecycle", None)
-            definitions["Governance Core"] = _core_toolbox_template()
-            _deduplicate_relations(definitions, ai_data)
-            ordered_names = sorted(definitions)
+        definitions = copy.deepcopy(_toolbox_defs())
+        ai_data = definitions.pop("Safety & AI Lifecycle", None)
+        definitions["Governance Core"] = _core_toolbox_template()
+        _deduplicate_relations(definitions, ai_data)
+
+        ordered_names = sorted(definitions)
+        if "Governance Core" in ordered_names:
             ordered_names.remove("Governance Core")
             ordered_names.insert(0, "Governance Core")
-            if ai_data:
-                definitions["Safety & AI Lifecycle"] = ai_data
-                ordered_names.append("Safety & AI Lifecycle")
-            ordered = {name: definitions[name] for name in ordered_names}
-            locked = governance_toolbox_definition(ordered)
-            locked = with_rules(locked, enabled, visible)
-            register_toolbox_definition(locked)
-        ordered_names = list(locked.category_ids)
-        categories = tuple(ToolboxCategoryDescriptor(
-            name,
-            tuple(ToolboxButtonDescriptor(
-                button.button_id, button.label, button.command_identifier,
-                button.section_id, button.enabled_rule, button.visible_rule,
-                button.icon_key, button.command_identifier,
-            ) for section in locked.sections if section.category_id == name
-                  for button in section.buttons),
-        ) for name in ordered_names)
+        if ai_data:
+            definitions["Safety & AI Lifecycle"] = ai_data
+            ordered_names.append("Safety & AI Lifecycle")
+
+        enabled = dict(saved.enablement_inputs) if saved else {}
+        visible = dict(saved.visibility_inputs) if saved else {}
+        categories = tuple(
+            ToolboxCategoryDescriptor(
+                name,
+                tuple(self._describe_category_buttons(name, definitions[name], enabled, visible)),
+            )
+            for name in ordered_names
+        )
         active = saved.active_category if saved else self.toolbox_var.get()
         if active not in ordered_names:
             active = next(
@@ -12408,7 +12392,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             current_tool=(saved.current_tool if saved else getattr(self, "current_tool", None)),
             enablement_inputs=tuple(enabled.items()),
             visibility_inputs=tuple(visible.items()),
-            locked_toolbox_definition=locked,
         )
 
     @staticmethod
@@ -12442,17 +12425,10 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         self._toolbox_prefix = f"{diag_id}:{id(self)}:toolbox:"
         self._active_toolbox_key = ""
         memory_manager.discard_prefix(self._toolbox_prefix)
-        # Category identities come exclusively from the locked semantic table.
-        # Empty values only create the temporary layout slots replaced below;
-        # they are never a source of detached controls.
-        if getattr(self, "_initial_toolbox_state", None) is not None:
-            defs = {category.category_id: {} for category in descriptor.categories}
-            ai_data = None
-        else:
-            defs = copy.deepcopy(_toolbox_defs())
-            ai_data = defs.pop("Safety & AI Lifecycle", None)
-            defs["Governance Core"] = _core_toolbox_template()
-            _deduplicate_relations(defs, ai_data)
+        defs = copy.deepcopy(_toolbox_defs())
+        ai_data = defs.pop("Safety & AI Lifecycle", None)
+        defs["Governance Core"] = _core_toolbox_template()
+        _deduplicate_relations(defs, ai_data)
         if hasattr(self.tools_frame, "pack_forget"):
             self.tools_frame.pack_forget()
         if getattr(self, "rel_frame", None) and hasattr(self.rel_frame, "pack_forget"):
@@ -12616,7 +12592,7 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         """
         if not isinstance(self.toolbox, tk.Misc):
             return
-        from gui.utils.governance_toolbox_view import build_toolbox_from_definition
+        from gui.utils.governance_toolbox_view import build_governance_toolbox
 
         previous = getattr(self, "_semantic_toolbox_view", None)
         if previous is not None:
@@ -12626,27 +12602,13 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             for frame in frames:
                 if frame not in protected and hasattr(frame, "destroy"):
                     frame.destroy()
-        view = build_toolbox_from_definition(self.toolbox, self.toolbox_state, self)
+        view = build_governance_toolbox(self.toolbox, self.toolbox_state, self)
         self._semantic_toolbox_view = view
         self._toolbox_frames = {
             category_id: [self.tools_frame, frame]
             for category_id, frame in view.frames.items()
         }
         self._loaded_toolbox_frames = dict(view.frames)
-        report = self.verify_toolbox_view()
-        if report["missing_category_ids"] or report["unexpected_category_ids"] or \
-                report["missing_section_ids"] or report["unexpected_section_ids"] or \
-                report["missing_button_ids"] or report["unexpected_button_ids"]:
-            logging.getLogger(__name__).error(
-                "Detached toolbox mismatch diagram=%s type=%s category=%s widget=%s "
-                "missing=%s unexpected=%s", self.diagram_id, "Governance Diagram",
-                self.toolbox_var.get(), self.toolbox.winfo_pathname(self.toolbox.winfo_id()),
-                (report["missing_category_ids"], report["missing_section_ids"],
-                 report["missing_button_ids"]),
-                (report["unexpected_category_ids"], report["unexpected_section_ids"],
-                 report["unexpected_button_ids"]),
-            )
-            raise RuntimeError("Incomplete Governance toolbox construction")
         canvas = getattr(self, "toolbox_canvas", None)
         if canvas is not None:
             canvas.bind(
@@ -12748,8 +12710,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         )
         expected_buttons = [button.button_id for category in self.toolbox_state.categories
                             for button in category.buttons]
-        locked = self.toolbox_state.locked_toolbox_definition
-        expected_sections = list(locked.section_ids if locked is not None else ())
         # A loaded category is authoritative evidence that all buttons from its
         # definition were created by ``build_frame``.
         actual_buttons = list(semantic_view.button_ids) if semantic_view is not None else [
@@ -12757,7 +12717,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             if category.category_id in self._loaded_toolbox_frames
             for button in category.buttons
         ]
-        actual_sections = list(semantic_view.section_ids) if semantic_view is not None else expected_sections
         return {
             "expected_category_ids": expected_categories,
             "actual_category_ids": actual_categories,
@@ -12767,10 +12726,6 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             "actual_button_ids": actual_buttons,
             "missing_button_ids": sorted(set(expected_buttons) - set(actual_buttons)),
             "unexpected_button_ids": sorted(set(actual_buttons) - set(expected_buttons)),
-            "expected_section_ids": expected_sections,
-            "actual_section_ids": actual_sections,
-            "missing_section_ids": sorted(set(expected_sections) - set(actual_sections)),
-            "unexpected_section_ids": sorted(set(actual_sections) - set(expected_sections)),
         }
 
     def _complete_toolbox_layout(self) -> None:

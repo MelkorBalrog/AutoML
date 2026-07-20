@@ -18,14 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-## 0.2.312 - 2026-07-20
-
-- Lock the complete immutable, widget-independent toolbox table immediately
-  before diagram detachment. Detached Governance views now receive that table
-  explicitly, build and verify every stable section/button ID before display,
-  retain their own icons and restore selection and scroll geometry without
-  consulting mutable Governance configuration.
-
 ## 0.2.311 - 2026-07-20
 
 - Project docked and detached Governance toolboxes from one immutable semantic

@@ -28,28 +28,6 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "
 sys.path.append(root_dir)
 sys.path.append(os.path.join(root_dir, "gui", "utils"))
 from closable_notebook import ClosableNotebook
-from gui.diagram_toolbox_registry import governance_toolbox_definition
-
-
-class TestProductionGovernanceDescriptor:
-    """Widget-independent production descriptor qualification."""
-
-    def test_complete_ordered_definition_has_stable_semantic_controls(self) -> None:
-        from gui.windows.architecture import _core_toolbox_template, _toolbox_defs
-
-        definitions = _toolbox_defs()
-        definitions["Governance Core"] = _core_toolbox_template()
-        definition = governance_toolbox_definition(definitions)
-        labels = [button.label for section in definition.sections for button in section.buttons]
-        required = {
-            "Task", "Initial", "Final", "Decision", "Merge", "System Boundary",
-            "Data", "Document", "Record", "Field Data", "Guideline", "Policy",
-            "Principle", "Add Work Product", "Add Generic Work Product",
-            "Add Lifecycle Phase",
-        }
-        assert required <= set(labels)
-        assert len(definition.section_ids) == len(set(definition.section_ids))
-        assert len(definition.button_ids) == len(set(definition.button_ids))
 
 
 class GovernanceDiagram(ttk.Frame):
