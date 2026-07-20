@@ -20,12 +20,14 @@
 from __future__ import annotations
 
 import sys
+import threading
 import tkinter as tk
 from tkinter import ttk
 import typing as t
 
 from gui.utils.tk_utils import dispatch_to_ui, is_main_thread
 from gui.utils.win32_hooks import create_window_size_hook
+from gui.utils.tk_lifecycle_registry import TkLifecycleRegistry
 
 
 def _python_is_finalizing() -> bool:
@@ -56,6 +58,10 @@ class WindowResizeController:
         self._last_size: tuple[int, int] | None = None
         self._win32_hook = None
         self._use_win32_hook = use_win32_hook
+        self.active = True
+        toplevel = getattr(win, "winfo_toplevel", None)
+        root = toplevel() if callable(toplevel) else win
+        self.lifecycle = TkLifecycleRegistry(root, threading.get_ident())
         if primary is not None:
             self.set_primary_target(primary)
         self._bind()
@@ -118,13 +124,11 @@ class WindowResizeController:
 
         self._callback = _callback
         try:
-            self._binding_id = self.win.bind("<Configure>", _callback, add="+")
+            self._binding_id = self.lifecycle.bind(self, self.win, "<Configure>", _callback)
         except Exception:
             self._binding_id = None
         try:
-            self._destroy_binding_id = self.win.bind(
-                "<Destroy>", self._on_win_destroy, add="+"
-            )
+            self._destroy_binding_id = self.lifecycle.bind(self, self.win, "<Destroy>", self._on_win_destroy)
         except Exception:
             self._destroy_binding_id = None
         self._install_win32_hook()
@@ -149,20 +153,10 @@ class WindowResizeController:
             self._win32_hook = None
 
         if not finalizing:
-            unbind = getattr(self.win, "unbind", None)
-            if callable(unbind):
-                if self._binding_id is not None:
-                    try:
-                        unbind("<Configure>", self._binding_id)
-                    except Exception:
-                        pass
-                    self._binding_id = None
-                if self._destroy_binding_id is not None:
-                    try:
-                        unbind("<Destroy>", self._destroy_binding_id)
-                    except Exception:
-                        pass
-                    self._destroy_binding_id = None
+            self.lifecycle.dispose_component(self)
+            self.active = False
+            self._binding_id = None
+            self._destroy_binding_id = None
 
         self._callback = None
         self._targets.clear()
