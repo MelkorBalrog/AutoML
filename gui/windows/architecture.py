@@ -208,6 +208,26 @@ class ToolboxButtonDescriptor:
     section: str
     enabled: bool = True
     visible: bool = True
+    icon_key: str | None = None
+    command_identifier: str | None = None
+    initializer: Callable[[tk.Misc, object], None] | None = None
+
+    @property
+    def command_id(self) -> str:
+        return self.command_identifier or self.tool
+
+    def __post_init__(self) -> None:
+        if self.icon_key is None:
+            object.__setattr__(self, "icon_key", self.label)
+
+
+@dataclass(frozen=True)
+class ToolboxSectionDescriptor:
+    """Ordered semantic section with a stable ID and presentation label."""
+
+    section_id: str
+    label: str
+    buttons: tuple[ToolboxButtonDescriptor, ...]
 
 
 @dataclass(frozen=True)
@@ -216,6 +236,17 @@ class ToolboxCategoryDescriptor:
 
     category_id: str
     buttons: tuple[ToolboxButtonDescriptor, ...]
+
+    @property
+    def sections(self) -> tuple[ToolboxSectionDescriptor, ...]:
+        """Return first-occurrence ordered sections without mutable metadata."""
+        ordered: dict[str, list[ToolboxButtonDescriptor]] = {}
+        for button in self.buttons:
+            ordered.setdefault(button.section, []).append(button)
+        return tuple(
+            ToolboxSectionDescriptor(section_id, section_id, tuple(buttons))
+            for section_id, buttons in ordered.items()
+        )
 
 
 @dataclass(frozen=True)
@@ -12312,6 +12343,10 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
 
     def _on_focus_in(self, event=None):
         self._activate_parent_phase()
+        semantic_view = getattr(self, "_semantic_toolbox_view", None)
+        if semantic_view is not None:
+            semantic_view.update_context(self)
+            self._apply_toolbox_control_states()
         super()._on_focus_in(event)
 
     # ------------------------------------------------------------------
@@ -12538,6 +12573,7 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         # Materialize every category before restoring the selected category.
         for option in options:
             self._ensure_toolbox_frame(option)
+        self._install_semantic_toolbox_view()
         self._apply_toolbox_control_states()
         if not hasattr(self, "toolbox_canvas") and hasattr(self.toolbox, "after"):
             # Minimal/headless hosts cannot measure layout; retain the legacy
@@ -12547,6 +12583,47 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
             self._switch_toolbox()
         self.toolbox_state = replace(descriptor, active_category=self.toolbox_var.get())
         self._complete_toolbox_layout()
+
+    def _install_semantic_toolbox_view(self) -> None:
+        """Replace provisional legacy frames with the authoritative projection.
+
+        Headless adapters retain their lightweight frames.  Real Tk hosts use
+        the same builder for both docked and reconstructed detached diagrams.
+        """
+        if not isinstance(self.toolbox, tk.Misc):
+            return
+        from gui.utils.governance_toolbox_view import build_governance_toolbox
+
+        previous = getattr(self, "_semantic_toolbox_view", None)
+        if previous is not None:
+            previous.dispose()
+        protected = {self.tools_frame, getattr(self, "rel_frame", None)}
+        for frames in self._toolbox_frames.values():
+            for frame in frames:
+                if frame not in protected and hasattr(frame, "destroy"):
+                    frame.destroy()
+        view = build_governance_toolbox(self.toolbox, self.toolbox_state, self)
+        self._semantic_toolbox_view = view
+        self._toolbox_frames = {
+            category_id: [self.tools_frame, frame]
+            for category_id, frame in view.frames.items()
+        }
+        self._loaded_toolbox_frames = dict(view.frames)
+        canvas = getattr(self, "toolbox_canvas", None)
+        if canvas is not None:
+            canvas.bind(
+                "<Configure>",
+                lambda _event: view.refresh_geometry(canvas, self._toolbox_window),
+                add="+",
+            )
+
+    def destroy(self) -> None:
+        """Dispose semantic toolbox resources before destroying the diagram."""
+        semantic_view = getattr(self, "_semantic_toolbox_view", None)
+        if semantic_view is not None:
+            semantic_view.dispose()
+            self._semantic_toolbox_view = None
+        super().destroy()
 
     def _apply_toolbox_control_states(self) -> None:
         """Apply descriptor enablement and visibility after widget creation."""
@@ -12592,6 +12669,9 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
 
     def _switch_toolbox(self) -> None:
         choice = self.toolbox_var.get()
+        semantic_view = getattr(self, "_semantic_toolbox_view", None)
+        if semantic_view is not None:
+            semantic_view.update_context(self)
         for frames in self._toolbox_frames.values():
             for frame in frames:
                 if frame and hasattr(frame, "pack_forget"):
@@ -12624,14 +12704,19 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
     def verify_toolbox_view(self) -> dict[str, object]:
         """Report descriptor/view IDs and missing or unexpected controls."""
         expected_categories = list(self.toolbox_state.category_ids)
-        actual_categories = list(self._toolbox_frames)
+        semantic_view = getattr(self, "_semantic_toolbox_view", None)
+        actual_categories = list(
+            semantic_view.category_ids if semantic_view is not None else self._toolbox_frames
+        )
         expected_buttons = [button.button_id for category in self.toolbox_state.categories
                             for button in category.buttons]
         # A loaded category is authoritative evidence that all buttons from its
         # definition were created by ``build_frame``.
-        actual_buttons = [button.button_id for category in self.toolbox_state.categories
-                          if category.category_id in self._loaded_toolbox_frames
-                          for button in category.buttons]
+        actual_buttons = list(semantic_view.button_ids) if semantic_view is not None else [
+            button.button_id for category in self.toolbox_state.categories
+            if category.category_id in self._loaded_toolbox_frames
+            for button in category.buttons
+        ]
         return {
             "expected_category_ids": expected_categories,
             "actual_category_ids": actual_categories,
@@ -12652,6 +12737,9 @@ class GovernanceDiagramWindow(SysMLDiagramWindow):
         width = canvas.winfo_width() or canvas.winfo_reqwidth()
         canvas.itemconfig(self._toolbox_window, width=width)
         canvas.configure(scrollregion=canvas.bbox("all"))
+        semantic_view = getattr(self, "_semantic_toolbox_view", None)
+        if semantic_view is not None:
+            semantic_view.refresh_geometry(canvas, self._toolbox_window)
 
         def refresh():
             if canvas.winfo_exists():
