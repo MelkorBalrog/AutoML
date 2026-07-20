@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import os
 import tkinter as tk
 from tkinter import ttk
 import pytest
@@ -108,4 +109,82 @@ class TestArchitectureToolboxVisibility:
         assert win.winfo_containing(x, y) == clone.button
         clone.button.invoke()
         assert clone.clicked is True
+        root.destroy()
+
+from types import SimpleNamespace
+
+from gui.architecture import (
+    ActivityDiagramWindow,
+    BlockDiagramWindow,
+    ControlFlowDiagramWindow,
+    GovernanceDiagramWindow,
+    InternalBlockDiagramWindow,
+    UseCaseDiagramWindow,
+)
+from mainappsrc.models.sysml.sysml_repository import SysMLRepository
+
+
+DIAGRAM_TOOLBOX_WINDOWS = (
+    (UseCaseDiagramWindow, "Use Case Diagram"),
+    (ActivityDiagramWindow, "Activity Diagram"),
+    (GovernanceDiagramWindow, "Governance"),
+    (BlockDiagramWindow, "Block Definition Diagram"),
+    (InternalBlockDiagramWindow, "Internal Block Diagram"),
+    (ControlFlowDiagramWindow, "Control Flow Diagram"),
+)
+
+
+@pytest.mark.skipif("DISPLAY" not in os.environ, reason="Tk display not available")
+class TestDiagramToolboxDescriptorViewEquivalence:
+    """Apply one ordered semantic-tool/view contract to every specific toolbox."""
+
+    @staticmethod
+    def _walk(widget: tk.Misc):
+        for child in widget.winfo_children():
+            yield child
+            yield from TestDiagramToolboxDescriptorViewEquivalence._walk(child)
+
+    @classmethod
+    def _button_descriptor(cls, window: tk.Misc) -> tuple[str, ...]:
+        toolbox = window.toolbox
+        return tuple(
+            child.cget("text") for child in cls._walk(toolbox)
+            if isinstance(child, (tk.Button, ttk.Button)) and child.winfo_exists()
+        )
+
+    @pytest.mark.parametrize(("window_class", "diagram_type"), DIAGRAM_TOOLBOX_WINDOWS)
+    def test_real_detached_view_exactly_matches_source_descriptor(
+        self, window_class: type, diagram_type: str
+    ) -> None:
+        SysMLRepository.reset_instance()
+        root = tk.Tk()
+        notebook = ClosableNotebook(root)
+        notebook.pack(fill=tk.BOTH, expand=True)
+        diagram = SysMLRepository.get_instance().create_diagram(diagram_type, name="Qualified")
+        source = window_class(
+            notebook, app=SimpleNamespace(), diagram_id=diagram.diag_id
+        )
+        notebook.add(source, text="Qualified")
+        root.update_idletasks()
+        expected = self._button_descriptor(source)
+
+        class Event:
+            pass
+
+        press = Event()
+        press.x = press.y = 5
+        notebook._on_tab_press(press)
+        notebook._dragging = True
+        release = Event()
+        release.x_root = notebook.winfo_rootx() + notebook.winfo_width() + 40
+        release.y_root = notebook.winfo_rooty() + notebook.winfo_height() + 40
+        notebook._on_tab_release(release)
+        floating = notebook._floating_windows[-1]
+        detached = next(
+            widget for widget in self._walk(floating)
+            if isinstance(widget, window_class)
+        )
+
+        assert self._button_descriptor(detached) == expected
+        assert detached.toolbox.winfo_exists()
         root.destroy()
