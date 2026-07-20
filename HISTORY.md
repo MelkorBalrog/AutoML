@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.310 - 2026-07-20
+
+- Add grouped real-Tk governance toolbox detachment qualification covering exact ordered category/control reconstruction, active selection, Tcl commands, retained icons, focus and resize stability, and 100 detach/dock cycles.
+- Apply the ordered source-descriptor/detached-view equivalence contract to every diagram window with a diagram-specific toolbox.
+
 ## 0.2.309 - 2026-07-20
 
 - Add widget-independent governance toolbox descriptors and deterministic detached-view reconstruction that preserves the active category and selected tool.
