@@ -17,7 +17,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import tkinter as tk
+import threading
 from tkinter import ttk, font as tkfont
+
+from .tk_lifecycle_registry import TkLifecycleRegistry
 
 class ToolTip:
     """Simple tooltip for Tkinter widgets.
@@ -33,15 +36,19 @@ class ToolTip:
         self.delay = delay
         self.tipwindow = None
         self.id = None
+        self.active = True
+        toplevel = getattr(widget, "winfo_toplevel", None)
+        root = toplevel() if callable(toplevel) else widget
+        self.lifecycle = TkLifecycleRegistry(root, threading.get_ident())
         if automatic:
-            widget.bind("<Enter>", self._schedule)
+            self.lifecycle.bind(self, widget, "<Enter>", self._schedule)
         # Always hide the tooltip when the pointer leaves the widget so
         # tooltips shown manually disappear as expected.
-        widget.bind("<Leave>", self._hide)
+        self.lifecycle.bind(self, widget, "<Leave>", self._hide)
 
     def _schedule(self, _event=None):
         self._unschedule()
-        self.id = self.widget.after(self.delay, self._show)
+        self.id = self.lifecycle.after(self, self.widget, self.delay, self._show)
 
     def _show(self, x: int | None = None, y: int | None = None):
         if self.tipwindow or not self.text:
@@ -127,5 +134,13 @@ class ToolTip:
 
     def _unschedule(self):
         if self.id:
-            self.widget.after_cancel(self.id)
+            self.lifecycle.cancel(self.id)
             self.id = None
+
+    def dispose(self):
+        """Remove callbacks before the tooltip owner is destroyed."""
+        if not self.active:
+            return
+        self._hide()
+        self.active = False
+        self.lifecycle.dispose_component(self)

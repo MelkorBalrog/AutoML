@@ -20,11 +20,13 @@
 from __future__ import annotations
 
 import tkinter as tk
+import threading
 from tkinter import ttk
 
 from .closable_notebook import ClosableNotebook, cancel_after_events
 from .window_controls import restore_window_buttons
 from .window_resizer import WindowResizeController
+from .tk_lifecycle_registry import TkLifecycleRegistry
 
 
 class DetachedWindow:
@@ -38,6 +40,8 @@ class DetachedWindow:
         self, root: tk.Misc, width: int, height: int, x: int, y: int
     ) -> None:
         self.root = root
+        self.active = True
+        self.lifecycle = TkLifecycleRegistry(root, threading.get_ident())
         self.win = tk.Toplevel(root)
         restore_window_buttons(self.win)
         self.win.geometry(f"{width}x{height}+{x}+{y}")
@@ -46,7 +50,7 @@ class DetachedWindow:
         self._resizer: WindowResizeController | None = None
         self._resizer = WindowResizeController(self.win, self.nb)
         self._visuals: list[object] = []
-        self.win.bind("<Destroy>", self._on_destroy)
+        self.lifecycle.bind(self, self.win, "<Destroy>", self._on_destroy)
 
     # ------------------------------------------------------------------
     # Window setup helpers
@@ -78,6 +82,12 @@ class DetachedWindow:
         """Cancel pending callbacks when the window is destroyed."""
         if _event.widget is not self.win:
             return
+        self.dispose()
+
+    def dispose(self) -> None:
+        """Drain window registrations and hosted visuals on the owner thread."""
+        if not self.active:
+            return
         cancel_after_events(self.win)
         for visual in tuple(self._visuals):
             visual.deactivate()
@@ -86,3 +96,5 @@ class DetachedWindow:
         if self._resizer is not None:
             self._resizer.shutdown()
         self._resizer = None
+        self.lifecycle.dispose_component(self)
+        self.active = False

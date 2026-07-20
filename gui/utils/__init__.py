@@ -31,6 +31,7 @@ from . import logger  # noqa: F401
 from .node_utils import resolve_original  # noqa: F401
 from .detached_window import DetachedWindow  # noqa: F401
 from .widget_transfer_manager import WidgetTransferManager  # noqa: F401
+from .tk_lifecycle_registry import TkLifecycleRegistry, TkRegistration  # noqa: F401
 from .dockable_diagram_window import (  # noqa: F401
     DiagramContext,
     DiagramVisual,
@@ -72,4 +73,6 @@ __all__ = [
     "DiagramVisualState",
     "DockableDiagramWindow",
     "ToolboxDefinition",
+    "TkLifecycleRegistry",
+    "TkRegistration",
 ]
