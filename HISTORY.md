@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.311 - 2026-07-20
+
+- Project docked and detached Governance toolboxes from one immutable semantic
+  definition through a single lifecycle-owned builder, with stable section and
+  button IDs, retained icons, context-bound commands, explicit initialization
+  states, and non-destructive focus and geometry refreshes.
+
 ## 0.2.310 - 2026-07-20
 
 - Add grouped real-Tk governance toolbox detachment qualification covering exact ordered category/control reconstruction, active selection, Tcl commands, retained icons, focus and resize stability, and 100 detach/dock cycles.
