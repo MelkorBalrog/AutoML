@@ -86,6 +86,8 @@ class DetachedWindow:
 
     def dispose(self) -> None:
         """Drain window registrations and hosted visuals on the owner thread."""
+        if threading.get_ident() != self.lifecycle.owner_thread_id:
+            raise RuntimeError("detached window disposal must run on its Tk owner thread")
         if not self.active:
             return
         cancel_after_events(self.win)
@@ -94,7 +96,7 @@ class DetachedWindow:
             visual.dispose()
         self._visuals.clear()
         if self._resizer is not None:
-            self._resizer.shutdown()
+            self._resizer.dispose()
         self._resizer = None
         self.lifecycle.dispose_component(self)
         self.active = False

@@ -19,12 +19,10 @@
 
 from __future__ import annotations
 
-import atexit
 import logging
 import sys
 import threading
 import typing as t
-import weakref
 
 LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +50,7 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
     import ctypes
     from ctypes import wintypes
 
-    _HOOKS: "weakref.WeakSet[_Win32WindowProcHook]" = weakref.WeakSet()
+    _HOOKS: set["_Win32WindowProcHook"] = set()
     _HOOK_LOCK = threading.RLock()
 
     LRESULT = wintypes.LPARAM
@@ -187,6 +185,8 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
             if not _WIN32_APIS_READY:
                 raise RuntimeError("Win32 hooks are not available")
             self.hwnd = wintypes.HWND(hwnd)
+            self.owner_thread_id = threading.get_ident()
+            self.disposed = False
             self._callback = callback
             self._original: int | None = None
             self._wnd_proc = WNDPROC(self._procedure)
@@ -200,14 +200,32 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
             previous = _set_window_proc(self.hwnd, proc_pointer)
             self._original = previous if previous else None
 
-        def uninstall(self) -> None:
+        def dispose(self) -> None:
+            """Restore the window procedure explicitly on its owner thread."""
+            if threading.get_ident() != self.owner_thread_id:
+                raise RuntimeError("window hook disposal must run on its Tk owner thread")
+            if self.disposed:
+                return
             if self._original is None:
+                self.disposed = True
+                self._callback = None
+                self._wnd_proc = None
+                self.hwnd = None
+                _discard_hook(self)
                 return
             try:
                 _set_window_proc(self.hwnd, self._original)
             finally:
                 self._original = None
                 _discard_hook(self)
+                self._callback = None
+                self._wnd_proc = None
+                self.hwnd = None
+                self.disposed = True
+
+        def uninstall(self) -> None:
+            """Compatibility alias for :meth:`dispose`."""
+            self.dispose()
 
         def _forward_to_original(self, hwnd, msg, wparam, lparam):  # noqa: ANN001
             original = self._original
@@ -264,28 +282,6 @@ if _IS_WINDOWS:  # pragma: win32-no-cover - exercised via integration on Windows
                 return None
             return int(windowpos.cx), int(windowpos.cy)
 
-        def __del__(self) -> None:  # pragma: no cover - defensive cleanup
-            if _python_is_finalizing():
-                _discard_hook(self)
-                return
-            try:
-                self.uninstall()
-            except Exception:
-                LOGGER.debug("Ignoring error while uninstalling Win32 hook", exc_info=True)
-                _discard_hook(self)
-
-    def _uninstall_registered_hooks() -> None:
-        begin_shutdown()
-        with _HOOK_LOCK:
-            hooks = list(_HOOKS)
-        for hook in hooks:
-            try:
-                hook.uninstall()
-            except Exception:
-                LOGGER.debug("Ignoring error during registered hook uninstall", exc_info=True)
-
-    if _WIN32_APIS_READY:
-        atexit.register(_uninstall_registered_hooks)
 else:  # pragma: no cover - exercised only on non-Windows platforms
 
     class _Win32WindowProcHook:  # type: ignore[no-redef]
@@ -296,6 +292,8 @@ else:  # pragma: no cover - exercised only on non-Windows platforms
 
         def uninstall(self) -> None:  # pragma: no cover - never invoked
             raise RuntimeError("Win32 hooks are not supported on this platform")
+
+        dispose = uninstall
 
 
 def create_window_size_hook(

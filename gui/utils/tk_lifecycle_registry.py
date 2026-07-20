@@ -214,6 +214,8 @@ class TkLifecycleRegistry:
         elif entry.kind == "command":
             target.deletecommand(entry.detail)
         entry.disposed = True
+        entry.target = None
+        entry.previous = None
 
     cancel_after = cancel
     remove_binding = cancel

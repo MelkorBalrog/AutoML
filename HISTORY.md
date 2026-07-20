@@ -18,6 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.305 - 2026-07-20
+
+- Replace resize-controller destructor and Win32 hook destructor/atexit cleanup
+  with explicit, idempotent, owner-thread disposal before window destruction.
+- Clear resize widgets and native hook references deterministically, with grouped
+  lifecycle regressions proving garbage collection performs no GUI cleanup.
+
 ## 0.2.304 - 2026-07-20
 
 - Add an owner-thread Tk lifecycle registry with deduplicated, auditable APIs
