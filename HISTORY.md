@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+## 0.2.312 - 2026-08-01
+
+- Show the left File Explorer at startup and pin it by default, while retaining
+  the explicit Unpin control for users who prefer hover-based auto-hide.
+
 ## 0.2.311 - 2026-07-20
 
 - Project docked and detached Governance toolboxes from one immutable semantic
