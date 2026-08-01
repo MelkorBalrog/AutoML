@@ -795,7 +795,7 @@ class AutoMLApp(
 
         root.config(menu=menubar)
 
-        # Container to hold the auto-hiding explorer tab and main pane
+        # Container for the pinned explorer and main document pane.
         self.top_frame = tk.Frame(root)
         self.top_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -836,15 +836,17 @@ class AutoMLApp(
             )
             ttk.Label(self.status_frame, textvariable=var).pack(side=tk.LEFT)
 
-        # Explorer pane with notebook and pin button (hidden by default)
+        # Explorer pane with notebook and pin button (visible and pinned by default).
         self.explorer_pane = ttk.Frame(self.main_pane)
         self.explorer_nb = ttk.Notebook(self.explorer_pane)
         self.explorer_nb.pack(fill=tk.BOTH, expand=True)
         self._explorer_width = 300
         self._explorer_auto_hide_id = None
-        self._explorer_pinned = False
+        self._explorer_pinned = True
         self._explorer_pin_btn = ttk.Button(
-            self.explorer_pane, text="Pin", command=self.lifecycle_ui.toggle_explorer_pin
+            self.explorer_pane,
+            text="Unpin",
+            command=self.lifecycle_ui.toggle_explorer_pin,
         )
         self._explorer_pin_btn.pack(anchor="ne")
         self._explorer_tab = ttk.Label(
@@ -853,7 +855,6 @@ class AutoMLApp(
             relief="raised",
             cursor="hand2",
         )
-        self._explorer_tab.pack(side=tk.LEFT, fill=tk.Y)
 
         self.analysis_tab = ttk.Frame(self.explorer_nb)
         self.explorer_nb.add(self.analysis_tab, text="File Explorer")
@@ -1062,6 +1063,11 @@ class AutoMLApp(
         self.doc_nb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.lifecycle_ui._update_doc_tab_visibility()
         self.main_pane.add(self.doc_frame, stretch="always")
+        self.main_pane.add(
+            self.explorer_pane,
+            before=self.doc_frame,
+            width=self._explorer_width,
+        )
         # Tooltip helper for document tabs
         self._doc_tip = ToolTip(self.doc_nb, "", automatic=False)
 
